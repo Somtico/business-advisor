@@ -19,7 +19,7 @@ export function TermsPage() {
       <div className="mx-auto max-w-3xl border border-ba-line bg-white p-8 md:p-10">
         <h1 className="font-display text-3xl font-bold">Terms of Service</h1>
         <p className="mt-2 text-base text-ba-ink/70">
-          Business Advisor — operated by Somtico Tech Inc.
+          Business Advisor — operated by Somtico Technologies Inc.
         </p>
         <p className="mt-1 text-base text-ba-ink/70">
           Version {TERMS_VERSION} · Effective 14 August 2026
@@ -28,7 +28,7 @@ export function TermsPage() {
         <Section title="1. Agreement to These Terms">
           <p>
             These Terms of Service (the "Terms") are a binding agreement between
-            Somtico Tech Inc. ("Somtico Tech", "we", "us", "our") and the
+            Somtico Technologies Inc. ("Somtico Tech", "we", "us", "our") and the
             organization on whose behalf you create an account (the "Customer",
             "you", "your") governing your access to and use of the Business
             Advisor software-as-a-service platform, including its web
@@ -299,7 +299,7 @@ export function TermsPage() {
 
         <Section title="19. Contact">
           <p>
-            Somtico Tech Inc., Saskatoon, Saskatchewan, Canada. Questions
+            Somtico Technologies Inc., Saskatoon, Saskatchewan, Canada. Questions
             about these Terms can be sent through your account's support channel
             or the contact address listed on our website.
           </p>
