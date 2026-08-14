@@ -1,0 +1,51 @@
+{
+  "name": "business-advisor-backend",
+  "version": "1.0.0",
+  "private": true,
+  "main": "dist/server.js",
+  "scripts": {
+    "build": "npx prisma generate && tsc -p tsconfig.build.json",
+    "prebuild": "rm -rf dist",
+    "start": "node dist/server.js",
+    "start:prod": "npx prisma migrate deploy || true; npm run ensure:db-schema || true; npx prisma generate && npm start",
+    "dev": "nodemon --exec ts-node src/server.ts",
+    "clean": "rm -rf dist",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:migrate:deploy": "prisma migrate deploy",
+    "db:seed": "ts-node prisma/seed.ts",
+    "ensure:db-schema": "ts-node scripts/ensure-db-schema.ts"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.14.0",
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "express-rate-limit": "^7.2.0",
+    "helmet": "^8.0.0",
+    "jsonwebtoken": "^9.0.2",
+    "morgan": "1.11.0",
+    "node-cron": "^3.0.3",
+    "stripe": "^18.5.0"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "@types/jsonwebtoken": "^9.0.7",
+    "@types/morgan": "^1.9.9",
+    "@types/node": "^22.15.29",
+    "@types/node-cron": "^3.0.11",
+    "nodemon": "^3.1.10",
+    "prisma": "^6.14.0",
+    "ts-node": "^10.9.2",
+    "typescript": "~5.8.3"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "prisma": {
+    "seed": "ts-node prisma/seed.ts"
+  }
+}
