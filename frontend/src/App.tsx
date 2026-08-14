@@ -15,6 +15,7 @@ import { PricingPage } from './pages/PricingPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { TermsPage } from './pages/TermsPage';
 import { HelpPage } from './pages/HelpPage';
+import { EmailVerificationPage } from './pages/EmailVerificationPage';
 
 export default function App() {
   return (
@@ -23,6 +24,7 @@ export default function App() {
       <Route path="/login" element={<LoginPage />} />
       <Route path="/signup" element={<SignupPage />} />
       <Route path="/terms" element={<TermsPage />} />
+      <Route path="/verify-email" element={<EmailVerificationPage />} />
       <Route
         path="/app"
         element={

@@ -3,6 +3,8 @@ import { EducationSubtype } from '@prisma/client';
 import {
   loginUser,
   registerOrganization,
+  resendVerificationEmail,
+  verifyEmailToken,
 } from '../services/authService';
 import { createPilotCheckoutSession } from '../services/billingService';
 import { authenticateToken } from '../middleware/auth';
@@ -25,6 +27,7 @@ router.post('/register', async (req: Request, res: Response) => {
       firstName,
       lastName,
       educationSubtype,
+      educationSubtypeOther,
       termsAccepted,
     } = req.body || {};
     if (!organizationName || !slug || !email || !password || !firstName || !lastName) {
@@ -45,7 +48,7 @@ router.post('/register', async (req: Request, res: Response) => {
       });
       return;
     }
-    const org = await registerOrganization({
+    const { org, verification } = await registerOrganization({
       organizationName,
       slug,
       email,
@@ -53,6 +56,7 @@ router.post('/register', async (req: Request, res: Response) => {
       firstName,
       lastName,
       educationSubtype: educationSubtype as EducationSubtype | undefined,
+      educationSubtypeOther,
     });
     const owner = org.users[0];
     const checkout = await createPilotCheckoutSession({
@@ -72,6 +76,7 @@ router.post('/register', async (req: Request, res: Response) => {
         },
         owner: { id: owner.id, email: owner.email },
         checkout,
+        verification,
       },
     });
   } catch (err) {
@@ -98,12 +103,79 @@ router.post('/login', async (req: Request, res: Response) => {
     });
     res.json({ success: true, data: result });
   } catch (err) {
-    const e = err as { status?: number; code?: string; message?: string };
+    const e = err as {
+      status?: number;
+      code?: string;
+      message?: string;
+      requiresVerification?: boolean;
+      email?: string;
+    };
     res.status(e.status || 500).json({
       success: false,
       error: {
         code: e.code || 'LOGIN_FAILED',
         message: e.message || 'Login failed',
+        ...(e.requiresVerification
+          ? { requiresVerification: true, email: e.email }
+          : {}),
+      },
+    });
+  }
+});
+
+router.post('/verify-email', async (req: Request, res: Response) => {
+  try {
+    const { token } = req.body || {};
+    const result = await verifyEmailToken(token);
+    res.json({
+      success: true,
+      message: result.alreadyVerified
+        ? 'Your email has already been verified. You can now sign in.'
+        : 'Your email has been verified. You can now sign in.',
+      data: result,
+    });
+  } catch (err) {
+    const e = err as { status?: number; code?: string; message?: string };
+    res.status(e.status || 500).json({
+      success: false,
+      error: {
+        code: e.code || 'VERIFY_FAILED',
+        message: e.message || 'Email verification failed',
+      },
+    });
+  }
+});
+
+router.post('/resend-verification', async (req: Request, res: Response) => {
+  try {
+    const { email, slug } = req.body || {};
+    if (!email || !slug) {
+      res.status(400).json({
+        success: false,
+        error: {
+          code: 'VALIDATION',
+          message: 'Email and organization slug are required',
+        },
+      });
+      return;
+    }
+    const result = await resendVerificationEmail({ email, slug });
+    res.json({
+      success: true,
+      data: result,
+      message: result.alreadyVerified
+        ? 'This email is already verified. You can sign in.'
+        : result.autoVerified
+          ? 'Your email was verified for local development. You can sign in.'
+          : 'If an unverified account matches, a new verification email was sent.',
+    });
+  } catch (err) {
+    const e = err as { status?: number; code?: string; message?: string };
+    res.status(e.status || 500).json({
+      success: false,
+      error: {
+        code: e.code || 'RESEND_FAILED',
+        message: e.message || 'Could not resend verification email',
       },
     });
   }
@@ -121,7 +193,7 @@ router.get('/me', authenticateToken, async (req: Request, res: Response) => {
       organization: org,
       labels: EDUCATION_LABELS,
       educationSubtypeLabel: org
-        ? subtypeLabel(org.educationSubtype)
+        ? subtypeLabel(org.educationSubtype, org.educationSubtypeOther)
         : undefined,
     },
   });

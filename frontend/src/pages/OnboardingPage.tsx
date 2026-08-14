@@ -2,24 +2,35 @@ import { FormEvent, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { api } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
+import {
+  EDUCATION_SUBTYPE_OPTIONS,
+  RequiredMark,
+} from '../lib/forms';
 
 export function OnboardingPage() {
   const { organization, setSession, accessToken, user } = useAuth();
   const navigate = useNavigate();
   const [subtype, setSubtype] = useState(
-    organization?.educationSubtype || 'STEM_CODING_ACADEMY'
+    organization?.educationSubtype || 'STEM_ACADEMY'
   );
+  const [subtypeOther, setSubtypeOther] = useState('');
   const [cash, setCash] = useState('15000');
   const [error, setError] = useState<string | null>(null);
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
+    if (subtype === 'OTHER' && !subtypeOther.trim()) {
+      setError('Please describe your education subtype when selecting Other.');
+      return;
+    }
     try {
       await api('/api/app/onboarding/complete', {
         method: 'POST',
         body: JSON.stringify({
           educationSubtype: subtype,
+          educationSubtypeOther:
+            subtype === 'OTHER' ? subtypeOther.trim() : null,
           cashBalanceCents: Math.round(Number(cash) * 100),
         }),
       });
@@ -47,20 +58,35 @@ export function OnboardingPage() {
       <form onSubmit={onSubmit} className="mt-8 max-w-lg space-y-4">
         <label className="block text-base font-semibold">
           Education Subtype
+          <RequiredMark />
           <select
             className="mt-1 w-full cursor-pointer rounded-md border-ba-line text-base"
             value={subtype}
             onChange={(e) => setSubtype(e.target.value)}
+            required
           >
-            <option value="STEM_CODING_ACADEMY">STEM / Coding Academy</option>
-            <option value="TUTORING_CENTRE">Tutoring Centre</option>
-            <option value="MUSIC_ART_SCHOOL">Music / Art School</option>
-            <option value="LANGUAGE_SCHOOL">Language School</option>
-            <option value="SPORTS_SKILLS_ACADEMY">Sports / Skills Academy</option>
-            <option value="CAMP_ENRICHMENT">Camp / Enrichment Provider</option>
-            <option value="MIXED_PROGRAMME_CENTRE">Mixed Programme Centre</option>
+            {EDUCATION_SUBTYPE_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
           </select>
         </label>
+        {subtype === 'OTHER' && (
+          <label className="block text-base font-semibold">
+            Describe Your Subtype
+            <RequiredMark />
+            <input
+              type="text"
+              className="mt-1 w-full rounded-md border-ba-line text-base"
+              value={subtypeOther}
+              onChange={(e) => setSubtypeOther(e.target.value)}
+              required
+              placeholder="e.g. Chess academy, debate club"
+              maxLength={120}
+            />
+          </label>
+        )}
         <label className="block text-base font-semibold">
           Current Cash Balance (CAD)
           <input

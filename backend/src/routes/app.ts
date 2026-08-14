@@ -70,12 +70,33 @@ router.post(
   '/onboarding/complete',
   requireRole(['OWNER', 'ADMIN']),
   async (req: Request, res: Response) => {
-    const { educationSubtype, cashBalanceCents } = req.body || {};
+    const { educationSubtype, educationSubtypeOther, cashBalanceCents } =
+      req.body || {};
+    if (educationSubtype === 'OTHER') {
+      const other = String(educationSubtypeOther || '').trim();
+      if (!other) {
+        res.status(400).json({
+          success: false,
+          error: {
+            code: 'OTHER_SUBTYPE_REQUIRED',
+            message:
+              'Please describe your education subtype when selecting Other.',
+          },
+        });
+        return;
+      }
+    }
     const org = await prisma.organization.update({
       where: { id: req.user!.organizationId },
       data: {
         onboardingCompleted: true,
         educationSubtype: educationSubtype || undefined,
+        educationSubtypeOther:
+          educationSubtype === 'OTHER'
+            ? String(educationSubtypeOther || '').trim()
+            : educationSubtype
+              ? null
+              : undefined,
         cashBalanceCents:
           typeof cashBalanceCents === 'number' ? cashBalanceCents : undefined,
         cashBalanceAsOf: typeof cashBalanceCents === 'number' ? new Date() : undefined,

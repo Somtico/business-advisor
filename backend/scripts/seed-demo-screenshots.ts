@@ -43,6 +43,7 @@ async function main() {
       firstName: 'Amara',
       lastName: 'Okafor',
       role: 'OWNER',
+      emailVerified: true,
       termsAcceptedAt: new Date(),
       termsVersion: '2026-08-14',
     },

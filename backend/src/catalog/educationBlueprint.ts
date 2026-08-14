@@ -121,10 +121,13 @@ export const EDUCATION_LABELS = {
   engagements: 'Enrolments',
 };
 
-export function subtypeLabel(subtype: EducationSubtype): string {
+export function subtypeLabel(
+  subtype: EducationSubtype,
+  otherText?: string | null
+): string {
   switch (subtype) {
-    case 'STEM_CODING_ACADEMY':
-      return 'STEM / Coding Academy';
+    case 'STEM_ACADEMY':
+      return 'STEM Academy';
     case 'TUTORING_CENTRE':
       return 'Tutoring Centre';
     case 'MUSIC_ART_SCHOOL':
@@ -137,6 +140,8 @@ export function subtypeLabel(subtype: EducationSubtype): string {
       return 'Camp / Enrichment Provider';
     case 'MIXED_PROGRAMME_CENTRE':
       return 'Mixed Programme Centre';
+    case 'OTHER':
+      return otherText?.trim() ? `Other (${otherText.trim()})` : 'Other';
     default:
       return subtype;
   }

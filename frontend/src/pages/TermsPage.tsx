@@ -19,7 +19,7 @@ export function TermsPage() {
       <div className="mx-auto max-w-3xl border border-ba-line bg-white p-8 md:p-10">
         <h1 className="font-display text-3xl font-bold">Terms of Service</h1>
         <p className="mt-2 text-base text-ba-ink/70">
-          Business Advisor — operated by Somtico Technology Inc.
+          Business Advisor — operated by Somtico Tech Inc.
         </p>
         <p className="mt-1 text-base text-ba-ink/70">
           Version {TERMS_VERSION} · Effective 14 August 2026
@@ -28,7 +28,7 @@ export function TermsPage() {
         <Section title="1. Agreement to These Terms">
           <p>
             These Terms of Service (the "Terms") are a binding agreement between
-            Somtico Technology Inc. ("Somtico", "we", "us", "our") and the
+            Somtico Tech Inc. ("Somtico Tech", "we", "us", "our") and the
             organization on whose behalf you create an account (the "Customer",
             "you", "your") governing your access to and use of the Business
             Advisor software-as-a-service platform, including its web
@@ -54,7 +54,7 @@ export function TermsPage() {
           <p>
             Outputs are not, and must not be relied upon as, financial, legal,
             tax, accounting, investment, insurance, employment, or other
-            professional advice. Somtico is not a fiduciary, financial adviser,
+            professional advice. Somtico Tech is not a fiduciary, financial adviser,
             accountant, or law firm, and no advisory, fiduciary, or professional
             relationship is created by your use of the Service. You should
             consult qualified professionals before making decisions that affect
@@ -82,7 +82,7 @@ export function TermsPage() {
             content can be incomplete, out of date, or incorrect, and may not
             reflect your actual circumstances even when presented confidently.
             The Service is designed to decline to answer and request more data
-            when inputs are missing, but no design eliminates all error. Somtico
+            when inputs are missing, but no design eliminates all error. Somtico Tech
             does not warrant that any Output (including forecasts, projections,
             cost floors, and price recommendations) is accurate, complete, or
             fit for any particular decision.
@@ -95,7 +95,7 @@ export function TermsPage() {
             from your use of the Service and reliance on any Output, including
             pricing changes, staffing changes, spending decisions, cancellation
             of vendors or subscriptions, hiring or scheduling decisions, cash
-            management, and any other business decision. Somtico is not
+            management, and any other business decision. Somtico Tech is not
             responsible for lost revenue, lost profits, lost customers, missed
             targets, or any other business outcome.
           </p>
@@ -130,8 +130,8 @@ export function TermsPage() {
 
         <Section title="7. Your Data and Our Licence">
           <p>
-            As between you and Somtico, you own the business data you submit to
-            the Service ("Customer Data"). You grant Somtico a worldwide,
+            As between you and Somtico Tech, you own the business data you submit to
+            the Service ("Customer Data"). You grant Somtico Tech a worldwide,
             non-exclusive licence to host, process, transmit, display, and
             create derivative analytical results from Customer Data solely to
             provide, secure, support, and improve the Service. We may use
@@ -171,10 +171,10 @@ export function TermsPage() {
 
         <Section title="9. Intellectual Property">
           <p>
-            Somtico and its licensors own the Service, including all software,
+            Somtico Tech and its licensors own the Service, including all software,
             models, designs, blueprints, documentation, and trademarks. No
             rights are granted except the limited right to use the Service under
-            these Terms. Feedback you provide may be used by Somtico without
+            these Terms. Feedback you provide may be used by Somtico Tech without
             restriction or obligation.
           </p>
         </Section>
@@ -184,7 +184,7 @@ export function TermsPage() {
             The Service depends on third-party providers, including payment
             processing, AI model providers, e-mail delivery, and hosting. Their
             availability and conduct are outside our control, and your use of
-            third-party services may be subject to their own terms. Somtico is
+            third-party services may be subject to their own terms. Somtico Tech is
             not liable for third-party acts, omissions, or outages.
           </p>
         </Section>
@@ -222,14 +222,14 @@ export function TermsPage() {
 
         <Section title="14. Limitation of Liability">
           <p>
-            TO THE MAXIMUM EXTENT PERMITTED BY LAW: (A) SOMTICO WILL NOT BE
+            TO THE MAXIMUM EXTENT PERMITTED BY LAW: (A) SOMTICO TECH WILL NOT BE
             LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL,
             EXEMPLARY, OR PUNITIVE DAMAGES, OR FOR LOST PROFITS, LOST REVENUE,
             LOST SAVINGS, LOST DATA, BUSINESS INTERRUPTION, OR LOSS OF GOODWILL,
-            EVEN IF ADVISED OF THE POSSIBILITY; AND (B) SOMTICO'S TOTAL
+            EVEN IF ADVISED OF THE POSSIBILITY; AND (B) SOMTICO TECH'S TOTAL
             AGGREGATE LIABILITY FOR ALL CLAIMS ARISING OUT OF OR RELATING TO THE
             SERVICE OR THESE TERMS WILL NOT EXCEED THE FEES YOU ACTUALLY PAID TO
-            SOMTICO FOR THE SERVICE IN THE TWELVE (12) MONTHS BEFORE THE EVENT
+            SOMTICO TECH FOR THE SERVICE IN THE TWELVE (12) MONTHS BEFORE THE EVENT
             GIVING RISE TO THE CLAIM. THESE LIMITS APPLY TO ALL THEORIES OF
             LIABILITY AND SURVIVE FAILURE OF ESSENTIAL PURPOSE. WHERE A
             JURISDICTION DOES NOT ALLOW A PARTICULAR LIMITATION, IT APPLIES TO
@@ -239,7 +239,7 @@ export function TermsPage() {
 
         <Section title="15. Indemnification">
           <p>
-            You will defend, indemnify, and hold harmless Somtico, its
+            You will defend, indemnify, and hold harmless Somtico Tech, its
             directors, officers, employees, and agents from and against all
             claims, damages, liabilities, costs, and expenses (including
             reasonable legal fees) arising out of or related to: (a) Customer
@@ -299,7 +299,7 @@ export function TermsPage() {
 
         <Section title="19. Contact">
           <p>
-            Somtico Technology Inc., Saskatoon, Saskatchewan, Canada. Questions
+            Somtico Tech Inc., Saskatoon, Saskatchewan, Canada. Questions
             about these Terms can be sent through your account's support channel
             or the contact address listed on our website.
           </p>
@@ -308,7 +308,7 @@ export function TermsPage() {
         <p className="mt-10 text-sm text-ba-ink/60">
           Summary for convenience (the sections above control): Business Advisor
           gives you information calculated from your own data. It is not
-          professional advice, your decisions remain your own, and Somtico's
+          professional advice, your decisions remain your own, and Somtico Tech's
           liability is limited to the fees you paid in the last 12 months.
         </p>
 

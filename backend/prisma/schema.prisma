@@ -45,12 +45,13 @@ enum UserRole {
 
 enum EducationSubtype {
   TUTORING_CENTRE
-  STEM_CODING_ACADEMY
+  STEM_ACADEMY
   MUSIC_ART_SCHOOL
   LANGUAGE_SCHOOL
   SPORTS_SKILLS_ACADEMY
   CAMP_ENRICHMENT
   MIXED_PROGRAMME_CENTRE
+  OTHER
 }
 
 enum DataSourceKind {
@@ -135,7 +136,9 @@ model Organization {
   country              String             @default("CA")
   fiscalYearStartMonth Int                @default(9)
   industryBlueprintKey String             @default("after_school_tutoring_enrichment")
-  educationSubtype     EducationSubtype   @default(STEM_CODING_ACADEMY)
+  educationSubtype     EducationSubtype   @default(STEM_ACADEMY)
+  /// Free-text subtype when educationSubtype is OTHER
+  educationSubtypeOther String?
   status               OrganizationStatus @default(PENDING_PAYMENT)
   onboardingCompleted  Boolean            @default(false)
   cashBalanceCents     Int                @default(0)
@@ -248,6 +251,11 @@ model User {
   lastName       String
   role           UserRole @default(VIEWER)
   isActive       Boolean  @default(true)
+  emailVerified  Boolean  @default(false)
+  emailVerificationToken   String?
+  emailVerificationExpires DateTime?
+  /// One-time tokens already consumed (idempotent verify / StrictMode double-POST)
+  usedVerificationTokens   Json     @default("[]")
   lastLoginAt    DateTime?
   termsAcceptedAt DateTime?
   termsVersion   String?
@@ -259,6 +267,7 @@ model User {
   staffMember  StaffMember?
 
   @@unique([organizationId, email])
+  @@index([emailVerificationToken])
   @@map("users")
 }
 

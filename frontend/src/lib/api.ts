@@ -10,6 +10,30 @@ export function setTenantSlug(slug: string) {
   localStorage.setItem('ba_tenant_slug', slug);
 }
 
+export class ApiError extends Error {
+  code?: string;
+  requiresVerification?: boolean;
+  email?: string;
+  status: number;
+
+  constructor(
+    message: string,
+    opts: {
+      status: number;
+      code?: string;
+      requiresVerification?: boolean;
+      email?: string;
+    }
+  ) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = opts.status;
+    this.code = opts.code;
+    this.requiresVerification = opts.requiresVerification;
+    this.email = opts.email;
+  }
+}
+
 export async function api<T>(
   path: string,
   options: RequestInit = {}
@@ -26,7 +50,12 @@ export async function api<T>(
   const res = await fetch(`${API_BASE}${path}`, { ...options, headers });
   const json = await res.json().catch(() => ({}));
   if (!res.ok) {
-    throw new Error(json?.error?.message || `Request failed (${res.status})`);
+    throw new ApiError(json?.error?.message || `Request failed (${res.status})`, {
+      status: res.status,
+      code: json?.error?.code,
+      requiresVerification: json?.error?.requiresVerification,
+      email: json?.error?.email,
+    });
   }
   return json as T;
 }
