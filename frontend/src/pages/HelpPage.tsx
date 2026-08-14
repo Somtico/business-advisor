@@ -102,6 +102,64 @@ const FAQ_SECTIONS: { title: string; items: Faq[] }[] = [
       },
     ],
   },
+  {
+    title: 'Getting Started',
+    items: [
+      {
+        q: 'What should I do first after signing up?',
+        a: 'Add your programmes with list prices and capacity, enrol your current students, add staff with wage profiles, schedule this week\'s class sessions, and record expenses or subscriptions. Then open Pricing Advisor and Ask Nonso. The Data Readiness page lists every dataset and why it matters.',
+      },
+      {
+        q: 'Do I have to enter everything by hand?',
+        a: 'No. You can type records in, import students, expenses, subscriptions, and revenue by CSV, or connect an academy registration portal from Settings. Nonso uses whatever you have; missing datasets produce a request for data rather than a guessed number.',
+      },
+      {
+        q: 'How do I ask Nonso a question?',
+        a: (
+          <>
+            Open{' '}
+            <Link className="text-ba-accent underline" to="/app/advisor">
+              Ask Nonso
+            </Link>
+            , type a question in plain language (for example, "where can we save labour this week?"), and submit. While Nonso works you will see the analysis steps. The answer is grounded only in your records, and you can track it as an action.
+          </>
+        ),
+      },
+      {
+        q: 'What is the difference between Run Insights and Ask Nonso?',
+        a: 'Run Insights (Action Centre) generates a batch of structured recommendations from deterministic rules — staffing, pricing, cash, conversion. Ask Nonso answers a specific question in conversation. Both use the same analytics tools and the same no-guessing rules.',
+      },
+    ],
+  },
+  {
+    title: 'Accounts, Billing & Access',
+    items: [
+      {
+        q: 'Who can see our data?',
+        a: 'Only users in your organization, scoped by role. Owners and admins can manage billing and connectors. Operations and finance can complete actions and record impact. Viewers can read dashboards. Nonso never sees another organization\'s records.',
+      },
+      {
+        q: 'How does the pilot subscription work?',
+        a: 'The pilot is $5 CAD per month, billed through Stripe. Cancel any time; access continues until the end of the current billing period. Fees are non-refundable except where required by law. Details are in Settings and the Terms of Service.',
+      },
+      {
+        q: 'What currency and spelling does the app use?',
+        a: 'Canadian dollars (CAD) and Canadian English throughout: colour, centre, enrolments, labour, cheque. Postal codes use the A1A 1A1 format.',
+      },
+      {
+        q: 'I agreed to the Terms of Service — can I read them again?',
+        a: (
+          <>
+            Yes. The{' '}
+            <Link className="text-ba-accent underline" to="/terms">
+              Terms of Service
+            </Link>{' '}
+            are public. Your acceptance (date and version) is stored on your account.
+          </>
+        ),
+      },
+    ],
+  },
 ];
 
 export function HelpPage() {

@@ -1,6 +1,15 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
 import { api, money } from '../lib/api';
+import { AnalysisProgress, SkeletonCard } from '../components/AnalysisProgress';
+
+const DASHBOARD_ANALYSIS_STEPS = [
+  'Reading enrolments and programmes',
+  'Checking staffing versus demand',
+  'Rolling up expenses and subscriptions',
+  'Calculating cash outlook and targets',
+  "Tallying Nonso's verified impact",
+];
 
 interface Dashboard {
   enrolment: {
@@ -68,7 +77,20 @@ export function DashboardPage() {
   }, []);
 
   if (error) return <p className="text-base text-ba-warm">{error}</p>;
-  if (!data) return <p className="text-base">Loading command centre…</p>;
+  if (!data) {
+    return (
+      <div>
+        <h1 className="font-display text-3xl font-bold">Command Centre</h1>
+        <p className="mt-2 max-w-2xl text-base text-ba-ink/70">
+          Nonso is analysing your centre from your recorded numbers.
+        </p>
+        <div className="mt-8 space-y-4">
+          <AnalysisProgress steps={DASHBOARD_ANALYSIS_STEPS} />
+          <SkeletonCard />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div>

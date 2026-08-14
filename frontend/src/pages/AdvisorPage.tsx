@@ -129,22 +129,23 @@ export function AdvisorPage() {
           {loading ? 'Nonso Is Thinking…' : 'Ask Nonso'}
         </button>
       </form>
-      {error && <p className="mt-4 text-base text-ba-warm">{error}</p>}
+      {error && !loading && <p className="mt-4 text-base text-ba-warm">{error}</p>}
       {loading && (
         <div className="mt-4">
+          <p className="mb-3 text-base font-semibold">Nonso is analysing your records…</p>
           <AnalysisProgress steps={NONSO_ANALYSIS_STEPS} stepMs={900} />
         </div>
       )}
       {meta && !loading && <p className="mt-4 text-base text-ba-ink/60">{meta}</p>}
-      {answer && (
+      {answer && !loading && (
         <div className="mt-4 whitespace-pre-wrap border border-ba-line bg-white p-5 text-base">
           {answer}
         </div>
       )}
-      {answer && disclaimer && (
+      {answer && disclaimer && !loading && (
         <p className="mt-2 max-w-3xl text-sm text-ba-ink/60">{disclaimer}</p>
       )}
-      {answer && !showTrack && (
+      {answer && !showTrack && !loading && (
         <button
           type="button"
           onClick={openTrackForm}
@@ -153,7 +154,7 @@ export function AdvisorPage() {
           Track This as an Action
         </button>
       )}
-      {trackMsg && (
+      {trackMsg && !loading && (
         <p className="mt-4 text-base text-ba-accent">
           {trackMsg}{' '}
           <Link className="underline" to="/app/actions">

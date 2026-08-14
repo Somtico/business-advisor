@@ -197,6 +197,7 @@ export function PricingPage() {
   const [sessionStaffId, setSessionStaffId] = useState('');
   const [sessionHours, setSessionHours] = useState('1');
   const [saving, setSaving] = useState(false);
+  const [recalculating, setRecalculating] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
   async function load() {
@@ -235,12 +236,15 @@ export function PricingPage() {
         }),
       });
       setSessionFormId(null);
-      setMessage('Session recorded. Nonso recalculated the guidance from your data.');
+      setRecalculating(true);
+      setMessage('Session recorded. Nonso is recalculating from your data…');
       await load();
+      setMessage('Session recorded. Nonso recalculated the guidance from your data.');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not add session');
     } finally {
       setSaving(false);
+      setRecalculating(false);
     }
   }
 
@@ -275,6 +279,11 @@ export function PricingPage() {
 
       {message && <p className="mt-3 text-base text-ba-accent">{message}</p>}
       {error && <p className="mt-3 text-base text-ba-warm">{error}</p>}
+      {recalculating && (
+        <div className="mt-6">
+          <AnalysisProgress steps={PRICING_ANALYSIS_STEPS} />
+        </div>
+      )}
 
       {data.programmes.length === 0 && (
         <p className="mt-8 text-base">

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api, money } from '../lib/api';
+import { AnalysisProgress } from '../components/AnalysisProgress';
 
 interface ActionRow {
   id: string;
@@ -32,6 +33,15 @@ interface ImpactSummary {
   awaitingConfirmationCount: number;
 }
 
+const INSIGHTS_ANALYSIS_STEPS = [
+  'Reading enrolments and conversion',
+  'Comparing staffing to demand',
+  'Reviewing expenses and subscriptions',
+  'Checking cash runway and targets',
+  'Running pricing guidance',
+  'Writing recommendations',
+];
+
 const STATUS_LABELS: Record<string, string> = {
   OPEN: 'Open',
   ACCEPTED: 'Accepted',
@@ -57,6 +67,7 @@ export function ActionsPage() {
   const [confirmType, setConfirmType] = useState<'SAVINGS' | 'REVENUE'>('SAVINGS');
   const [confirmNote, setConfirmNote] = useState('');
   const [saving, setSaving] = useState(false);
+  const [runningInsights, setRunningInsights] = useState(false);
 
   async function load() {
     const [actionsRes, summaryRes] = await Promise.all([
@@ -73,6 +84,7 @@ export function ActionsPage() {
 
   async function runInsights() {
     setError(null);
+    setRunningInsights(true);
     try {
       const res = await api<{
         success: boolean;
@@ -84,6 +96,8 @@ export function ActionsPage() {
       await load();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Insights run failed');
+    } finally {
+      setRunningInsights(false);
     }
   }
 
@@ -148,12 +162,19 @@ export function ActionsPage() {
         <h1 className="font-display text-3xl font-bold">Action Centre</h1>
         <button
           type="button"
+          disabled={runningInsights}
           onClick={() => void runInsights()}
-          className="cursor-pointer rounded-md bg-ba-accent px-4 py-2 text-base font-semibold text-white"
+          className="cursor-pointer rounded-md bg-ba-accent px-4 py-2 text-base font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
         >
-          Run Insights
+          {runningInsights ? 'Nonso Is Analysing…' : 'Run Insights'}
         </button>
       </div>
+
+      {runningInsights && (
+        <div className="mt-6">
+          <AnalysisProgress steps={INSIGHTS_ANALYSIS_STEPS} />
+        </div>
+      )}
 
       {summary && (
         <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
