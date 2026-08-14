@@ -95,6 +95,22 @@ enum RecommendationStatus {
   DISMISSED
 }
 
+enum ImpactType {
+  SAVINGS
+  REVENUE
+}
+
+enum ImpactRealizationSource {
+  MEASURED
+  USER_CONFIRMED
+}
+
+enum RecommendationSource {
+  INSIGHT
+  ADVISOR_CHAT
+  MANUAL
+}
+
 enum ForecastScenario {
   CONSERVATIVE
   EXPECTED
@@ -705,12 +721,22 @@ model Recommendation {
   organizationId     String
   insightId          String?
   ownerUserId        String?
+  conversationId     String?
+  source             RecommendationSource @default(INSIGHT)
   title              String
   description        String
+  impactType         ImpactType?
   expectedImpactCents Int?
   expectedImpactNote String?
   status             RecommendationStatus @default(OPEN)
+  completedAt        DateTime?
+  /// Metric snapshot captured at completion so impact can be measured later
+  baselineJson       Json?
+  /// When the verification job (or user prompt) should evaluate realized impact
+  verificationDueAt  DateTime?
   realizedImpactCents Int?
+  realizedNote       String?
+  realizedSource     ImpactRealizationSource?
   realizedAt         DateTime?
   createdAt          DateTime             @default(now())
   updatedAt          DateTime             @updatedAt
@@ -718,8 +744,11 @@ model Recommendation {
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   insight      Insight?     @relation(fields: [insightId], references: [id], onDelete: SetNull)
   owner        User?        @relation("RecommendationOwner", fields: [ownerUserId], references: [id], onDelete: SetNull)
+  conversation AiConversation? @relation(fields: [conversationId], references: [id], onDelete: SetNull)
 
   @@index([organizationId, status])
+  @@index([organizationId, realizedAt])
+  @@index([organizationId, verificationDueAt])
   @@map("recommendations")
 }
 
@@ -873,8 +902,9 @@ model AiConversation {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
-  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  messages     AiMessage[]
+  organization    Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  messages        AiMessage[]
+  recommendations Recommendation[]
 
   @@index([organizationId, userId])
   @@map("ai_conversations")

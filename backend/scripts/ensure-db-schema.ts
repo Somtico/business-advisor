@@ -30,6 +30,50 @@ async function main() {
       ALTER TABLE "organizations" ADD COLUMN IF NOT EXISTS "industryBlueprintKey" TEXT NOT NULL DEFAULT 'after_school_tutoring_enrichment';
     `);
 
+    // Advice impact ledger (2026-08-14)
+    await prisma.$executeRawUnsafe(`
+      DO $repair$ BEGIN
+        CREATE TYPE "ImpactType" AS ENUM ('SAVINGS', 'REVENUE');
+      EXCEPTION WHEN duplicate_object THEN NULL; END $repair$;
+    `);
+    await prisma.$executeRawUnsafe(`
+      DO $repair$ BEGIN
+        CREATE TYPE "ImpactRealizationSource" AS ENUM ('MEASURED', 'USER_CONFIRMED');
+      EXCEPTION WHEN duplicate_object THEN NULL; END $repair$;
+    `);
+    await prisma.$executeRawUnsafe(`
+      DO $repair$ BEGIN
+        CREATE TYPE "RecommendationSource" AS ENUM ('INSIGHT', 'ADVISOR_CHAT', 'MANUAL');
+      EXCEPTION WHEN duplicate_object THEN NULL; END $repair$;
+    `);
+    await prisma.$executeRawUnsafe(`
+      ALTER TABLE "recommendations"
+        ADD COLUMN IF NOT EXISTS "baselineJson" JSONB,
+        ADD COLUMN IF NOT EXISTS "completedAt" TIMESTAMP(3),
+        ADD COLUMN IF NOT EXISTS "conversationId" TEXT,
+        ADD COLUMN IF NOT EXISTS "impactType" "ImpactType",
+        ADD COLUMN IF NOT EXISTS "realizedNote" TEXT,
+        ADD COLUMN IF NOT EXISTS "realizedSource" "ImpactRealizationSource",
+        ADD COLUMN IF NOT EXISTS "source" "RecommendationSource" NOT NULL DEFAULT 'INSIGHT',
+        ADD COLUMN IF NOT EXISTS "verificationDueAt" TIMESTAMP(3);
+    `);
+    await prisma.$executeRawUnsafe(`
+      CREATE INDEX IF NOT EXISTS "recommendations_organizationId_realizedAt_idx"
+        ON "recommendations"("organizationId", "realizedAt");
+    `);
+    await prisma.$executeRawUnsafe(`
+      CREATE INDEX IF NOT EXISTS "recommendations_organizationId_verificationDueAt_idx"
+        ON "recommendations"("organizationId", "verificationDueAt");
+    `);
+    await prisma.$executeRawUnsafe(`
+      DO $repair$ BEGIN
+        ALTER TABLE "recommendations"
+          ADD CONSTRAINT "recommendations_conversationId_fkey"
+          FOREIGN KEY ("conversationId") REFERENCES "ai_conversations"("id")
+          ON DELETE SET NULL ON UPDATE CASCADE;
+      EXCEPTION WHEN duplicate_object THEN NULL; END $repair$;
+    `);
+
     console.log('ensure-db-schema: ok');
   } finally {
     await prisma.$disconnect();

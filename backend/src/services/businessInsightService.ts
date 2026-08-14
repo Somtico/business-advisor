@@ -43,6 +43,7 @@ export async function runBusinessInsights(organizationId: string) {
       description: string;
       expectedImpactCents?: number;
       expectedImpactNote?: string;
+      impactType?: 'SAVINGS' | 'REVENUE';
     };
   }) {
     const insight = await prisma.insight.create({
@@ -57,14 +58,26 @@ export async function runBusinessInsights(organizationId: string) {
     });
     createdInsights.push({ id: insight.id, title: insight.title });
     if (params.recommendation) {
+      // Repeated insight runs must not duplicate an action the owner is
+      // already working on — duplicates would inflate the impact pipeline.
+      const existingOpen = await prisma.recommendation.findFirst({
+        where: {
+          organizationId,
+          title: params.recommendation.title,
+          status: { in: ['OPEN', 'ACCEPTED', 'IN_PROGRESS'] },
+        },
+      });
+      if (existingOpen) return;
       const rec = await prisma.recommendation.create({
         data: {
           organizationId,
           insightId: insight.id,
+          source: 'INSIGHT',
           title: params.recommendation.title,
           description: params.recommendation.description,
           expectedImpactCents: params.recommendation.expectedImpactCents,
           expectedImpactNote: params.recommendation.expectedImpactNote,
+          impactType: params.recommendation.impactType,
           status: 'OPEN',
         },
       });
@@ -85,6 +98,7 @@ export async function runBusinessInsights(organizationId: string) {
           'Review classes with low roster counts and consolidate or reduce overlapping instructor coverage before the next operating week.',
         expectedImpactCents: staffing.estimatedSavingsCents,
         expectedImpactNote: 'Estimated weekly labour savings if excess hours are removed',
+        impactType: 'SAVINGS',
       },
     });
   }
@@ -101,6 +115,7 @@ export async function runBusinessInsights(organizationId: string) {
           title: `Recover ${t.label}`,
           description:
             'Review enrolment velocity, trial conversion, and capacity for the programmes that feed this target.',
+          impactType: 'REVENUE',
         },
       });
     }
@@ -120,6 +135,7 @@ export async function runBusinessInsights(organizationId: string) {
         title: 'Tighten Trial Follow-Up',
         description:
           'Contact recent trial families within 48 hours with a clear next-class offer and address common objections.',
+        impactType: 'REVENUE',
       },
     });
   }
@@ -149,6 +165,7 @@ export async function runBusinessInsights(organizationId: string) {
         title: 'Audit Highest-Cost Tools This Week',
         description: high.map((s) => s.name).join(', '),
         expectedImpactNote: 'Cancel or downgrade unused tools before renewal',
+        impactType: 'SAVINGS',
       },
     });
   }
@@ -164,6 +181,7 @@ export async function runBusinessInsights(organizationId: string) {
         title: 'Protect Cash This Month',
         description:
           'Defer non-essential purchases, accelerate receivables/tuition follow-up, and revisit the largest recurring costs.',
+        impactType: 'SAVINGS',
       },
     });
   }

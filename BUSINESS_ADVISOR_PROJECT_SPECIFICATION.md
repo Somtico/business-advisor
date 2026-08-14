@@ -4,7 +4,7 @@
 **Customer #1:** STEM Lantern Education Inc. (operating name STEM Lantern)  
 **Portal data source (during rebrand):** Skill Samurai Saskatoon Registration Portal  
 **Ports:** frontend 3007 · backend 5007  
-**Revision:** Phase 0 + Phase 1 beachhead — 13 August 2026
+**Revision:** Phase 0 + Phase 1 beachhead + advice impact ledger — 14 August 2026
 
 ## Positioning
 
@@ -29,8 +29,9 @@ AI business intelligence and operating advisor for independent after-school, tut
 - Data Readiness Centre with why-we-ask copy
 - Executive dashboard, forecasts (Conservative/Expected/Growth), staffing-vs-demand
 - BusinessInsightService + Action Centre + realized impact fields
+- Advice impact ledger (14 Aug 2026): every recommendation carries `impactType` (SAVINGS/REVENUE), `source` (INSIGHT/ADVISOR_CHAT/MANUAL), and verified realized impact. Completing an action never auto-copies the estimate; it snapshots a measurement baseline and starts a 30-day verification window. The daily job then measures the delta from actuals (weekly labour cost for staffing actions, monthly recurring subscription spend for tool audits, conservatively capped at the estimate) or prompts the owner to confirm/adjust/record zero (`POST /api/app/actions/:id/impact`, USER_CONFIRMED). Rollups (`GET /api/app/impact/summary` + `advisorImpact` AI tool) keep verified, estimated-pending, and pipeline strictly separate. Surfaces: Command Centre Advisor Impact card, Action Centre totals + confirmation forms, weekly brief impact section, and "Track This as an Action" on AI Advisor answers (links the recommendation to the conversation). Insight runs skip creating a recommendation whose title already has an open action, so the pipeline is not inflated by duplicates.
 - Auto AI Advisor with usage metering (OpenAI → Claude → Gemini; privacy-aware request flags)
-- Daily analysis + weekly executive brief jobs (Brevo when configured)
+- Daily analysis + weekly executive brief jobs (Brevo when configured); daily job also runs impact verification
 - Portal connector sync into canonical objects via ExternalIdentity
 
 ### Deferred

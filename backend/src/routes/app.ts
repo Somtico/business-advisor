@@ -1,7 +1,14 @@
 import { Router, Request, Response } from 'express';
+import { Prisma } from '@prisma/client';
 import { authenticateToken, requireRole } from '../middleware/auth';
 import { requireTenant } from '../middleware/tenant';
 import prisma from '../config/prisma';
+import { impactSummary } from '../services/impactService';
+import {
+  captureImpactBaseline,
+  runImpactVerificationForOrg,
+  IMPACT_VERIFICATION_DELAY_DAYS,
+} from '../services/impactVerificationService';
 import { executiveDashboard, buildForecasts } from '../services/metrics/analyticsService';
 import { runBusinessInsights } from '../services/businessInsightService';
 import { askAdvisor } from '../services/aiAdvisorService';
@@ -492,32 +499,169 @@ router.get('/actions', async (req: Request, res: Response) => {
   res.json({ success: true, data: rows });
 });
 
+const RECOMMENDATION_STATUSES = [
+  'OPEN',
+  'ACCEPTED',
+  'REJECTED',
+  'IN_PROGRESS',
+  'COMPLETED',
+  'DISMISSED',
+] as const;
+
+/** Sanity ceiling for a single action's impact: $10M in cents. */
+const MAX_IMPACT_CENTS = 1_000_000_000;
+
 router.patch(
   '/actions/:id',
   requireRole(['OWNER', 'ADMIN', 'OPERATIONS', 'FINANCE']),
   async (req: Request, res: Response) => {
-    const row = await prisma.recommendation.updateMany({
+    const { status, ownerUserId } = req.body || {};
+    if (
+      status !== undefined &&
+      !RECOMMENDATION_STATUSES.includes(status)
+    ) {
+      res.status(400).json({
+        success: false,
+        error: { code: 'VALIDATION', message: 'Invalid status value' },
+      });
+      return;
+    }
+
+    const existing = await prisma.recommendation.findFirst({
       where: { id: req.params.id, organizationId: req.user!.organizationId },
-      data: {
-        status: req.body.status,
-        realizedImpactCents: req.body.realizedImpactCents,
-        realizedAt: req.body.realizedImpactCents != null ? new Date() : undefined,
-        ownerUserId: req.body.ownerUserId,
-      },
     });
-    if (row.count === 0) {
+    if (!existing) {
       res.status(404).json({
         success: false,
         error: { code: 'NOT_FOUND', message: 'Recommendation not found' },
       });
       return;
     }
-    const updated = await prisma.recommendation.findFirst({
-      where: { id: req.params.id, organizationId: req.user!.organizationId },
+
+    const data: Prisma.RecommendationUpdateInput = {};
+    if (status !== undefined) data.status = status;
+    if (ownerUserId !== undefined) {
+      data.owner = ownerUserId
+        ? { connect: { id: ownerUserId } }
+        : { disconnect: true };
+    }
+
+    // Completion starts the verification clock and snapshots a measurement
+    // baseline. Realized impact is never auto-copied from the estimate; it is
+    // either measured from data later or confirmed by the user.
+    if (status === 'COMPLETED' && existing.status !== 'COMPLETED') {
+      const now = new Date();
+      data.completedAt = now;
+      data.verificationDueAt = new Date(
+        now.getTime() + IMPACT_VERIFICATION_DELAY_DAYS * 24 * 60 * 60 * 1000
+      );
+      const baseline = await captureImpactBaseline(req.user!.organizationId);
+      if (baseline) {
+        data.baselineJson = baseline as unknown as Prisma.InputJsonValue;
+      }
+    }
+
+    // Reopening a completed action stops any pending verification prompt.
+    // Verified figures are kept but only count while status is COMPLETED.
+    if (
+      status !== undefined &&
+      status !== 'COMPLETED' &&
+      existing.status === 'COMPLETED'
+    ) {
+      data.completedAt = null;
+      data.verificationDueAt = null;
+    }
+
+    const updated = await prisma.recommendation.update({
+      where: { id: existing.id },
+      data,
     });
     res.json({ success: true, data: updated });
   }
 );
+
+router.post(
+  '/actions/:id/impact',
+  requireRole(['OWNER', 'ADMIN', 'OPERATIONS', 'FINANCE']),
+  async (req: Request, res: Response) => {
+    const { realizedImpactCents, impactType, note } = req.body || {};
+    if (
+      typeof realizedImpactCents !== 'number' ||
+      !Number.isInteger(realizedImpactCents) ||
+      realizedImpactCents < 0 ||
+      realizedImpactCents > MAX_IMPACT_CENTS
+    ) {
+      res.status(400).json({
+        success: false,
+        error: {
+          code: 'VALIDATION',
+          message:
+            'realizedImpactCents must be a whole number of cents between 0 and 1,000,000,000',
+        },
+      });
+      return;
+    }
+    if (impactType !== undefined && !['SAVINGS', 'REVENUE'].includes(impactType)) {
+      res.status(400).json({
+        success: false,
+        error: { code: 'VALIDATION', message: 'Invalid impactType' },
+      });
+      return;
+    }
+
+    const existing = await prisma.recommendation.findFirst({
+      where: { id: req.params.id, organizationId: req.user!.organizationId },
+    });
+    if (!existing) {
+      res.status(404).json({
+        success: false,
+        error: { code: 'NOT_FOUND', message: 'Recommendation not found' },
+      });
+      return;
+    }
+    if (existing.status !== 'COMPLETED') {
+      res.status(400).json({
+        success: false,
+        error: {
+          code: 'VALIDATION',
+          message: 'Complete the action before recording its impact',
+        },
+      });
+      return;
+    }
+
+    const updated = await prisma.recommendation.update({
+      where: { id: existing.id },
+      data: {
+        realizedImpactCents,
+        realizedNote:
+          typeof note === 'string' && note.trim()
+            ? note.trim().slice(0, 500)
+            : realizedImpactCents === 0
+              ? 'Owner recorded no measurable impact'
+              : null,
+        realizedSource: 'USER_CONFIRMED',
+        realizedAt: new Date(),
+        impactType: impactType ?? existing.impactType,
+        verificationDueAt: null,
+      },
+    });
+    await writeAudit({
+      organizationId: req.user!.organizationId,
+      actorUserId: req.user!.id,
+      action: 'action.impact_confirmed',
+      resourceType: 'Recommendation',
+      resourceId: existing.id,
+      metadata: { realizedImpactCents, impactType: updated.impactType },
+    });
+    res.json({ success: true, data: updated });
+  }
+);
+
+router.get('/impact/summary', async (req: Request, res: Response) => {
+  const data = await impactSummary(req.user!.organizationId);
+  res.json({ success: true, data });
+});
 
 router.post('/forecasts/rebuild', async (req: Request, res: Response) => {
   const rows = await buildForecasts(req.user!.organizationId);
@@ -541,6 +685,97 @@ router.post('/advisor/ask', async (req: Request, res: Response) => {
   });
   res.json({ success: true, data: result });
 });
+
+router.post(
+  '/advisor/track-action',
+  requireRole(['OWNER', 'ADMIN', 'OPERATIONS', 'FINANCE']),
+  async (req: Request, res: Response) => {
+    const { conversationId, title, description, expectedImpactCents, impactType } =
+      req.body || {};
+    if (
+      typeof title !== 'string' ||
+      !title.trim() ||
+      typeof description !== 'string' ||
+      !description.trim()
+    ) {
+      res.status(400).json({
+        success: false,
+        error: { code: 'VALIDATION', message: 'title and description required' },
+      });
+      return;
+    }
+    if (
+      expectedImpactCents !== undefined &&
+      expectedImpactCents !== null &&
+      (typeof expectedImpactCents !== 'number' ||
+        !Number.isInteger(expectedImpactCents) ||
+        expectedImpactCents < 0 ||
+        expectedImpactCents > MAX_IMPACT_CENTS)
+    ) {
+      res.status(400).json({
+        success: false,
+        error: {
+          code: 'VALIDATION',
+          message: 'expectedImpactCents must be a whole number of cents',
+        },
+      });
+      return;
+    }
+    if (impactType !== undefined && impactType !== null && !['SAVINGS', 'REVENUE'].includes(impactType)) {
+      res.status(400).json({
+        success: false,
+        error: { code: 'VALIDATION', message: 'Invalid impactType' },
+      });
+      return;
+    }
+    if (conversationId) {
+      const convo = await prisma.aiConversation.findFirst({
+        where: { id: conversationId, organizationId: req.user!.organizationId },
+      });
+      if (!convo) {
+        res.status(404).json({
+          success: false,
+          error: { code: 'NOT_FOUND', message: 'Conversation not found' },
+        });
+        return;
+      }
+    }
+    const rec = await prisma.recommendation.create({
+      data: {
+        organizationId: req.user!.organizationId,
+        conversationId: conversationId || undefined,
+        source: 'ADVISOR_CHAT',
+        ownerUserId: req.user!.id,
+        title: title.trim().slice(0, 200),
+        description: description.trim().slice(0, 2000),
+        expectedImpactCents: expectedImpactCents ?? undefined,
+        expectedImpactNote: expectedImpactCents
+          ? 'Owner estimate from AI Advisor conversation'
+          : undefined,
+        impactType: impactType ?? undefined,
+        status: 'ACCEPTED',
+      },
+    });
+    await writeAudit({
+      organizationId: req.user!.organizationId,
+      actorUserId: req.user!.id,
+      action: 'action.tracked_from_advisor',
+      resourceType: 'Recommendation',
+      resourceId: rec.id,
+      metadata: { conversationId: conversationId || null },
+    });
+    res.status(201).json({ success: true, data: rec });
+  }
+);
+
+router.post(
+  '/jobs/verify-impact',
+  requireRole(['OWNER', 'ADMIN']),
+  async (req: Request, res: Response) => {
+    const result = await runImpactVerificationForOrg(req.user!.organizationId);
+    res.json({ success: true, data: result });
+  }
+);
 
 router.post(
   '/jobs/daily',

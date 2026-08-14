@@ -2,6 +2,12 @@ import prisma from '../config/prisma';
 import { executiveDashboard } from './metrics/analyticsService';
 import { runBusinessInsights } from './businessInsightService';
 import { buildForecasts } from './metrics/analyticsService';
+import { impactSummary } from './impactService';
+import { runImpactVerificationForOrg } from './impactVerificationService';
+
+function dollars(cents: number): string {
+  return `$${(cents / 100).toFixed(2)}`;
+}
 
 export async function sendWeeklyExecutiveBrief(organizationId: string) {
   const org = await prisma.organization.findUniqueOrThrow({
@@ -11,15 +17,45 @@ export async function sendWeeklyExecutiveBrief(organizationId: string) {
     },
   });
   const dash = await executiveDashboard(organizationId);
+  const impact = await impactSummary(organizationId);
   const openRecs = await prisma.recommendation.findMany({
     where: { organizationId, status: 'OPEN' },
     orderBy: { createdAt: 'desc' },
     take: 5,
   });
 
+  const impactLines: string[] = [];
+  if (impact.verified.totalCents > 0) {
+    impactLines.push(
+      `<p>Verified advisor impact to date: <strong>${dollars(impact.verified.savedCents)} saved · ${dollars(impact.verified.earnedCents)} earned</strong> across ${impact.verified.actionCount} completed action${impact.verified.actionCount === 1 ? '' : 's'}.</p>`
+    );
+    if (impact.thisMonth.totalCents > 0) {
+      impactLines.push(
+        `<p>This month: <strong>${dollars(impact.thisMonth.totalCents)}</strong> in verified impact.</p>`
+      );
+    }
+  } else {
+    impactLines.push(
+      '<p>No verified advisor impact yet. Complete actions in the Action Centre and confirm their results to build your impact ledger.</p>'
+    );
+  }
+  if (impact.awaitingConfirmationCount > 0) {
+    impactLines.push(
+      `<p>${impact.awaitingConfirmationCount} completed action${impact.awaitingConfirmationCount === 1 ? ' is' : 's are'} awaiting your impact confirmation in the Action Centre.</p>`
+    );
+  }
+  if (impact.pipelineExpectedCents > 0) {
+    impactLines.push(
+      `<p>Open action pipeline: <strong>${dollars(impact.pipelineExpectedCents)}</strong> in estimated impact across ${impact.pipelineCount} action${impact.pipelineCount === 1 ? '' : 's'}.</p>`
+    );
+  }
+
   const subject = `Weekly Executive Brief — ${org.displayName || org.name}`;
   const html = `
     <h1>${subject}</h1>
+    <h2>Advisor Impact</h2>
+    ${impactLines.join('\n    ')}
+    <h2>This Week</h2>
     <p>Active students: <strong>${dash.enrolment.activeStudents}</strong></p>
     <p>Month expenses: <strong>$${(dash.expenses.monthExpenseCents / 100).toFixed(2)}</strong></p>
     <p>Cash net monthly outlook: <strong>$${(dash.cash.netMonthlyCents / 100).toFixed(2)}</strong></p>
@@ -62,7 +98,9 @@ export async function sendWeeklyExecutiveBrief(organizationId: string) {
 
 export async function runDailyAnalysisForOrg(organizationId: string) {
   await buildForecasts(organizationId);
-  return runBusinessInsights(organizationId);
+  const insights = await runBusinessInsights(organizationId);
+  const impactVerification = await runImpactVerificationForOrg(organizationId);
+  return { ...insights, impactVerification };
 }
 
 export async function runDailyAnalysisAllOrgs() {

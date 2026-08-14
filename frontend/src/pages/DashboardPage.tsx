@@ -44,6 +44,17 @@ interface Dashboard {
     activeEnrolments: number;
     utilization: number | null;
   }[];
+  advisorImpact: {
+    verified: {
+      savedCents: number;
+      earnedCents: number;
+      otherCents: number;
+      totalCents: number;
+      actionCount: number;
+    };
+    thisMonth: { totalCents: number };
+    awaitingConfirmationCount: number;
+  };
 }
 
 export function DashboardPage() {
@@ -68,6 +79,17 @@ export function DashboardPage() {
 
       <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {[
+          {
+            label: 'Advisor Impact',
+            value: money(data.advisorImpact.verified.totalCents),
+            note:
+              data.advisorImpact.verified.totalCents > 0
+                ? `Saved ${money(
+                    data.advisorImpact.verified.savedCents +
+                      data.advisorImpact.verified.otherCents
+                  )} · Earned ${money(data.advisorImpact.verified.earnedCents)}`
+                : 'Complete actions to build verified impact',
+          },
           {
             label: 'Active Students',
             value: String(data.enrolment.activeStudents),
@@ -99,6 +121,17 @@ export function DashboardPage() {
           </div>
         ))}
       </div>
+
+      {data.advisorImpact.awaitingConfirmationCount > 0 && (
+        <p className="mt-4 border border-ba-line bg-ba-mist px-4 py-3 text-base">
+          {data.advisorImpact.awaitingConfirmationCount} completed action
+          {data.advisorImpact.awaitingConfirmationCount === 1 ? ' is' : 's are'}{' '}
+          awaiting impact confirmation.{' '}
+          <Link className="text-ba-accent underline" to="/app/actions">
+            Confirm in the Action Centre
+          </Link>
+        </p>
+      )}
 
       <section className="mt-10">
         <h2 className="font-display text-2xl font-bold">Targets</h2>

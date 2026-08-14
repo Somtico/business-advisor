@@ -12,6 +12,8 @@ const TOOL_DESCRIPTIONS: Record<string, string> = {
   cashOutlook: 'Cash balance, monthly in/out and runway',
   targetProgress: 'Academic/fiscal targets versus actuals',
   executiveDashboard: 'Full executive snapshot',
+  advisorImpact:
+    'Verified money saved/earned from completed advice, pending estimates and pipeline',
 };
 
 /** Latest high-capability defaults; override with OPENAI_MODEL / ANTHROPIC_MODEL / GEMINI_MODEL */
@@ -39,6 +41,9 @@ function pickTools(question: string): ToolName[] {
   }
   if (/target|goal|on track|milestone/.test(q)) {
     tools.push('targetProgress');
+  }
+  if (/impact|saved|savings|earned|worth|roi|value|helped|paid off/.test(q)) {
+    tools.push('advisorImpact');
   }
   if (tools.length === 0) tools.push('executiveDashboard');
   return tools;

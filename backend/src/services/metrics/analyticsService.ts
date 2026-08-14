@@ -1,5 +1,6 @@
 import { ForecastScenario } from '@prisma/client';
 import prisma from '../../config/prisma';
+import { impactSummary } from '../impactService';
 
 function overlaps(
   start: Date | null,
@@ -350,7 +351,7 @@ export async function buildForecasts(organizationId: string) {
 }
 
 export async function executiveDashboard(organizationId: string) {
-  const [enrolment, programmes, staffing, expenses, cash, targets] =
+  const [enrolment, programmes, staffing, expenses, cash, targets, advisorImpact] =
     await Promise.all([
       enrolmentMetrics(organizationId),
       programmePerformance(organizationId),
@@ -358,6 +359,7 @@ export async function executiveDashboard(organizationId: string) {
       expenseRollup(organizationId),
       cashOutlook(organizationId),
       targetProgress(organizationId),
+      impactSummary(organizationId),
     ]);
 
   const forecasts = await prisma.forecast.findMany({
@@ -374,6 +376,7 @@ export async function executiveDashboard(organizationId: string) {
     cash,
     targets,
     forecasts,
+    advisorImpact,
     generatedAt: new Date().toISOString(),
   };
 }
@@ -388,4 +391,5 @@ export const analyticsTools = {
   targetProgress,
   executiveDashboard,
   countActiveStudents,
+  advisorImpact: impactSummary,
 };
