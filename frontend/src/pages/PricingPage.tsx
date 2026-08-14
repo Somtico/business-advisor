@@ -9,6 +9,28 @@ interface MissingDataItem {
   fixPath: string;
 }
 
+interface PricingSessionEvidence {
+  sessionId: string;
+  startsAt: string;
+  hours: number;
+  instructor: string;
+  hourlyCents: number;
+  burdenPercent: number;
+  costCents: number;
+}
+
+interface PricingEvidence {
+  method: string;
+  weeklyHours: number;
+  weeklyLabourCents: number;
+  monthlyDirectLabourCents: number;
+  overheadMonthlyCents: number;
+  totalActiveStudents: number;
+  overheadPerStudentCents: number;
+  targetMarginPercent: number;
+  sessions: PricingSessionEvidence[];
+}
+
 interface ProgrammeGuidance {
   programmeId: string;
   name: string;
@@ -25,6 +47,7 @@ interface ProgrammeGuidance {
   recommendedPriceCents: number | null;
   verdict: 'BELOW_COST' | 'BELOW_TARGET' | 'ON_TRACK' | null;
   note: string | null;
+  evidence: PricingEvidence | null;
 }
 
 interface Guidance {
@@ -52,6 +75,109 @@ const VERDICT_LABELS: Record<string, string> = {
   BELOW_TARGET: 'Below Target Margin',
   ON_TRACK: 'On Track',
 };
+
+function sessionWhen(iso: string): string {
+  return new Date(iso).toLocaleString('en-CA', {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+}
+
+/**
+ * Collapsed by default so the verdict stays the focus; expands to show every
+ * number and the margin applied, step by step.
+ */
+function CalculationBreakdown({ p }: { p: ProgrammeGuidance }) {
+  const ev = p.evidence;
+  if (!ev) return null;
+  const marginCents =
+    (p.recommendedPriceCents ?? 0) - (p.floorAtCurrentFillCents ?? 0);
+  return (
+    <details className="mt-4 border border-ba-line bg-ba-mist/30">
+      <summary className="cursor-pointer select-none px-4 py-3 text-base font-semibold hover:bg-ba-mist/60">
+        How This Was Calculated
+      </summary>
+      <div className="space-y-4 border-t border-ba-line px-4 py-4 text-base">
+        <div>
+          <p className="font-semibold">
+            Step 1 — Direct Labour From This Week's Sessions
+          </p>
+          <ul className="mt-1 list-disc space-y-1 pl-6">
+            {ev.sessions.map((s) => (
+              <li key={s.sessionId}>
+                {sessionWhen(s.startsAt)} · {s.instructor}: {s.hours} h ×{' '}
+                {money(s.hourlyCents)}/h × {(1 + s.burdenPercent / 100).toFixed(2)}{' '}
+                wage burden = <strong>{money(s.costCents)}</strong>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-1">
+            Weekly total: <strong>{money(ev.weeklyLabourCents)}</strong> (
+            {ev.weeklyHours} h)
+          </p>
+        </div>
+
+        <p>
+          <span className="font-semibold">Step 2 — Monthly Direct Labour:</span>{' '}
+          {money(ev.weeklyLabourCents)} × 4.345 weeks/month ={' '}
+          <strong>{money(ev.monthlyDirectLabourCents)}</strong>
+        </p>
+
+        <p>
+          <span className="font-semibold">Step 3 — Overhead Per Student:</span>{' '}
+          {money(ev.overheadMonthlyCents)} monthly expenses and subscriptions ÷{' '}
+          {ev.totalActiveStudents} active student
+          {ev.totalActiveStudents === 1 ? '' : 's'} across your centre ={' '}
+          <strong>{money(ev.overheadPerStudentCents)}</strong>
+        </p>
+
+        <p>
+          <span className="font-semibold">
+            Step 4 — Cost Floor at Current Fill:
+          </span>{' '}
+          {money(ev.monthlyDirectLabourCents)} ÷ {p.activeEnrolments} enrolment
+          {p.activeEnrolments === 1 ? '' : 's'} +{' '}
+          {money(ev.overheadPerStudentCents)} overhead ={' '}
+          <strong>{money(p.floorAtCurrentFillCents)}</strong>/student/month.
+          This is the cheapest you can afford to charge today without losing
+          money per student.
+        </p>
+
+        {p.floorAtCapacityCents != null && p.capacity != null && (
+          <p>
+            <span className="font-semibold">
+              Step 5 — Cost Floor at Full Capacity:
+            </span>{' '}
+            {money(ev.monthlyDirectLabourCents)} ÷ {p.capacity} seats +{' '}
+            {money(ev.overheadPerStudentCents)} overhead ={' '}
+            <strong>{money(p.floorAtCapacityCents)}</strong>/student/month if
+            every seat were filled.
+          </p>
+        )}
+
+        <p>
+          <span className="font-semibold">
+            Step {p.floorAtCapacityCents != null ? 6 : 5} — Recommended Price:
+          </span>{' '}
+          {money(p.floorAtCurrentFillCents)} floor +{' '}
+          <strong>{ev.targetMarginPercent}% target margin</strong> (
+          {money(marginCents)} added) ={' '}
+          <strong>{money(p.recommendedPriceCents)}</strong>/student/month. The
+          margin is your organization's configurable target, not a guess.
+        </p>
+
+        <p className="text-sm text-ba-ink/60">
+          Salaried instructors are expressed hourly at 2,080 hours/year. Every
+          input above comes from your recorded sessions, wages, enrolments, and
+          expenses — update those records and this calculation follows.
+        </p>
+      </div>
+    </details>
+  );
+}
 
 export function PricingPage() {
   const [data, setData] = useState<Guidance | null>(null);
@@ -194,6 +320,9 @@ export function PricingPage() {
                     <p className="mt-1 font-display text-2xl font-bold">
                       {money(p.recommendedPriceCents)}
                     </p>
+                    <p className="mt-1 text-base text-ba-ink/60">
+                      Floor + {data.targetMarginPercent}% target margin
+                    </p>
                   </div>
                   <div className="border border-ba-line p-3">
                     <p className="text-base font-semibold text-ba-ink/70">
@@ -206,6 +335,7 @@ export function PricingPage() {
                   </div>
                 </div>
                 {p.note && <p className="mt-3 text-base">{p.note}</p>}
+                <CalculationBreakdown p={p} />
               </>
             )}
 
