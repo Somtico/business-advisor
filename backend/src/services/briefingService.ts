@@ -28,7 +28,7 @@ export async function sendWeeklyExecutiveBrief(organizationId: string) {
   const impactLines: string[] = [];
   if (impact.verified.totalCents > 0) {
     impactLines.push(
-      `<p>Verified advisor impact to date: <strong>${dollars(impact.verified.savedCents)} saved · ${dollars(impact.verified.earnedCents)} earned</strong> across ${impact.verified.actionCount} completed action${impact.verified.actionCount === 1 ? '' : 's'}.</p>`
+      `<p>Nonso's verified impact to date: <strong>${dollars(impact.verified.savedCents)} saved · ${dollars(impact.verified.earnedCents)} earned</strong> across ${impact.verified.actionCount} completed action${impact.verified.actionCount === 1 ? '' : 's'}.</p>`
     );
     if (impact.thisMonth.totalCents > 0) {
       impactLines.push(
@@ -37,7 +37,7 @@ export async function sendWeeklyExecutiveBrief(organizationId: string) {
     }
   } else {
     impactLines.push(
-      '<p>No verified advisor impact yet. Complete actions in the Action Centre and confirm their results to build your impact ledger.</p>'
+      '<p>No verified impact from Nonso yet. Complete actions in the Action Centre and confirm their results to build your impact ledger.</p>'
     );
   }
   if (impact.awaitingConfirmationCount > 0) {
@@ -54,7 +54,7 @@ export async function sendWeeklyExecutiveBrief(organizationId: string) {
   const subject = `Weekly Executive Brief — ${org.displayName || org.name}`;
   const html = `
     <h1>${subject}</h1>
-    <h2>Advisor Impact</h2>
+    <h2>Nonso's Impact</h2>
     ${impactLines.join('\n    ')}
     <h2>This Week</h2>
     <p>Active students: <strong>${dash.enrolment.activeStudents}</strong></p>

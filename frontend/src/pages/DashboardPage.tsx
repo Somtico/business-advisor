@@ -80,7 +80,7 @@ export function DashboardPage() {
       <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {[
           {
-            label: 'Advisor Impact',
+            label: "Nonso's Impact",
             value: money(data.advisorImpact.verified.totalCents),
             note:
               data.advisorImpact.verified.totalCents > 0

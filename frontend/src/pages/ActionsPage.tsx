@@ -96,7 +96,7 @@ export function ActionsPage() {
       });
       if (status === 'COMPLETED') {
         setInsightsMsg(
-          'Action completed. Confirm what it saved or earned below, or leave it and Business Advisor will measure or ask you in 30 days.'
+          'Action completed. Confirm what it saved or earned below, or leave it and Nonso will measure or ask you in 30 days.'
         );
       }
       await load();
@@ -235,7 +235,7 @@ export function ActionsPage() {
                   )}
                   {r.source === 'ADVISOR_CHAT' && (
                     <p className="mt-2 text-base text-ba-ink/60">
-                      Tracked from an AI Advisor conversation
+                      Tracked from a Nonso conversation
                     </p>
                   )}
                 </div>
@@ -261,8 +261,8 @@ export function ActionsPage() {
               {awaitingConfirmation && confirmingId !== r.id && (
                 <div className="mt-4 border-t border-ba-line pt-4">
                   <p className="text-base text-ba-ink/70">
-                    What did this action save or earn? Business Advisor will also try
-                    to measure it from your data after the verification window.
+                    What did this action save or earn? Nonso will also try to
+                    measure it from your data after the verification window.
                   </p>
                   <button
                     type="button"

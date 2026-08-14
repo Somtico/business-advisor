@@ -1,6 +1,16 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { Link } from 'react-router';
 import { api, money } from '../lib/api';
+import { AnalysisProgress, SkeletonCard } from '../components/AnalysisProgress';
+
+const PRICING_ANALYSIS_STEPS = [
+  'Checking programme prices and capacity',
+  'Checking active enrolments',
+  "Checking this week's scheduled sessions",
+  'Checking instructor wage profiles',
+  'Checking expenses and subscriptions for overhead',
+  'Calculating cost floors and recommended prices',
+];
 
 interface MissingDataItem {
   key: string;
@@ -225,7 +235,7 @@ export function PricingPage() {
         }),
       });
       setSessionFormId(null);
-      setMessage('Session recorded. Guidance recalculated from your data.');
+      setMessage('Session recorded. Nonso recalculated the guidance from your data.');
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not add session');
@@ -235,7 +245,22 @@ export function PricingPage() {
   }
 
   if (error && !data) return <p className="text-base text-ba-warm">{error}</p>;
-  if (!data) return <p className="text-base">Loading pricing guidance…</p>;
+  if (!data) {
+    return (
+      <div>
+        <h1 className="font-display text-3xl font-bold">Pricing Advisor</h1>
+        <p className="mt-2 max-w-3xl text-base text-ba-ink/70">
+          Nonso is analysing your data. Every figure comes from your records —
+          nothing is guessed.
+        </p>
+        <div className="mt-8 space-y-4">
+          <AnalysisProgress steps={PRICING_ANALYSIS_STEPS} />
+          <SkeletonCard />
+          <SkeletonCard />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -243,9 +268,9 @@ export function PricingPage() {
       <p className="mt-2 max-w-3xl text-base text-ba-ink/70">
         For each programme: the cheapest you can afford to charge (the cost
         floor) and what you should charge at your {data.targetMarginPercent}%
-        target margin. Every figure is calculated from your recorded wages,
-        sessions, enrolments, and expenses — when data is missing, the advisor
-        asks for it instead of guessing.
+        target margin. Nonso calculates every figure from your recorded wages,
+        sessions, enrolments, and expenses — when data is missing, Nonso asks
+        for it instead of guessing.
       </p>
 
       {message && <p className="mt-3 text-base text-ba-accent">{message}</p>}
@@ -342,7 +367,7 @@ export function PricingPage() {
             {p.status === 'INSUFFICIENT_DATA' && (
               <div className="mt-4">
                 <p className="text-base font-semibold">
-                  To advise on this programme, Business Advisor needs:
+                  To advise on this programme, Nonso needs:
                 </p>
                 <ul className="mt-2 space-y-2">
                   {p.missingData.map((m) => (

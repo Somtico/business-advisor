@@ -14,6 +14,7 @@ import { AdvisorPage } from './pages/AdvisorPage';
 import { PricingPage } from './pages/PricingPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { TermsPage } from './pages/TermsPage';
+import { HelpPage } from './pages/HelpPage';
 
 export default function App() {
   return (
@@ -40,6 +41,7 @@ export default function App() {
         <Route path="actions" element={<ActionsPage />} />
         <Route path="pricing" element={<PricingPage />} />
         <Route path="advisor" element={<AdvisorPage />} />
+        <Route path="help" element={<HelpPage />} />
         <Route path="settings" element={<SettingsPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/login" replace />} />

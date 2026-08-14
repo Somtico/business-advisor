@@ -10,7 +10,8 @@ const links = [
   { to: '/app/targets', label: 'Targets & Forecasts' },
   { to: '/app/actions', label: 'Action Centre' },
   { to: '/app/pricing', label: 'Pricing Advisor' },
-  { to: '/app/advisor', label: 'AI Advisor' },
+  { to: '/app/advisor', label: 'Ask Nonso' },
+  { to: '/app/help', label: 'Help & FAQ' },
   { to: '/app/settings', label: 'Settings' },
 ];
 

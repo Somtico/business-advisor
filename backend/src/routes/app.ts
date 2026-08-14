@@ -830,7 +830,7 @@ router.post(
         description: description.trim().slice(0, 2000),
         expectedImpactCents: expectedImpactCents ?? undefined,
         expectedImpactNote: expectedImpactCents
-          ? 'Owner estimate from AI Advisor conversation'
+          ? 'Owner estimate from a Nonso conversation'
           : undefined,
         impactType: impactType ?? undefined,
         status: 'ACCEPTED',

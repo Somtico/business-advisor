@@ -1,6 +1,15 @@
 import { FormEvent, useState } from 'react';
 import { Link } from 'react-router';
 import { api } from '../lib/api';
+import { AnalysisProgress } from '../components/AnalysisProgress';
+
+const NONSO_ANALYSIS_STEPS = [
+  'Reading your question',
+  'Selecting the right analytics tools',
+  'Gathering evidence from your records',
+  'Nonso is reasoning over the evidence',
+  'Writing a grounded answer',
+];
 
 export function AdvisorPage() {
   const [question, setQuestion] = useState(
@@ -95,10 +104,14 @@ export function AdvisorPage() {
 
   return (
     <div>
-      <h1 className="font-display text-3xl font-bold">AI Advisor</h1>
+      <h1 className="font-display text-3xl font-bold">Ask Nonso</h1>
       <p className="mt-2 max-w-2xl text-base text-ba-ink/70">
-        Answers are grounded in trusted analytics tools — not free-form database
-        access. Auto mode only in Phase 1.
+        Nonso is your AI business advisor. Every answer is grounded in trusted
+        analytics tools reading your own records — never free-form database
+        access, never guesses. When data is missing, Nonso asks for it.{' '}
+        <Link className="text-ba-accent underline" to="/app/help">
+          Meet Nonso
+        </Link>
       </p>
       <form onSubmit={onSubmit} className="mt-8">
         <textarea
@@ -113,11 +126,16 @@ export function AdvisorPage() {
           disabled={loading}
           className="mt-3 cursor-pointer rounded-md bg-ba-accent px-4 py-3 text-base font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {loading ? 'Thinking…' : 'Ask Advisor'}
+          {loading ? 'Nonso Is Thinking…' : 'Ask Nonso'}
         </button>
       </form>
       {error && <p className="mt-4 text-base text-ba-warm">{error}</p>}
-      {meta && <p className="mt-4 text-base text-ba-ink/60">{meta}</p>}
+      {loading && (
+        <div className="mt-4">
+          <AnalysisProgress steps={NONSO_ANALYSIS_STEPS} stepMs={900} />
+        </div>
+      )}
+      {meta && !loading && <p className="mt-4 text-base text-ba-ink/60">{meta}</p>}
       {answer && (
         <div className="mt-4 whitespace-pre-wrap border border-ba-line bg-white p-5 text-base">
           {answer}
