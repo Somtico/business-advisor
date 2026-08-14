@@ -16,7 +16,7 @@ const TOOL_DESCRIPTIONS: Record<string, string> = {
 
 /** Latest high-capability defaults; override with OPENAI_MODEL / ANTHROPIC_MODEL / GEMINI_MODEL */
 const DEFAULT_OPENAI_MODEL = 'gpt-5.6';
-const DEFAULT_ANTHROPIC_MODEL = 'claude-fable-5';
+const DEFAULT_ANTHROPIC_MODEL = 'claude-opus-5';
 const DEFAULT_GEMINI_MODEL = 'gemini-2.5-pro';
 
 function pickTools(question: string): ToolName[] {
@@ -201,7 +201,7 @@ function parseAnthropicResponse(
       Math.round((inputTokens * 10 + outputTokens * 50) / 10000)
     ),
     privacyPolicy:
-      'anthropic_api_no_training_default_zdr_requires_org_agreement',
+      'anthropic_api_no_training_default_prefer_zdr_eligible_models',
   };
 }
 
