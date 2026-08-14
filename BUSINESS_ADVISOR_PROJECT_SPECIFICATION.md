@@ -22,8 +22,8 @@ AI business intelligence and operating advisor for independent after-school, tut
 
 ### Shipped (Phase 0 + Phase 1)
 
-- Organizations, RBAC, audit events, education blueprint auto-provision
-- STEM Lantern seed tenant (`stem-lantern`)
+- Organizations, RBAC, audit events, education blueprint auto-provision on signup
+- Empty database by default — onboard STEM Lantern (or any centre) through `/signup`
 - Manual CRUD: locations, programmes, students, enrolments, staff/wages, shifts, expenses, subscriptions, loans, targets
 - CSV import (students, expenses, subscriptions, revenue)
 - Data Readiness Centre with why-we-ask copy
@@ -42,11 +42,9 @@ AI business intelligence and operating advisor for independent after-school, tut
 - Fast/Standard/Deep AI mode packaging
 - Public API/SDK marketplace
 
-## Seed login
+## Onboarding
 
-- Slug: `stem-lantern`
-- Email: `owner@stemlantern.local`
-- Password: `StemLantern123!`
+Use `/signup` to create an organization (education blueprint applied automatically). Connect the STEM Lantern registration portal from Settings after you set `STEM_LANTERN_PORTAL_URL` and `STEM_LANTERN_PORTAL_API_KEY`.
 
 ## Env
 

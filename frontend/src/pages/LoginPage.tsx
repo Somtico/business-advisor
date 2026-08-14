@@ -7,9 +7,9 @@ export function LoginPage() {
   const { setSession } = useAuth();
   const navigate = useNavigate();
   const [params] = useSearchParams();
-  const [slug, setSlug] = useState(params.get('slug') || 'stem-lantern');
-  const [email, setEmail] = useState('owner@stemlantern.local');
-  const [password, setPassword] = useState('StemLantern123!');
+  const [slug, setSlug] = useState(params.get('slug') || '');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 

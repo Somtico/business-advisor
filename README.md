@@ -16,13 +16,13 @@ Multi-tenant AI business intelligence and operating advisor for independent afte
 ```bash
 npm run install:all
 # Create DB: createdb business_advisor (or equivalent)
-cp backend/.env.example backend/.env
+cp backend/.env.example backend/.env   # then set DATABASE_URL / JWT_SECRET
 cp frontend/.env.example frontend/.env
-cd backend && npx prisma migrate deploy && npm run db:seed
+cd backend && npx prisma migrate deploy
 cd .. && npm run dev
 ```
 
-Seed login: `owner@stemlantern.local` / `StemLantern123!` with tenant slug `stem-lantern`.
+Create STEM Lantern (or any centre) yourself via **Create Organization** at `/signup`. Seed does not pre-create tenants.
 
 ## Spec
 
