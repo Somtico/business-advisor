@@ -1,4 +1,4 @@
-import { NavLink, Outlet, Navigate } from 'react-router';
+import { Link, NavLink, Outlet, Navigate } from 'react-router';
 import { BrandMark } from './BrandMark';
 import { useAuth } from '../context/AuthContext';
 
@@ -73,6 +73,16 @@ export function AppShell() {
           </div>
           <div className="mx-auto max-w-6xl px-4 py-8 md:px-8">
             <Outlet />
+            <footer className="mt-12 border-t border-ba-line pt-4 text-base text-ba-ink/70">
+              <p className="flex flex-wrap gap-x-4 gap-y-1">
+                <Link className="text-ba-accent underline" to="/terms">
+                  Terms of Service
+                </Link>
+                <Link className="text-ba-accent underline" to="/privacy">
+                  Privacy Policy
+                </Link>
+              </p>
+            </footer>
           </div>
         </main>
       </div>

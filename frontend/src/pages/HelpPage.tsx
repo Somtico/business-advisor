@@ -48,6 +48,10 @@ export function HelpPage() {
         financial, legal, tax, accounting, or investment advice. See the{' '}
         <Link className="underline" to="/terms">
           Terms of Service
+        </Link>{' '}
+        and{' '}
+        <Link className="underline" to="/privacy">
+          Privacy Policy
         </Link>
         .
       </p>
