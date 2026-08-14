@@ -13,12 +13,17 @@ export function SignupPage() {
     lastName: '',
     educationSubtype: 'STEM_CODING_ACADEMY',
   });
+  const [termsAccepted, setTermsAccepted] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
+    if (!termsAccepted) {
+      setError('You must agree to the Terms of Service to continue.');
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
@@ -30,7 +35,7 @@ export function SignupPage() {
         };
       }>('/api/auth/register', {
         method: 'POST',
-        body: JSON.stringify(form),
+        body: JSON.stringify({ ...form, termsAccepted }),
       });
       if (res.data.checkout.url) {
         window.location.href = res.data.checkout.url;
@@ -99,11 +104,34 @@ export function SignupPage() {
             <option value="MIXED_PROGRAMME_CENTRE">Mixed Programme Centre</option>
           </select>
         </label>
+        <label className="mt-5 flex cursor-pointer items-start gap-3 text-base">
+          <input
+            type="checkbox"
+            checked={termsAccepted}
+            onChange={(e) => setTermsAccepted(e.target.checked)}
+            required
+            className="mt-1 cursor-pointer rounded border-ba-line"
+          />
+          <span>
+            I have read and agree to the{' '}
+            <Link
+              className="text-ba-accent underline"
+              to="/terms"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Terms of Service
+            </Link>
+            , including that Business Advisor provides information only — not
+            professional advice — and that decisions and their outcomes remain
+            my organization's responsibility.
+          </span>
+        </label>
         {error && <p className="mt-3 text-base text-ba-warm">{error}</p>}
         {message && <p className="mt-3 text-base text-ba-accent">{message}</p>}
         <button
           type="submit"
-          disabled={loading}
+          disabled={loading || !termsAccepted}
           className="mt-6 w-full cursor-pointer rounded-md bg-ba-accent px-4 py-3 text-base font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
         >
           {loading ? 'Creating…' : 'Create and Start Pilot'}

@@ -74,6 +74,16 @@ async function main() {
       EXCEPTION WHEN duplicate_object THEN NULL; END $repair$;
     `);
 
+    // Pricing guidance + terms acceptance (2026-08-14)
+    await prisma.$executeRawUnsafe(`
+      ALTER TABLE "organizations" ADD COLUMN IF NOT EXISTS "pricingTargetMarginPercent" DOUBLE PRECISION NOT NULL DEFAULT 30;
+    `);
+    await prisma.$executeRawUnsafe(`
+      ALTER TABLE "users"
+        ADD COLUMN IF NOT EXISTS "termsAcceptedAt" TIMESTAMP(3),
+        ADD COLUMN IF NOT EXISTS "termsVersion" TEXT;
+    `);
+
     console.log('ensure-db-schema: ok');
   } finally {
     await prisma.$disconnect();

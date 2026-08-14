@@ -9,6 +9,7 @@ const links = [
   { to: '/app/expenses', label: 'Expenses & Subscriptions' },
   { to: '/app/targets', label: 'Targets & Forecasts' },
   { to: '/app/actions', label: 'Action Centre' },
+  { to: '/app/pricing', label: 'Pricing Advisor' },
   { to: '/app/advisor', label: 'AI Advisor' },
   { to: '/app/settings', label: 'Settings' },
 ];

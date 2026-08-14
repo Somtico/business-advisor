@@ -11,7 +11,9 @@ import { ExpensesPage } from './pages/ExpensesPage';
 import { TargetsPage } from './pages/TargetsPage';
 import { ActionsPage } from './pages/ActionsPage';
 import { AdvisorPage } from './pages/AdvisorPage';
+import { PricingPage } from './pages/PricingPage';
 import { SettingsPage } from './pages/SettingsPage';
+import { TermsPage } from './pages/TermsPage';
 
 export default function App() {
   return (
@@ -19,6 +21,7 @@ export default function App() {
       <Route path="/" element={<Navigate to="/login" replace />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/signup" element={<SignupPage />} />
+      <Route path="/terms" element={<TermsPage />} />
       <Route
         path="/app"
         element={
@@ -35,6 +38,7 @@ export default function App() {
         <Route path="expenses" element={<ExpensesPage />} />
         <Route path="targets" element={<TargetsPage />} />
         <Route path="actions" element={<ActionsPage />} />
+        <Route path="pricing" element={<PricingPage />} />
         <Route path="advisor" element={<AdvisorPage />} />
         <Route path="settings" element={<SettingsPage />} />
       </Route>

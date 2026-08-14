@@ -25,11 +25,23 @@ router.post('/register', async (req: Request, res: Response) => {
       firstName,
       lastName,
       educationSubtype,
+      termsAccepted,
     } = req.body || {};
     if (!organizationName || !slug || !email || !password || !firstName || !lastName) {
       res.status(400).json({
         success: false,
         error: { code: 'VALIDATION', message: 'Missing required fields' },
+      });
+      return;
+    }
+    if (termsAccepted !== true) {
+      res.status(400).json({
+        success: false,
+        error: {
+          code: 'TERMS_REQUIRED',
+          message:
+            'You must agree to the Terms of Service to create an organization.',
+        },
       });
       return;
     }

@@ -140,6 +140,8 @@ model Organization {
   onboardingCompleted  Boolean            @default(false)
   cashBalanceCents     Int                @default(0)
   cashBalanceAsOf      DateTime?
+  /// Contribution margin (%) targeted above the cost floor in pricing guidance
+  pricingTargetMarginPercent Float        @default(30)
   stripeConnectAccountId String?
   stripeConnectReady   Boolean            @default(false)
   primaryColour        String?
@@ -247,6 +249,8 @@ model User {
   role           UserRole @default(VIEWER)
   isActive       Boolean  @default(true)
   lastLoginAt    DateTime?
+  termsAcceptedAt DateTime?
+  termsVersion   String?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 

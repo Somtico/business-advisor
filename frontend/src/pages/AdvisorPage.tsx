@@ -11,6 +11,7 @@ export function AdvisorPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [conversationId, setConversationId] = useState<string | undefined>();
+  const [disclaimer, setDisclaimer] = useState<string | null>(null);
   const [showTrack, setShowTrack] = useState(false);
   const [trackTitle, setTrackTitle] = useState('');
   const [trackDescription, setTrackDescription] = useState('');
@@ -34,6 +35,7 @@ export function AdvisorPage() {
           toolsUsed: string[];
           provider: string;
           model: string;
+          disclaimer?: string;
         };
       }>('/api/app/advisor/ask', {
         method: 'POST',
@@ -41,6 +43,7 @@ export function AdvisorPage() {
       });
       setAnswer(res.data.answer);
       setConversationId(res.data.conversationId);
+      setDisclaimer(res.data.disclaimer || null);
       setMeta(
         `${res.data.provider}/${res.data.model} · tools: ${res.data.toolsUsed.join(', ')}`
       );
@@ -119,6 +122,9 @@ export function AdvisorPage() {
         <div className="mt-4 whitespace-pre-wrap border border-ba-line bg-white p-5 text-base">
           {answer}
         </div>
+      )}
+      {answer && disclaimer && (
+        <p className="mt-2 max-w-3xl text-sm text-ba-ink/60">{disclaimer}</p>
       )}
       {answer && !showTrack && (
         <button

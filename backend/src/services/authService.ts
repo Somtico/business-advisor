@@ -13,6 +13,7 @@ import {
 import { signAccessToken, signRefreshToken } from '../utils/jwt';
 import { writeAudit } from './auditService';
 import { PILOT_AMOUNT_CENTS } from '../config/stripe';
+import { TERMS_VERSION } from '../config/legal';
 
 async function seedDataReadiness(organizationId: string) {
   for (const ds of EDUCATION_DATASETS) {
@@ -97,6 +98,8 @@ export async function registerOrganization(input: {
           firstName: input.firstName,
           lastName: input.lastName,
           role: 'OWNER',
+          termsAcceptedAt: new Date(),
+          termsVersion: TERMS_VERSION,
         },
       },
     },
@@ -114,6 +117,7 @@ export async function registerOrganization(input: {
     action: 'organization.created',
     resourceType: 'Organization',
     resourceId: org.id,
+    metadata: { termsVersion: TERMS_VERSION, termsAcceptedAt: new Date().toISOString() },
   });
 
   return org;

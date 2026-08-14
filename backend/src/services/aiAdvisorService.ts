@@ -1,8 +1,13 @@
 import prisma from '../config/prisma';
 import { analyticsTools } from './metrics/analyticsService';
+import { pricingGuidance } from './pricingService';
+import { ADVICE_DISCLAIMER } from '../config/legal';
 import { writeAudit } from './auditService';
 
-type ToolName = keyof typeof analyticsTools;
+/** Deterministic tool surface: analytics plus pricing guidance. */
+const advisorTools = { ...analyticsTools, pricingGuidance };
+
+type ToolName = keyof typeof advisorTools;
 
 const TOOL_DESCRIPTIONS: Record<string, string> = {
   enrolmentMetrics: 'Active students, starts/ends, churn and trial conversion',
@@ -14,6 +19,8 @@ const TOOL_DESCRIPTIONS: Record<string, string> = {
   executiveDashboard: 'Full executive snapshot',
   advisorImpact:
     'Verified money saved/earned from completed advice, pending estimates and pipeline',
+  pricingGuidance:
+    'Per-programme cost floor, recommended price and verdict; reports missing data instead of guessing',
 };
 
 /** Latest high-capability defaults; override with OPENAI_MODEL / ANTHROPIC_MODEL / GEMINI_MODEL */
@@ -44,6 +51,9 @@ function pickTools(question: string): ToolName[] {
   }
   if (/impact|saved|savings|earned|worth|roi|value|helped|paid off/.test(q)) {
     tools.push('advisorImpact');
+  }
+  if (/pric|charge|fee|tuition|rate|sell|afford|floor|margin|discount/.test(q)) {
+    tools.push('pricingGuidance');
   }
   if (tools.length === 0) tools.push('executiveDashboard');
   return tools;
@@ -346,7 +356,7 @@ export async function askAdvisor(params: {
   const tools = pickTools(params.question);
   const toolResults: Record<string, unknown> = {};
   for (const name of tools) {
-    const fn = analyticsTools[name];
+    const fn = advisorTools[name];
     toolResults[name] = await (fn as (orgId: string) => Promise<unknown>)(
       params.organizationId
     );
@@ -357,10 +367,17 @@ export async function askAdvisor(params: {
     .join('\n\n');
 
   const system = `You are the Business Advisor for an after-school / tutoring / enrichment centre.
-Use ONLY the structured analytics evidence provided. Do not invent numbers.
+
+NON-NEGOTIABLE EVIDENCE RULES:
+1. Use ONLY the structured analytics evidence provided in this message. Every number, name, and date in your answer must appear in, or be arithmetic on, that evidence.
+2. NEVER guess, estimate, extrapolate, or invent figures, records, or facts that are not in the evidence. A wrong number is worse than no number.
+3. If the evidence is missing, empty, or insufficient to answer, your answer IS the request for data: state exactly what is missing and where to add it (Programmes & Students, Staffing, Expenses & Subscriptions, Targets & Forecasts, Pricing Advisor, CSV import, or the portal connector).
+4. If a tool result has status INSUFFICIENT_DATA or a missingData list, relay those items verbatim as the required next step. Do not fill the gaps yourself.
+5. Projections may only restate the scenario figures present in the evidence, labelled as scenarios, never as certainties.
+6. Do not provide legal, tax, accounting, or investment advice; frame everything as operational information the owner must verify and decide on.
+
 Speak plainly to the owner. Prefer dollars, students, capacity, and next actions.
-Canadian English spelling. If evidence is incomplete, say what data is missing.
-Never claim certainty for forecasts.`;
+Canadian English spelling.`;
 
   const userPrompt = `Question: ${params.question}\n\nAvailable tools used: ${tools
     .map((t) => `${t} (${TOOL_DESCRIPTIONS[t]})`)
@@ -433,5 +450,6 @@ Never claim certainty for forecasts.`;
     provider: result.provider,
     model: result.model,
     privacyPolicy: result.privacyPolicy,
+    disclaimer: ADVICE_DISCLAIMER,
   };
 }

@@ -7,6 +7,7 @@ import {
   staffingVersusDemand,
   targetProgress,
 } from './metrics/analyticsService';
+import { pricingGuidance } from './pricingService';
 
 export async function runBusinessInsights(organizationId: string) {
   const [enrolment, staffing, expenses, cash, targets, readiness] =
@@ -166,6 +167,75 @@ export async function runBusinessInsights(organizationId: string) {
         description: high.map((s) => s.name).join(', '),
         expectedImpactNote: 'Cancel or downgrade unused tools before renewal',
         impactType: 'SAVINGS',
+      },
+    });
+  }
+
+  const pricing = await pricingGuidance(organizationId);
+  for (const prog of pricing.programmes) {
+    if (prog.status !== 'READY' || prog.verdict == null) continue;
+    const gapCents =
+      (prog.recommendedPriceCents ?? 0) - (prog.priceCents ?? 0);
+    const monthlyUpsideCents = Math.max(0, gapCents * prog.activeEnrolments);
+    if (prog.verdict === 'BELOW_COST') {
+      await addInsight({
+        severity: 'WARNING',
+        title: `Priced Below Cost: ${prog.name}`,
+        summary: prog.note || 'This programme is priced below its measured cost floor.',
+        evidence: prog.evidence as Prisma.InputJsonValue,
+        metricKeys: ['pricing_guidance'],
+        recommendation: {
+          title: `Fix ${prog.name} Pricing (Below Cost Floor)`,
+          description: `Current price $${((prog.priceCents ?? 0) / 100).toFixed(2)}/month is below the measured cost floor of $${((prog.floorAtCurrentFillCents ?? 0) / 100).toFixed(2)} at the current fill. Raise the price toward $${((prog.recommendedPriceCents ?? 0) / 100).toFixed(2)} or fill more seats to bring the per-student floor down.`,
+          expectedImpactCents: monthlyUpsideCents > 0 ? monthlyUpsideCents : undefined,
+          expectedImpactNote:
+            monthlyUpsideCents > 0
+              ? 'Additional monthly revenue if the price moves to the recommended level at the current enrolment count'
+              : undefined,
+          impactType: 'REVENUE',
+        },
+      });
+    } else if (prog.verdict === 'BELOW_TARGET') {
+      await addInsight({
+        severity: 'OPPORTUNITY',
+        title: `Price Below Target Margin: ${prog.name}`,
+        summary: prog.note || 'This programme covers cost but misses the target margin.',
+        evidence: prog.evidence as Prisma.InputJsonValue,
+        metricKeys: ['pricing_guidance'],
+        recommendation: {
+          title: `Review ${prog.name} Price Against Target Margin`,
+          description: `Price covers the cost floor but sits below the ${pricing.targetMarginPercent}% target margin. Recommended price: $${((prog.recommendedPriceCents ?? 0) / 100).toFixed(2)}/month.`,
+          expectedImpactCents: monthlyUpsideCents > 0 ? monthlyUpsideCents : undefined,
+          expectedImpactNote:
+            monthlyUpsideCents > 0
+              ? 'Additional monthly revenue if the price moves to the recommended level at the current enrolment count'
+              : undefined,
+          impactType: 'REVENUE',
+        },
+      });
+    }
+  }
+  const pricingBlocked = pricing.programmes.filter(
+    (prog) => prog.status === 'INSUFFICIENT_DATA'
+  );
+  if (pricingBlocked.length > 0) {
+    await addInsight({
+      severity: 'DATA_QUALITY',
+      title: 'Pricing Guidance Needs More Data',
+      summary: `${pricingBlocked.length} programme(s) cannot get pricing guidance yet: ${pricingBlocked
+        .map((prog) => prog.name)
+        .join(', ')}. Business Advisor never guesses; it needs the missing records first.`,
+      evidence: {
+        programmes: pricingBlocked.map((prog) => ({
+          name: prog.name,
+          missing: prog.missingData.map((m) => m.label),
+        })),
+      } as Prisma.InputJsonValue,
+      metricKeys: ['pricing_guidance'],
+      recommendation: {
+        title: 'Complete Pricing Data',
+        description:
+          'Open the Pricing Advisor page and add the missing records it lists per programme (prices, enrolments, sessions with instructors, wage profiles, expenses).',
       },
     });
   }

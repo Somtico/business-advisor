@@ -4,6 +4,7 @@ import { authenticateToken, requireRole } from '../middleware/auth';
 import { requireTenant } from '../middleware/tenant';
 import prisma from '../config/prisma';
 import { impactSummary } from '../services/impactService';
+import { pricingGuidance } from '../services/pricingService';
 import {
   captureImpactBaseline,
   runImpactVerificationForOrg,
@@ -667,6 +668,85 @@ router.post('/forecasts/rebuild', async (req: Request, res: Response) => {
   const rows = await buildForecasts(req.user!.organizationId);
   res.json({ success: true, data: rows });
 });
+
+router.get('/pricing/guidance', async (req: Request, res: Response) => {
+  const data = await pricingGuidance(req.user!.organizationId);
+  res.json({ success: true, data });
+});
+
+router.post(
+  '/sessions',
+  requireRole(['OWNER', 'ADMIN', 'OPERATIONS']),
+  async (req: Request, res: Response) => {
+    const { productServiceId, staffMemberId, startsAt, durationMinutes, title } =
+      req.body || {};
+    if (!productServiceId || !staffMemberId || !startsAt || !durationMinutes) {
+      res.status(400).json({
+        success: false,
+        error: {
+          code: 'VALIDATION',
+          message:
+            'productServiceId, staffMemberId, startsAt and durationMinutes are required',
+        },
+      });
+      return;
+    }
+    const minutes = Number(durationMinutes);
+    if (!Number.isFinite(minutes) || minutes <= 0 || minutes > 24 * 60) {
+      res.status(400).json({
+        success: false,
+        error: {
+          code: 'VALIDATION',
+          message: 'durationMinutes must be between 1 and 1440',
+        },
+      });
+      return;
+    }
+    const starts = new Date(startsAt);
+    if (Number.isNaN(starts.getTime())) {
+      res.status(400).json({
+        success: false,
+        error: { code: 'VALIDATION', message: 'startsAt must be a valid date' },
+      });
+      return;
+    }
+    const [programme, staff] = await Promise.all([
+      prisma.productService.findFirst({
+        where: { id: productServiceId, organizationId: req.user!.organizationId },
+      }),
+      prisma.staffMember.findFirst({
+        where: { id: staffMemberId, organizationId: req.user!.organizationId },
+      }),
+    ]);
+    if (!programme || !staff) {
+      res.status(404).json({
+        success: false,
+        error: { code: 'NOT_FOUND', message: 'Programme or staff member not found' },
+      });
+      return;
+    }
+    const rosterCount = await prisma.engagement.count({
+      where: {
+        organizationId: req.user!.organizationId,
+        productServiceId,
+        status: { in: ['ACTIVE', 'PAUSED'] },
+        isTrial: false,
+      },
+    });
+    const row = await prisma.session.create({
+      data: {
+        organizationId: req.user!.organizationId,
+        productServiceId,
+        staffMemberId,
+        title: title || `${programme.name} session`,
+        startsAt: starts,
+        endsAt: new Date(starts.getTime() + minutes * 60_000),
+        rosterCount,
+      },
+    });
+    res.status(201).json({ success: true, data: row });
+  }
+);
 
 router.post('/advisor/ask', async (req: Request, res: Response) => {
   const { question, conversationId } = req.body || {};
