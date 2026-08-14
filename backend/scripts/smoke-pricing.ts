@@ -100,7 +100,103 @@ async function main() {
       r.verdict === 'BELOW_COST';
     console.log(mathOk ? 'MATH OK' : `MATH FAILED (expected floor ${expectedFloor}, recommended ${expectedRecommended})`);
 
-    const ok = gateOk && mathOk;
+    // Phase 3: price clearly above recommended, persistently low fill, spare
+    // seats, and weak trial conversion → ABOVE_TARGET price test.
+    const fortyDaysAgo = new Date(Date.now() - 40 * 24 * 60 * 60 * 1000);
+    await prisma.productService.update({
+      where: { id: programme.id },
+      data: { priceCents: 60000 },
+    });
+    await prisma.engagement.updateMany({
+      where: { organizationId: org.id, productServiceId: programme.id, isTrial: false },
+      data: { startDate: fortyDaysAgo },
+    });
+    for (let i = 0; i < 4; i += 1) {
+      const trialPerson = await prisma.person.create({
+        data: {
+          organizationId: org.id,
+          firstName: `Trial${i + 1}`,
+          lastName: 'Student',
+        },
+      });
+      await prisma.engagement.create({
+        data: {
+          organizationId: org.id,
+          personId: trialPerson.id,
+          productServiceId: programme.id,
+          status: 'TRIAL',
+          isTrial: true,
+          startDate: fortyDaysAgo,
+        },
+      });
+    }
+    const above = await pricingGuidance(org.id);
+    const a = above.programmes.find((p) => p.programmeId === programme.id);
+    const aboveOk =
+      a != null &&
+      a.status === 'READY' &&
+      a.verdict === 'ABOVE_TARGET' &&
+      a.testPriceCents === expectedRecommended &&
+      a.priceTestMonitorWeeks === 6 &&
+      a.testPriceCents != null &&
+      a.floorAtCurrentFillCents != null &&
+      a.testPriceCents >= a.floorAtCurrentFillCents;
+    console.log('price-test result:', {
+      status: a?.status,
+      verdict: a?.verdict,
+      testPriceCents: a?.testPriceCents,
+      monitorWeeks: a?.priceTestMonitorWeeks,
+    });
+    console.log(aboveOk ? 'PRICE TEST OK' : 'PRICE TEST FAILED');
+
+    // Phase 4: high price and empty seats, but no demand signal on record →
+    // stay ON_TRACK. Empty seats alone must not trigger a cut.
+    const quiet = await prisma.productService.create({
+      data: {
+        organizationId: org.id,
+        name: 'Smoke Chess',
+        capacity: 12,
+        priceCents: 60000,
+      },
+    });
+    const quietPerson = await prisma.person.create({
+      data: { organizationId: org.id, firstName: 'Quiet', lastName: 'Student' },
+    });
+    await prisma.engagement.create({
+      data: {
+        organizationId: org.id,
+        personId: quietPerson.id,
+        productServiceId: quiet.id,
+        status: 'ACTIVE',
+        isTrial: false,
+        startDate: fortyDaysAgo,
+      },
+    });
+    const quietStarts = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    await prisma.session.create({
+      data: {
+        organizationId: org.id,
+        productServiceId: quiet.id,
+        staffMemberId: staff.id,
+        startsAt: quietStarts,
+        endsAt: new Date(quietStarts.getTime() + 2 * 60 * 60 * 1000),
+      },
+    });
+    const quietResult = (await pricingGuidance(org.id)).programmes.find(
+      (p) => p.programmeId === quiet.id
+    );
+    const quietOk =
+      quietResult != null &&
+      quietResult.status === 'READY' &&
+      quietResult.verdict === 'ON_TRACK' &&
+      quietResult.testPriceCents === null;
+    console.log('quiet-room result:', {
+      status: quietResult?.status,
+      verdict: quietResult?.verdict,
+    });
+    console.log(quietOk ? 'NO-GUESS CUT OK' : 'NO-GUESS CUT FAILED');
+
+    const ok = gateOk && mathOk && aboveOk && quietOk;
     console.log(ok ? 'SMOKE TEST PASSED' : 'SMOKE TEST FAILED');
     if (!ok) process.exitCode = 1;
   } finally {

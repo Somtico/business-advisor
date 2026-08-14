@@ -213,6 +213,21 @@ export async function runBusinessInsights(organizationId: string) {
           impactType: 'REVENUE',
         },
       });
+    } else if (prog.verdict === 'ABOVE_TARGET') {
+      await addInsight({
+        severity: 'OPPORTUNITY',
+        title: `Consider a Price Test: ${prog.name}`,
+        summary:
+          prog.note ||
+          'Price sits above the cost-plus target while fill and demand look weak. A time-boxed test is on the table; empty seats alone are not treated as proof that price is too high.',
+        evidence: prog.evidence as Prisma.InputJsonValue,
+        metricKeys: ['pricing_guidance'],
+        recommendation: {
+          title: `Run a ${prog.priceTestMonitorWeeks ?? 6}-Week Price Test on ${prog.name}`,
+          description: `Consider a time-boxed test at $${((prog.testPriceCents ?? prog.recommendedPriceCents ?? 0) / 100).toFixed(2)}/month, which still clears the $${((prog.floorAtCurrentFillCents ?? 0) / 100).toFixed(2)} cost floor, or a limited number of promo/scholarship seats at that rate. Then watch enrolments and conversion. Do not treat this as proof that price caused empty seats, and do not assume a cut will fill the room.`,
+          expectedImpactNote: `Watch enrolments and conversion for ${prog.priceTestMonitorWeeks ?? 6} weeks; a cut that does not fill seats is a permanent margin loss`,
+        },
+      });
     }
   }
   const pricingBlocked = pricing.programmes.filter(

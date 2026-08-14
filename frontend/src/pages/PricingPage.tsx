@@ -9,6 +9,7 @@ const PRICING_ANALYSIS_STEPS = [
   "Checking this week's scheduled sessions",
   'Checking instructor wage profiles',
   'Checking expenses and subscriptions for overhead',
+  'Checking utilization, conversion, and spare capacity',
   'Calculating cost floors and recommended prices',
 ];
 
@@ -39,6 +40,29 @@ interface PricingEvidence {
   overheadPerStudentCents: number;
   targetMarginPercent: number;
   sessions: PricingSessionEvidence[];
+  priceTest?: {
+    clearlyAbove: boolean;
+    premiumRatio: number;
+    premiumCents: number;
+    persistentlyLow: boolean;
+    utilizationNow: number | null;
+    utilization28dAgo: number | null;
+    paidEnrolments28dAgo: number;
+    hasPersistenceWindow: boolean;
+    spareSeats: number;
+    hasSpareCapacity: boolean;
+    demandWeak: boolean;
+    demandSignals: Array<{
+      key: string;
+      label: string;
+      detail: string;
+      weak: boolean;
+    }>;
+    testPriceCents: number;
+    monitorWeeks: number;
+    stillClearsFloor: boolean;
+    eligible: boolean;
+  };
 }
 
 interface ProgrammeGuidance {
@@ -55,7 +79,9 @@ interface ProgrammeGuidance {
   floorAtCurrentFillCents: number | null;
   floorAtCapacityCents: number | null;
   recommendedPriceCents: number | null;
-  verdict: 'BELOW_COST' | 'BELOW_TARGET' | 'ON_TRACK' | null;
+  testPriceCents: number | null;
+  priceTestMonitorWeeks: number | null;
+  verdict: 'BELOW_COST' | 'BELOW_TARGET' | 'ON_TRACK' | 'ABOVE_TARGET' | null;
   note: string | null;
   evidence: PricingEvidence | null;
 }
@@ -78,12 +104,14 @@ const VERDICT_STYLES: Record<string, string> = {
   BELOW_COST: 'bg-ba-warm/10 text-ba-warm',
   BELOW_TARGET: 'bg-amber-100 text-amber-800',
   ON_TRACK: 'bg-ba-accent/10 text-ba-accent',
+  ABOVE_TARGET: 'bg-ba-ink/10 text-ba-ink',
 };
 
 const VERDICT_LABELS: Record<string, string> = {
   BELOW_COST: 'Below Cost',
   BELOW_TARGET: 'Below Target Margin',
   ON_TRACK: 'On Track',
+  ABOVE_TARGET: 'Above Target: Price Test',
 };
 
 function sessionWhen(iso: string): string {
@@ -179,10 +207,61 @@ function CalculationBreakdown({ p }: { p: ProgrammeGuidance }) {
           margin is your organization's configurable target, not a guess.
         </p>
 
+        {ev.priceTest && (
+          <div>
+            <p className="font-semibold">
+              Step {p.floorAtCapacityCents != null ? 7 : 6} — Price Test Gate:
+            </p>
+            <ul className="mt-1 list-disc space-y-1 pl-6">
+              <li>
+                Price vs recommended:{' '}
+                {ev.priceTest.clearlyAbove
+                  ? `current price is ${((ev.priceTest.premiumRatio - 1) * 100).toFixed(0)}% above recommended (${money(ev.priceTest.premiumCents)} more)`
+                  : 'current price is not clearly above recommended (needs 15% and at least $10.00)'}
+              </li>
+              <li>
+                Persistent utilization:{' '}
+                {ev.priceTest.persistentlyLow
+                  ? `under 60% now (${ev.priceTest.utilizationNow != null ? `${(ev.priceTest.utilizationNow * 100).toFixed(0)}%` : '—'}) and 28 days ago (${ev.priceTest.utilization28dAgo != null ? `${(ev.priceTest.utilization28dAgo * 100).toFixed(0)}%` : '—'})`
+                  : 'fill has not been under 60% for at least 4 weeks, so empty seats are not treated as persistent'}
+              </li>
+              <li>
+                Spare capacity:{' '}
+                {ev.priceTest.hasSpareCapacity
+                  ? `${ev.priceTest.spareSeats} open seat${ev.priceTest.spareSeats === 1 ? '' : 's'} (no waitlist implied by a full room)`
+                  : 'no spare seats recorded, so a price test is not offered'}
+              </li>
+              <li>
+                Demand signals:
+                {ev.priceTest.demandSignals.length === 0 ? (
+                  ' none on record with enough sample (trials, enquiries, or prior-period starts). Empty seats alone are not enough.'
+                ) : (
+                  <ul className="mt-1 list-disc space-y-1 pl-6">
+                    {ev.priceTest.demandSignals.map((s) => (
+                      <li key={s.key}>
+                        {s.label}: {s.detail} {s.weak ? '(weak)' : '(not weak)'}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </li>
+            </ul>
+            {ev.priceTest.eligible && (
+              <p className="mt-2">
+                Suggested test: <strong>{money(ev.priceTest.testPriceCents)}</strong>
+                /month for {ev.priceTest.monitorWeeks} weeks, still above the
+                cost floor. This is a test to watch, not a claim that price caused
+                empty seats.
+              </p>
+            )}
+          </div>
+        )}
+
         <p className="text-sm text-ba-ink/60">
           Salaried instructors are expressed hourly at 2,080 hours/year. Every
           input above comes from your recorded sessions, wages, enrolments, and
-          expenses — update those records and this calculation follows.
+          expenses — update those records and this calculation follows. Household
+          income is not part of this calculation.
         </p>
       </div>
     </details>
@@ -274,7 +353,8 @@ export function PricingPage() {
         floor) and what you should charge at your {data.targetMarginPercent}%
         target margin. Nonso calculates every figure from your recorded wages,
         sessions, enrolments, and expenses — when data is missing, Nonso asks
-        for it instead of guessing.
+        for it instead of guessing. A lower price is suggested only as a
+        time-boxed test, and only when your own operating data supports it.
       </p>
 
       {message && <p className="mt-3 text-base text-ba-accent">{message}</p>}
@@ -368,6 +448,27 @@ export function PricingPage() {
                     </p>
                   </div>
                 </div>
+                {p.verdict === 'ABOVE_TARGET' &&
+                  p.testPriceCents != null &&
+                  p.priceTestMonitorWeeks != null && (
+                    <div className="mt-4 border border-ba-ink/20 bg-ba-mist/50 p-4">
+                      <p className="text-base font-semibold">
+                        Suggested {p.priceTestMonitorWeeks}-Week Price Test
+                      </p>
+                      <p className="mt-1 font-display text-2xl font-bold">
+                        {money(p.testPriceCents)}
+                        <span className="ml-2 text-base font-semibold text-ba-ink/70">
+                          /month
+                        </span>
+                      </p>
+                      <p className="mt-2 text-base">
+                        Still above the {money(p.floorAtCurrentFillCents)} cost
+                        floor. Monitor enrolments and conversion for{' '}
+                        {p.priceTestMonitorWeeks} weeks. This is a test, not a
+                        promise that a lower price will fill seats.
+                      </p>
+                    </div>
+                  )}
                 {p.note && <p className="mt-3 text-base">{p.note}</p>}
                 <CalculationBreakdown p={p} />
               </>

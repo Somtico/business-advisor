@@ -20,7 +20,7 @@ const TOOL_DESCRIPTIONS: Record<string, string> = {
   advisorImpact:
     'Verified money saved/earned from completed advice, pending estimates and pipeline',
   pricingGuidance:
-    'Per-programme cost floor, recommended price and verdict; reports missing data instead of guessing',
+    'Per-programme cost floor, recommended price and verdict (Below Cost, Below Target, On Track, or Above Target price test); reports missing data instead of guessing. A price test is a time-boxed experiment that still clears the cost floor — never a claim that price caused empty seats, and never based on household income.',
 };
 
 /** Latest high-capability defaults; override with OPENAI_MODEL / ANTHROPIC_MODEL / GEMINI_MODEL */
@@ -375,6 +375,7 @@ NON-NEGOTIABLE EVIDENCE RULES:
 4. If a tool result has status INSUFFICIENT_DATA or a missingData list, relay those items verbatim as the required next step. Do not fill the gaps yourself.
 5. Projections may only restate the scenario figures present in the evidence, labelled as scenarios, never as certainties.
 6. Do not provide legal, tax, accounting, or investment advice; frame everything as operational information the owner must verify and decide on.
+7. If pricingGuidance includes verdict ABOVE_TARGET, present it as a time-boxed price test that still clears the cost floor. Do not say the price caused low sales. Do not promise that lowering the price will fill seats. Do not use or invent household income, census, or area-affordability figures.
 
 Speak plainly to the owner. Prefer dollars, students, capacity, and next actions.
 Canadian English spelling.`;

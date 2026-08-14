@@ -58,6 +58,14 @@ const FAQ_SECTIONS: { title: string; items: Faq[] }[] = [
         q: 'Can I change the target margin?',
         a: 'Yes. The target margin is an organization setting. Adjusting it recalculates the recommended price for every programme; the cost floors are unaffected because they reflect real costs.',
       },
+      {
+        q: 'Will Nonso tell me I am charging too much?',
+        a: 'Not from empty seats, and never from area household income. Cost-plus tells you the floor, not the market. If the price sits clearly above the recommended (cost + target margin) price, utilization has been low for at least four weeks, spare seats exist, and a recorded demand signal is weak (trial-to-paid conversion, enquiry-to-enrol, or enrolment velocity vs the prior period), Nonso offers an Above Target: Price Test. That is a time-boxed test at a price that still clears the cost floor, plus a window to watch enrolments and conversion. It is not a claim that price caused fewer sales, and it does not promise that a cut will fill the room.',
+      },
+      {
+        q: 'Why does Nonso sometimes say filling seats beats a price change?',
+        a: 'When the price already meets the target margin but the room is under 60% full, and the price-test gate does not fire, Nonso keeps the On Track verdict. Marketing, schedule, instructor, location, and reputation all produce the same empty room. A cut that does not fill seats is a permanent margin loss.',
+      },
     ],
   },
   {
