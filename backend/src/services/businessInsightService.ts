@@ -8,6 +8,7 @@ import {
   targetProgress,
 } from './metrics/analyticsService';
 import { pricingGuidance } from './pricingService';
+import { enrolmentGuidance } from './enrolmentService';
 
 export async function runBusinessInsights(organizationId: string) {
   const [enrolment, staffing, expenses, cash, targets, readiness] =
@@ -135,7 +136,7 @@ export async function runBusinessInsights(organizationId: string) {
       recommendation: {
         title: 'Tighten Trial Follow-Up',
         description:
-          'Contact recent trial families within 48 hours with a clear next-class offer and address common objections.',
+          'Contact recent trial families within 48 hours with a clear next-class offer. Open Enrolment Advisor to record what you have already tried and the result you got before spending on ads.',
         impactType: 'REVENUE',
       },
     });
@@ -251,6 +252,29 @@ export async function runBusinessInsights(organizationId: string) {
         title: 'Complete Pricing Data',
         description:
           'Open the Pricing Advisor page and add the missing records it lists per programme (prices, enrolments, sessions with instructors, wage profiles, expenses).',
+      },
+    });
+  }
+
+  const enrolGuide = await enrolmentGuidance(organizationId);
+  if (enrolGuide.leak !== 'INSUFFICIENT_DATA' && enrolGuide.leak !== 'STABLE') {
+    await addInsight({
+      severity: enrolGuide.leak === 'FULL_ROOM' ? 'OPPORTUNITY' : 'WARNING',
+      title: `Enrolment: ${enrolGuide.leakLabel}`,
+      summary: enrolGuide.note,
+      evidence: {
+        leak: enrolGuide.leak,
+        utilization: enrolGuide.utilization,
+        conversionRate: enrolGuide.conversionRate,
+        spareSeats: enrolGuide.spareSeats,
+        askTriedAndResults: enrolGuide.askTriedAndResults,
+      } as Prisma.InputJsonValue,
+      metricKeys: ['enrolment_guidance'],
+      recommendation: {
+        title:
+          enrolGuide.cheapNextSteps[0]?.title || 'Open Enrolment Advisor',
+        description: `${enrolGuide.cheapNextSteps.map((s) => s.detail).join(' ')} Record what you have tried and the result you got on the Enrolment Advisor page. Paid ads are suggested only when conversion is healthy, seats are open, and cash can absorb a small test.`,
+        impactType: 'REVENUE',
       },
     });
   }

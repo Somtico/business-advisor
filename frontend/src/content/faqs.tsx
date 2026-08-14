@@ -70,6 +70,36 @@ export const FAQ_SECTIONS: FaqSection[] = [
     ],
   },
   {
+    title: 'Enrolment Advisor',
+    items: [
+      {
+        q: 'Can Nonso tell me how to get more students?',
+        a: 'Nonso names the leak from your records (full room, weak trial conversion, slipping starts, or churn), then suggests cheap next steps first: follow-up, referrals, waitlists, or a flyer where you already are. A small paid test appears only when conversion is healthy, seats are open, and cash can absorb it. Nonso will not invent a marketing plan or promised student counts.',
+      },
+      {
+        q: 'Why does Nonso ask what I tried and what result I got?',
+        a: 'Empty seats have many causes. What you already tried, and whether it helped, is evidence. Record both on Enrolment Advisor so Nonso can avoid repeating a paid channel that did nothing, and can lean on a cheap tactic that already produced starts.',
+      },
+      {
+        q: 'Do you use my enrolment notes to train AI?',
+        a: (
+          <>
+            No. Your notes stay on your organization. If you opt in on a
+            record, we store only a de-identified count (tactic type, cost
+            band, outcome, leak type, coarse education bucket), with no names
+            or organization id. Those counts improve the playbook after at
+            least eight similar reports. They are not sent to train third-party
+            models. See the{' '}
+            <Link className="text-ba-accent underline" to="/privacy">
+              Privacy Policy
+            </Link>
+            .
+          </>
+        ),
+      },
+    ],
+  },
+  {
     title: 'Impact Ledger',
     items: [
       {
@@ -95,7 +125,18 @@ export const FAQ_SECTIONS: FaqSection[] = [
     items: [
       {
         q: 'Is my data private?',
-        a: "Yes. Your data is scoped to your organization. Nonso's tools only read your organization's records, and AI providers receive only the aggregated evidence needed to answer your question — never your raw database.",
+        a: (
+          <>
+            Yes. Your data is scoped to your organization. Nonso's tools only
+            read your organization's records, and AI providers receive only the
+            aggregated evidence needed to answer your question, never your raw
+            database. The{' '}
+            <Link className="text-ba-accent underline" to="/privacy">
+              Privacy Policy
+            </Link>{' '}
+            is a separate page from the Terms of Service.
+          </>
+        ),
       },
       {
         q: 'What data should I enter for the best advice?',
@@ -186,6 +227,13 @@ export function landingFaqSections(): FaqSection[] {
     FAQ_SECTIONS[0],
     FAQ_SECTIONS[1],
     {
+      title: 'Enrolment Advisor',
+      items: itemsNamed('Enrolment Advisor', [
+        'Can Nonso tell me how to get more students?',
+        'Do you use my enrolment notes to train AI?',
+      ]),
+    },
+    {
       title: 'Impact Ledger',
       items: itemsNamed('Impact Ledger', [
         'What is the impact ledger?',
@@ -211,6 +259,6 @@ export function landingFaqSections(): FaqSection[] {
         },
       ],
     },
-    FAQ_SECTIONS[5],
+    FAQ_SECTIONS.find((s) => s.title === 'Accounts, Billing & Access')!,
   ];
 }

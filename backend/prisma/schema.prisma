@@ -112,6 +112,32 @@ enum RecommendationSource {
   MANUAL
 }
 
+enum EnrolmentTacticKey {
+  TRIAL_FOLLOWUP
+  FAMILY_REFERRAL
+  SCHOOL_OUTREACH
+  OPEN_HOUSE
+  SCHEDULE_CHANGE
+  WAITLIST
+  PRICE_PROMO
+  SOCIAL_ORGANIC
+  PAID_ADS
+  OTHER
+}
+
+enum TacticOutcome {
+  HELPED
+  NO_EFFECT
+  HURT
+  UNKNOWN
+}
+
+enum TacticCostBand {
+  FREE
+  LOW
+  PAID
+}
+
 enum ForecastScenario {
   CONSERVATIVE
   EXPECTED
@@ -174,6 +200,7 @@ model Organization {
   recurringSubscriptions RecurringSubscription[]
   loans          Loan[]
   marketingActivities MarketingActivity[]
+  enrolmentTacticsTried EnrolmentTacticTried[]
   targets        Target[]
   forecasts      Forecast[]
   metricSnapshots MetricSnapshot[]
@@ -259,6 +286,8 @@ model User {
   lastLoginAt    DateTime?
   termsAcceptedAt DateTime?
   termsVersion   String?
+  privacyAcceptedAt DateTime?
+  privacyVersion    String?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
@@ -656,6 +685,40 @@ model MarketingActivity {
 
   @@index([organizationId])
   @@map("marketing_activities")
+}
+
+/// Org-private log of enrolment tactics and results. Free-text never leaves this table.
+model EnrolmentTacticTried {
+  id              String            @id @default(cuid())
+  organizationId  String
+  tacticKey       EnrolmentTacticKey
+  otherLabel      String?
+  resultSummary   String
+  outcome         TacticOutcome
+  costBand        TacticCostBand
+  shareAnonymized Boolean           @default(false)
+  leakTypeAtReport String?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, createdAt])
+  @@map("enrolment_tactics_tried")
+}
+
+/// De-identified tactic outcomes only: no org, person, or free text. Used for aggregate playbooks, not model training.
+model AnonymizedTacticOutcome {
+  id               String            @id @default(cuid())
+  tacticKey        EnrolmentTacticKey
+  outcome          TacticOutcome
+  costBand         TacticCostBand
+  leakType         String
+  educationBucket  String
+  createdAt        DateTime          @default(now())
+
+  @@index([tacticKey, leakType, outcome])
+  @@map("anonymized_tactic_outcomes")
 }
 
 model Target {

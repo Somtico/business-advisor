@@ -1,11 +1,12 @@
 import prisma from '../config/prisma';
 import { analyticsTools } from './metrics/analyticsService';
+import { enrolmentGuidance } from './enrolmentService';
 import { pricingGuidance } from './pricingService';
 import { ADVICE_DISCLAIMER } from '../config/legal';
 import { writeAudit } from './auditService';
 
 /** Deterministic tool surface: analytics plus pricing guidance. */
-const advisorTools = { ...analyticsTools, pricingGuidance };
+const advisorTools = { ...analyticsTools, pricingGuidance, enrolmentGuidance };
 
 type ToolName = keyof typeof advisorTools;
 
@@ -21,6 +22,8 @@ const TOOL_DESCRIPTIONS: Record<string, string> = {
     'Verified money saved/earned from completed advice, pending estimates and pipeline',
   pricingGuidance:
     'Per-programme cost floor, recommended price and verdict (Below Cost, Below Target, On Track, or Above Target price test); reports missing data instead of guessing. A price test is a time-boxed experiment that still clears the cost floor — never a claim that price caused empty seats, and never based on household income.',
+  enrolmentGuidance:
+    'Enrolment leak diagnosis (full room, conversion, churn, velocity, spare seats), cheap next steps, whether a small paid test is on the table, what the owner already tried and the results they recorded, and aggregate de-identified peer patterns only when at least 8 similar reports exist. Asks for tried-and-results when that log is empty. Never invents a marketing plan or promised student counts.',
 };
 
 /** Latest high-capability defaults; override with OPENAI_MODEL / ANTHROPIC_MODEL / GEMINI_MODEL */
@@ -54,6 +57,13 @@ function pickTools(question: string): ToolName[] {
   }
   if (/pric|charge|fee|tuition|rate|sell|afford|floor|margin|discount/.test(q)) {
     tools.push('pricingGuidance');
+  }
+  if (
+    /enrol|fill seat|waitlist|referral|marketing|ads|conversion|trial|grow|more student|fewer student|empty (room|seat)/.test(
+      q
+    )
+  ) {
+    tools.push('enrolmentGuidance');
   }
   if (tools.length === 0) tools.push('executiveDashboard');
   return tools;
@@ -376,6 +386,7 @@ NON-NEGOTIABLE EVIDENCE RULES:
 5. Projections may only restate the scenario figures present in the evidence, labelled as scenarios, never as certainties.
 6. Do not provide legal, tax, accounting, or investment advice; frame everything as operational information the owner must verify and decide on.
 7. If pricingGuidance includes verdict ABOVE_TARGET, present it as a time-boxed price test that still clears the cost floor. Do not say the price caused low sales. Do not promise that lowering the price will fill seats. Do not use or invent household income, census, or area-affordability figures.
+8. If enrolmentGuidance is present: name the leak from that evidence. Prioritize the cheapNextSteps. Suggest paid spend only when paidTest.eligible is true. If askTriedAndResults is true, your answer must ask what they have already tried AND what result they got, and point them to Enrolment Advisor to record it. Use their tacticsTried outcomes when present. You may cite peerPatterns only as counts already in the evidence ("helped in X of Y reports"), never as proof a tactic will work here. Do not invent channels, student counts, or ROI.
 
 Speak plainly to the owner. Prefer dollars, students, capacity, and next actions.
 Canadian English spelling.`;

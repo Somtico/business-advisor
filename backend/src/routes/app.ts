@@ -6,6 +6,12 @@ import prisma from '../config/prisma';
 import { impactSummary } from '../services/impactService';
 import { pricingGuidance } from '../services/pricingService';
 import {
+  deleteEnrolmentTactic,
+  enrolmentGuidance,
+  listEnrolmentTactics,
+  recordEnrolmentTactic,
+} from '../services/enrolmentService';
+import {
   captureImpactBaseline,
   runImpactVerificationForOrg,
   IMPACT_VERIFICATION_DELAY_DAYS,
@@ -694,6 +700,81 @@ router.get('/pricing/guidance', async (req: Request, res: Response) => {
   const data = await pricingGuidance(req.user!.organizationId);
   res.json({ success: true, data });
 });
+
+router.get('/enrolment/guidance', async (req: Request, res: Response) => {
+  const data = await enrolmentGuidance(req.user!.organizationId);
+  res.json({ success: true, data });
+});
+
+router.get('/enrolment/tactics', async (req: Request, res: Response) => {
+  const data = await listEnrolmentTactics(req.user!.organizationId);
+  res.json({ success: true, data });
+});
+
+router.post(
+  '/enrolment/tactics',
+  requireRole(['OWNER', 'ADMIN', 'OPERATIONS']),
+  async (req: Request, res: Response) => {
+    const {
+      tacticKey,
+      otherLabel,
+      resultSummary,
+      outcome,
+      costBand,
+      shareAnonymized,
+    } = req.body || {};
+    if (!tacticKey || !resultSummary || !outcome || !costBand) {
+      res.status(400).json({
+        success: false,
+        error: {
+          code: 'VALIDATION',
+          message:
+            'tacticKey, resultSummary (what result you got), outcome, and costBand are required',
+        },
+      });
+      return;
+    }
+    try {
+      const data = await recordEnrolmentTactic(req.user!.organizationId, {
+        tacticKey,
+        otherLabel,
+        resultSummary: String(resultSummary),
+        outcome,
+        costBand,
+        shareAnonymized: Boolean(shareAnonymized),
+      });
+      res.status(201).json({ success: true, data });
+    } catch (err) {
+      const code = err instanceof Error ? err.message : 'VALIDATION';
+      const message =
+        code === 'RESULT_REQUIRED'
+          ? 'Say what result you got. Nonso uses that, not a guess.'
+          : code === 'RESULT_TOO_LONG'
+            ? 'Keep the result under 2,000 characters. Do not include student or family names.'
+            : 'Could not save that tactic.';
+      res.status(400).json({ success: false, error: { code, message } });
+    }
+  }
+);
+
+router.delete(
+  '/enrolment/tactics/:id',
+  requireRole(['OWNER', 'ADMIN', 'OPERATIONS']),
+  async (req: Request, res: Response) => {
+    const deleted = await deleteEnrolmentTactic(
+      req.user!.organizationId,
+      req.params.id
+    );
+    if (!deleted) {
+      res.status(404).json({
+        success: false,
+        error: { code: 'NOT_FOUND', message: 'Tactic record not found' },
+      });
+      return;
+    }
+    res.json({ success: true, data: { id: deleted.id } });
+  }
+);
 
 router.post(
   '/sessions',

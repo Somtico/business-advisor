@@ -193,11 +193,19 @@ export function TermsPage() {
 
         <Section title="11. Privacy">
           <p>
-            We handle personal information in accordance with applicable
-            Canadian privacy law, including the Personal Information Protection
-            and Electronic Documents Act (PIPEDA) where it applies. We do not
-            sell Customer Data. AI requests are configured to opt out of
-            provider training where the provider offers that control.
+            How we collect, use, and share personal information is described in
+            our{' '}
+            <Link className="text-ba-accent underline" to="/privacy">
+              Privacy Policy
+            </Link>
+            , which is incorporated into these Terms. We handle personal
+            information in accordance with applicable Canadian privacy law,
+            including the Personal Information Protection and Electronic
+            Documents Act (PIPEDA) where it applies. We do not sell Customer
+            Data. AI requests are configured to opt out of provider training
+            where the provider offers that control. Optional de-identified
+            enrolment-tactic counts (no names, notes, or organization id) are
+            described in the Privacy Policy and are off unless you opt in.
           </p>
         </Section>
 
@@ -317,6 +325,10 @@ export function TermsPage() {
         <p className="mt-6 text-base">
           <Link className="text-ba-accent underline" to="/">
             Home
+          </Link>{' '}
+          ·{' '}
+          <Link className="text-ba-accent underline" to="/privacy">
+            Privacy Policy
           </Link>{' '}
           ·{' '}
           <Link className="text-ba-accent underline" to="/signup">

@@ -29,6 +29,7 @@ router.post('/register', async (req: Request, res: Response) => {
       educationSubtype,
       educationSubtypeOther,
       termsAccepted,
+      privacyAccepted,
     } = req.body || {};
     if (!organizationName || !slug || !email || !password || !firstName || !lastName) {
       res.status(400).json({
@@ -37,13 +38,13 @@ router.post('/register', async (req: Request, res: Response) => {
       });
       return;
     }
-    if (termsAccepted !== true) {
+    if (termsAccepted !== true || privacyAccepted !== true) {
       res.status(400).json({
         success: false,
         error: {
           code: 'TERMS_REQUIRED',
           message:
-            'You must agree to the Terms of Service to create an organization.',
+            'You must agree to the Terms of Service and the Privacy Policy to create an organization.',
         },
       });
       return;

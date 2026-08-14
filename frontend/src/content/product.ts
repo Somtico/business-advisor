@@ -59,6 +59,7 @@ export const advisorCapabilities = [
   'Executive command centre with enrolment, labour, and cash KPIs',
   'Action Centre that turns insights into tracked, measurable steps',
   'Ask Nonso anything about your numbers in plain language',
+  'Enrolment Advisor: name the leak, cheap next steps, then a paid test only when the data supports it',
   'Targets and forecasts across conservative to growth scenarios',
   'Staffing versus demand analysis to catch overscheduled weeks',
   'Subscription and expense audits that find quiet money leaks',

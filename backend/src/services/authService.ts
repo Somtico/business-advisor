@@ -13,7 +13,7 @@ import {
 import { signAccessToken, signRefreshToken } from '../utils/jwt';
 import { writeAudit } from './auditService';
 import { PILOT_AMOUNT_CENTS } from '../config/stripe';
-import { TERMS_VERSION } from '../config/legal';
+import { PRIVACY_VERSION, TERMS_VERSION } from '../config/legal';
 import { sendVerificationEmail } from './emailService';
 
 async function seedDataReadiness(organizationId: string) {
@@ -135,6 +135,8 @@ export async function registerOrganization(input: {
           role: 'OWNER',
           termsAcceptedAt: new Date(),
           termsVersion: TERMS_VERSION,
+          privacyAcceptedAt: new Date(),
+          privacyVersion: PRIVACY_VERSION,
           emailVerified: autoVerify,
           emailVerificationToken: autoVerify ? null : token,
           emailVerificationExpires: autoVerify ? null : expires,
@@ -155,7 +157,12 @@ export async function registerOrganization(input: {
     action: 'organization.created',
     resourceType: 'Organization',
     resourceId: org.id,
-    metadata: { termsVersion: TERMS_VERSION, termsAcceptedAt: new Date().toISOString() },
+    metadata: {
+      termsVersion: TERMS_VERSION,
+      termsAcceptedAt: new Date().toISOString(),
+      privacyVersion: PRIVACY_VERSION,
+      privacyAcceptedAt: new Date().toISOString(),
+    },
   });
 
   const owner = org.users[0];

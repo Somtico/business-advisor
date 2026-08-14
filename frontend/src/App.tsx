@@ -17,6 +17,8 @@ import { TermsPage } from './pages/TermsPage';
 import { HelpPage } from './pages/HelpPage';
 import { EmailVerificationPage } from './pages/EmailVerificationPage';
 import { LandingPage } from './pages/LandingPage';
+import { PrivacyPage } from './pages/PrivacyPage';
+import { EnrolmentPage } from './pages/EnrolmentPage';
 
 export default function App() {
   return (
@@ -25,6 +27,7 @@ export default function App() {
       <Route path="/login" element={<LoginPage />} />
       <Route path="/signup" element={<SignupPage />} />
       <Route path="/terms" element={<TermsPage />} />
+      <Route path="/privacy" element={<PrivacyPage />} />
       <Route path="/verify-email" element={<EmailVerificationPage />} />
       <Route
         path="/app"
@@ -43,6 +46,7 @@ export default function App() {
         <Route path="targets" element={<TargetsPage />} />
         <Route path="actions" element={<ActionsPage />} />
         <Route path="pricing" element={<PricingPage />} />
+        <Route path="enrolment" element={<EnrolmentPage />} />
         <Route path="advisor" element={<AdvisorPage />} />
         <Route path="help" element={<HelpPage />} />
         <Route path="settings" element={<SettingsPage />} />

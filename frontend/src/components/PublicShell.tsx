@@ -67,6 +67,9 @@ export function PublicShell({
             <Link className="text-ba-accent underline" to="/terms">
               Terms of Service
             </Link>
+            <Link className="text-ba-accent underline" to="/privacy">
+              Privacy Policy
+            </Link>
             <Link className="text-ba-accent underline" to="/login">
               Sign In
             </Link>

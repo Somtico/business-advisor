@@ -68,7 +68,7 @@ export function SignupPage() {
         };
       }>('/api/auth/register', {
         method: 'POST',
-        body: JSON.stringify({ ...payload, termsAccepted }),
+        body: JSON.stringify({ ...payload, termsAccepted, privacyAccepted: termsAccepted }),
       });
       if (res.data.checkout.url) {
         window.location.href = res.data.checkout.url;
@@ -268,9 +268,18 @@ export function SignupPage() {
               rel="noreferrer"
             >
               Terms of Service
+            </Link>{' '}
+            and the{' '}
+            <Link
+              className="text-ba-accent underline"
+              to="/privacy"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Privacy Policy
             </Link>
-            , including that Business Advisor provides information only — not
-            professional advice — and that decisions and their outcomes remain
+            , including that Business Advisor provides information only, not
+            professional advice, and that decisions and their outcomes remain
             my organization's responsibility.
             <RequiredMark />
           </span>
