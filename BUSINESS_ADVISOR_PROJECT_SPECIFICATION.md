@@ -29,7 +29,7 @@ AI business intelligence and operating advisor for independent after-school, tut
 - Data Readiness Centre with why-we-ask copy
 - Executive dashboard, forecasts (Conservative/Expected/Growth), staffing-vs-demand
 - BusinessInsightService + Action Centre + realized impact fields
-- Auto AI Advisor with usage metering (OpenAI/Gemini or deterministic fallback)
+- Auto AI Advisor with usage metering (OpenAI → Claude → Gemini; privacy-aware request flags)
 - Daily analysis + weekly executive brief jobs (Brevo when configured)
 - Portal connector sync into canonical objects via ExternalIdentity
 

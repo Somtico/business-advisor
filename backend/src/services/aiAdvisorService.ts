@@ -14,6 +14,11 @@ const TOOL_DESCRIPTIONS: Record<string, string> = {
   executiveDashboard: 'Full executive snapshot',
 };
 
+/** Latest high-capability defaults; override with OPENAI_MODEL / ANTHROPIC_MODEL / GEMINI_MODEL */
+const DEFAULT_OPENAI_MODEL = 'gpt-5.6';
+const DEFAULT_ANTHROPIC_MODEL = 'claude-fable-5';
+const DEFAULT_GEMINI_MODEL = 'gemini-2.5-pro';
+
 function pickTools(question: string): ToolName[] {
   const q = question.toLowerCase();
   const tools: ToolName[] = [];
@@ -43,115 +48,287 @@ function formatToolResult(name: string, data: unknown): string {
   return `### ${name}\n\`\`\`json\n${JSON.stringify(data, null, 2)}\n\`\`\``;
 }
 
-async function callProvider(params: {
-  system: string;
-  user: string;
-}): Promise<{
+type ProviderResult = {
   text: string;
   provider: string;
   model: string;
   inputTokens: number;
   outputTokens: number;
   estimatedCostUsdCents: number;
-}> {
+  privacyPolicy: string;
+};
+
+async function callOpenAI(
+  system: string,
+  user: string
+): Promise<ProviderResult | null> {
   const openaiKey = process.env.OPENAI_API_KEY;
-  const geminiKey = process.env.GEMINI_API_KEY;
+  if (!openaiKey) return null;
 
-  if (openaiKey) {
-    const model = process.env.OPENAI_MODEL || 'gpt-4o-mini';
-    const res = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${openaiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model,
-        temperature: 0.2,
-        messages: [
-          { role: 'system', content: params.system },
-          { role: 'user', content: params.user },
-        ],
-      }),
-    });
-    if (!res.ok) {
-      const errText = await res.text();
-      throw new Error(`OpenAI error: ${errText}`);
-    }
-    const json = (await res.json()) as {
-      choices?: { message?: { content?: string } }[];
-      usage?: { prompt_tokens?: number; completion_tokens?: number };
-    };
-    const inputTokens = json.usage?.prompt_tokens ?? 0;
-    const outputTokens = json.usage?.completion_tokens ?? 0;
-    // rough metering: $0.15 / $0.60 per 1M tokens for mini-class models
-    const estimatedCostUsdCents = Math.max(
+  const model = process.env.OPENAI_MODEL || DEFAULT_OPENAI_MODEL;
+  const body: Record<string, unknown> = {
+    model,
+    // Do not store completions for distillation/evals (also forced false under OpenAI ZDR)
+    store: false,
+    messages: [
+      { role: 'system', content: system },
+      { role: 'user', content: user },
+    ],
+  };
+  // Older chat models accept temperature; some reasoning models reject it
+  if (!/^o\d/i.test(model) && !/gpt-5/i.test(model)) {
+    body.temperature = 0.2;
+  }
+
+  const res = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${openaiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const errText = await res.text();
+    throw new Error(`OpenAI error: ${errText}`);
+  }
+  const json = (await res.json()) as {
+    choices?: { message?: { content?: string } }[];
+    usage?: { prompt_tokens?: number; completion_tokens?: number };
+  };
+  const inputTokens = json.usage?.prompt_tokens ?? 0;
+  const outputTokens = json.usage?.completion_tokens ?? 0;
+  return {
+    text: json.choices?.[0]?.message?.content || 'No response',
+    provider: 'openai',
+    model,
+    inputTokens,
+    outputTokens,
+    estimatedCostUsdCents: Math.max(
       1,
-      Math.round((inputTokens * 0.15 + outputTokens * 0.6) / 10000)
-    );
-    return {
-      text: json.choices?.[0]?.message?.content || 'No response',
-      provider: 'openai',
-      model,
-      inputTokens,
-      outputTokens,
-      estimatedCostUsdCents,
-    };
-  }
+      Math.round((inputTokens * 2 + outputTokens * 10) / 10000)
+    ),
+    privacyPolicy: 'openai_store_false_api_no_training_default',
+  };
+}
 
-  if (geminiKey) {
-    const model = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`;
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [
-          {
-            role: 'user',
-            parts: [{ text: `${params.system}\n\n${params.user}` }],
-          },
-        ],
-      }),
-    });
-    if (!res.ok) {
-      const errText = await res.text();
-      throw new Error(`Gemini error: ${errText}`);
+async function callAnthropic(
+  system: string,
+  user: string
+): Promise<ProviderResult | null> {
+  const key = process.env.ANTHROPIC_API_KEY;
+  if (!key) return null;
+
+  const model = process.env.ANTHROPIC_MODEL || DEFAULT_ANTHROPIC_MODEL;
+  const body: Record<string, unknown> = {
+    model,
+    max_tokens: 8192,
+    system,
+    messages: [{ role: 'user', content: user }],
+    // Absolute highest capability where supported (Fable 5 / Opus 5 / Sonnet 5)
+    output_config: {
+      effort: process.env.ANTHROPIC_EFFORT || 'max',
+    },
+  };
+
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'x-api-key': key,
+      'anthropic-version': '2023-06-01',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  });
+
+  // If effort/output_config is rejected on a model, retry without it
+  if (!res.ok) {
+    const errText = await res.text();
+    if (/effort|output_config|thinking/i.test(errText)) {
+      const retry = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'x-api-key': key,
+          'anthropic-version': '2023-06-01',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model,
+          max_tokens: 8192,
+          system,
+          messages: [{ role: 'user', content: user }],
+        }),
+      });
+      if (!retry.ok) {
+        throw new Error(`Anthropic error: ${await retry.text()}`);
+      }
+      return parseAnthropicResponse(
+        (await retry.json()) as Parameters<typeof parseAnthropicResponse>[0],
+        model
+      );
     }
-    const json = (await res.json()) as {
-      candidates?: { content?: { parts?: { text?: string }[] } }[];
-      usageMetadata?: {
-        promptTokenCount?: number;
-        candidatesTokenCount?: number;
-      };
-    };
-    const inputTokens = json.usageMetadata?.promptTokenCount ?? 0;
-    const outputTokens = json.usageMetadata?.candidatesTokenCount ?? 0;
-    return {
-      text:
-        json.candidates?.[0]?.content?.parts?.map((p) => p.text || '').join('') ||
-        'No response',
-      provider: 'gemini',
-      model,
-      inputTokens,
-      outputTokens,
-      estimatedCostUsdCents: Math.max(
-        1,
-        Math.round((inputTokens + outputTokens) / 10000)
-      ),
-    };
+    throw new Error(`Anthropic error: ${errText}`);
   }
 
-  // Offline deterministic fallback when no provider keys are configured
+  return parseAnthropicResponse(
+    (await res.json()) as Parameters<typeof parseAnthropicResponse>[0],
+    model
+  );
+}
+
+function parseAnthropicResponse(
+  json: {
+    content?: { type?: string; text?: string }[];
+    usage?: { input_tokens?: number; output_tokens?: number };
+  },
+  model: string
+): ProviderResult {
+  const text =
+    (json.content || [])
+      .filter((b) => b.type === 'text' && b.text)
+      .map((b) => b.text || '')
+      .join('\n') || 'No response';
+  const inputTokens = json.usage?.input_tokens ?? 0;
+  const outputTokens = json.usage?.output_tokens ?? 0;
+  return {
+    text,
+    provider: 'anthropic',
+    model,
+    inputTokens,
+    outputTokens,
+    estimatedCostUsdCents: Math.max(
+      1,
+      Math.round((inputTokens * 10 + outputTokens * 50) / 10000)
+    ),
+    privacyPolicy:
+      'anthropic_api_no_training_default_zdr_requires_org_agreement',
+  };
+}
+
+async function callGemini(
+  system: string,
+  user: string
+): Promise<ProviderResult | null> {
+  const geminiKey = process.env.GEMINI_API_KEY;
+  if (!geminiKey) return null;
+
+  const model = process.env.GEMINI_MODEL || DEFAULT_GEMINI_MODEL;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      systemInstruction: { parts: [{ text: system }] },
+      contents: [{ role: 'user', parts: [{ text: user }] }],
+      generationConfig: {
+        temperature: 0.2,
+        // Prefer deeper reasoning when the model supports thinking budgets
+        thinkingConfig: {
+          thinkingBudget: Number(process.env.GEMINI_THINKING_BUDGET || 8192),
+        },
+      },
+    }),
+  });
+
+  if (!res.ok) {
+    const errText = await res.text();
+    // Retry without thinkingConfig if unsupported
+    if (/thinking|Thinking/i.test(errText)) {
+      const retry = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          systemInstruction: { parts: [{ text: system }] },
+          contents: [{ role: 'user', parts: [{ text: user }] }],
+          generationConfig: { temperature: 0.2 },
+        }),
+      });
+      if (!retry.ok) throw new Error(`Gemini error: ${await retry.text()}`);
+      return parseGeminiResponse(
+        (await retry.json()) as Parameters<typeof parseGeminiResponse>[0],
+        model
+      );
+    }
+    throw new Error(`Gemini error: ${errText}`);
+  }
+
+  return parseGeminiResponse(
+    (await res.json()) as Parameters<typeof parseGeminiResponse>[0],
+    model
+  );
+}
+
+function parseGeminiResponse(
+  json: {
+    candidates?: { content?: { parts?: { text?: string }[] } }[];
+    usageMetadata?: {
+      promptTokenCount?: number;
+      candidatesTokenCount?: number;
+    };
+  },
+  model: string
+): ProviderResult {
+  const inputTokens = json.usageMetadata?.promptTokenCount ?? 0;
+  const outputTokens = json.usageMetadata?.candidatesTokenCount ?? 0;
   return {
     text:
-      'AI provider keys are not configured. Here is a deterministic summary of the structured metrics for your question:\n\n' +
-      params.user.slice(0, 4000),
+      json.candidates?.[0]?.content?.parts?.map((p) => p.text || '').join('') ||
+      'No response',
+    provider: 'gemini',
+    model,
+    inputTokens,
+    outputTokens,
+    estimatedCostUsdCents: Math.max(
+      1,
+      Math.round((inputTokens * 1.25 + outputTokens * 10) / 10000)
+    ),
+    privacyPolicy: 'gemini_paid_quota_no_training_zdr_org_optional',
+  };
+}
+
+/**
+ * Provider order: OpenAI → Anthropic (Claude) → Gemini → local fallback.
+ * Only one provider is called per question.
+ */
+async function callProvider(params: {
+  system: string;
+  user: string;
+}): Promise<ProviderResult> {
+  const errors: string[] = [];
+
+  try {
+    const openai = await callOpenAI(params.system, params.user);
+    if (openai) return openai;
+  } catch (err) {
+    errors.push(err instanceof Error ? err.message : 'OpenAI failed');
+  }
+
+  try {
+    const anthropic = await callAnthropic(params.system, params.user);
+    if (anthropic) return anthropic;
+  } catch (err) {
+    errors.push(err instanceof Error ? err.message : 'Anthropic failed');
+  }
+
+  try {
+    const gemini = await callGemini(params.system, params.user);
+    if (gemini) return gemini;
+  } catch (err) {
+    errors.push(err instanceof Error ? err.message : 'Gemini failed');
+  }
+
+  const detail = errors.length ? `\n\nProvider errors:\n- ${errors.join('\n- ')}` : '';
+  return {
+    text:
+      'AI provider keys are not configured (or all providers failed). Here is a deterministic summary of the structured metrics for your question:\n\n' +
+      params.user.slice(0, 4000) +
+      detail,
     provider: 'local',
     model: 'deterministic-fallback',
     inputTokens: 0,
     outputTokens: 0,
     estimatedCostUsdCents: 0,
+    privacyPolicy: 'local_no_external_call',
   };
 }
 
@@ -165,7 +342,6 @@ export async function askAdvisor(params: {
   const toolResults: Record<string, unknown> = {};
   for (const name of tools) {
     const fn = analyticsTools[name];
-    // All Phase 1 tools take organizationId as first arg
     toolResults[name] = await (fn as (orgId: string) => Promise<unknown>)(
       params.organizationId
     );
@@ -211,7 +387,10 @@ Never claim certainty for forecasts.`;
       conversationId,
       role: 'assistant',
       content: result.text,
-      toolCallsJson: { tools, privacyPolicy: 'no_training_default' },
+      toolCallsJson: {
+        tools,
+        privacyPolicy: result.privacyPolicy,
+      },
     },
   });
 
@@ -224,7 +403,7 @@ Never claim certainty for forecasts.`;
       outputTokens: result.outputTokens,
       estimatedCostUsdCents: result.estimatedCostUsdCents,
       taskType: 'advisor_chat',
-      privacyPolicy: 'tenant_isolated_no_platform_browse',
+      privacyPolicy: result.privacyPolicy,
     },
   });
 
@@ -238,7 +417,7 @@ Never claim certainty for forecasts.`;
       provider: result.provider,
       model: result.model,
       tools,
-      // Do not log raw prompt/response content
+      privacyPolicy: result.privacyPolicy,
     },
   });
 
@@ -248,5 +427,6 @@ Never claim certainty for forecasts.`;
     toolsUsed: tools,
     provider: result.provider,
     model: result.model,
+    privacyPolicy: result.privacyPolicy,
   };
 }
