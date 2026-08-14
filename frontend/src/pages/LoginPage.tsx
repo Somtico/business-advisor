@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router';
 import { api, ApiError, setTenantSlug } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 import { PasswordField } from '../components/PasswordField';
+import { PublicShell } from '../components/PublicShell';
 import { RequiredMark } from '../lib/forms';
 
 export function LoginPage() {
@@ -102,12 +103,13 @@ export function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[radial-gradient(circle_at_top,_#dce9ef,_#f7fafc_55%)] px-4">
+    <PublicShell compact>
+    <div className="flex items-center justify-center bg-[radial-gradient(circle_at_top,_#dce9ef,_#f7fafc_55%)] px-4 py-12">
       <form
         onSubmit={onSubmit}
         className="w-full max-w-md border border-ba-line bg-white p-8"
       >
-        <h1 className="font-display text-3xl font-bold">Business Advisor</h1>
+        <h1 className="font-display text-3xl font-bold">Sign In</h1>
         <p className="mt-2 text-base text-ba-ink/70">
           Sign in to your after-school command centre.
         </p>
@@ -170,8 +172,13 @@ export function LoginPage() {
           <Link className="text-ba-accent underline" to="/signup">
             Create Organization
           </Link>
+          {' · '}
+          <Link className="text-ba-accent underline" to="/">
+            Back to Home
+          </Link>
         </p>
       </form>
     </div>
+    </PublicShell>
   );
 }

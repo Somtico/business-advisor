@@ -1,4 +1,5 @@
 import { NavLink, Outlet, Navigate } from 'react-router';
+import { BrandMark } from './BrandMark';
 import { useAuth } from '../context/AuthContext';
 
 const links = [
@@ -29,10 +30,8 @@ export function AppShell() {
       <div className="flex min-h-screen">
         <aside className="hidden w-64 shrink-0 border-r border-ba-line bg-white md:flex md:flex-col">
           <div className="border-b border-ba-line px-5 py-6">
-            <p className="font-display text-xl font-bold tracking-tight">
-              Business Advisor
-            </p>
-            <p className="mt-1 text-base text-ba-ink/70">
+            <BrandMark to="/app" size={36} />
+            <p className="mt-2 text-base text-ba-ink/70">
               {organization?.name || 'Organization'}
             </p>
           </div>
@@ -69,7 +68,7 @@ export function AppShell() {
         </aside>
         <main className="flex-1 overflow-auto">
           <div className="border-b border-ba-line bg-white px-4 py-3 md:hidden">
-            <p className="font-display text-lg font-bold">Business Advisor</p>
+            <BrandMark to="/app" size={32} />
           </div>
           <div className="mx-auto max-w-6xl px-4 py-8 md:px-8">
             <Outlet />

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import { api, ApiError } from '../lib/api';
+import { PublicShell } from '../components/PublicShell';
 
 type Status = 'verifying' | 'success' | 'error';
 
@@ -68,7 +69,8 @@ export function EmailVerificationPage() {
   }, [params]);
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[radial-gradient(circle_at_top,_#dce9ef,_#f7fafc_55%)] px-4">
+    <PublicShell compact>
+    <div className="flex items-center justify-center bg-[radial-gradient(circle_at_top,_#dce9ef,_#f7fafc_55%)] px-4 py-12">
       <div className="w-full max-w-md border border-ba-line bg-white p-8 text-center">
         <h1 className="font-display text-3xl font-bold">Email Verification</h1>
         <p
@@ -88,5 +90,6 @@ export function EmailVerificationPage() {
         )}
       </div>
     </div>
+    </PublicShell>
   );
 }

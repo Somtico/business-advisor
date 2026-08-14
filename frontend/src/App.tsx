@@ -16,11 +16,12 @@ import { SettingsPage } from './pages/SettingsPage';
 import { TermsPage } from './pages/TermsPage';
 import { HelpPage } from './pages/HelpPage';
 import { EmailVerificationPage } from './pages/EmailVerificationPage';
+import { LandingPage } from './pages/LandingPage';
 
 export default function App() {
   return (
     <Routes>
-      <Route path="/" element={<Navigate to="/login" replace />} />
+      <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/signup" element={<SignupPage />} />
       <Route path="/terms" element={<TermsPage />} />
@@ -46,7 +47,7 @@ export default function App() {
         <Route path="help" element={<HelpPage />} />
         <Route path="settings" element={<SettingsPage />} />
       </Route>
-      <Route path="*" element={<Navigate to="/login" replace />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }

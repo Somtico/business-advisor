@@ -2,6 +2,7 @@ import { FormEvent, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { api } from '../lib/api';
 import { PasswordField } from '../components/PasswordField';
+import { PublicShell } from '../components/PublicShell';
 import {
   EDUCATION_SUBTYPE_OPTIONS,
   RequiredMark,
@@ -94,7 +95,8 @@ export function SignupPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[radial-gradient(circle_at_top,_#dce9ef,_#f7fafc_55%)] px-4 py-10">
+    <PublicShell compact>
+    <div className="flex items-center justify-center bg-[radial-gradient(circle_at_top,_#dce9ef,_#f7fafc_55%)] px-4 py-10">
       <form
         onSubmit={onSubmit}
         className="w-full max-w-xl border border-ba-line bg-white p-8"
@@ -287,8 +289,13 @@ export function SignupPage() {
           <Link className="text-ba-accent underline" to="/login">
             Sign In
           </Link>
+          {' · '}
+          <Link className="text-ba-accent underline" to="/">
+            Back to Home
+          </Link>
         </p>
       </form>
     </div>
+    </PublicShell>
   );
 }

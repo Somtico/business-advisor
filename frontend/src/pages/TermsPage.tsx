@@ -1,4 +1,5 @@
 import { Link } from 'react-router';
+import { PublicShell } from '../components/PublicShell';
 
 export const TERMS_VERSION = '2026-08-14';
 
@@ -15,7 +16,8 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 export function TermsPage() {
   return (
-    <div className="min-h-screen bg-ba-surface px-4 py-10">
+    <PublicShell compact>
+    <div className="bg-ba-surface px-4 py-10">
       <div className="mx-auto max-w-3xl border border-ba-line bg-white p-8 md:p-10">
         <h1 className="font-display text-3xl font-bold">Terms of Service</h1>
         <p className="mt-2 text-base text-ba-ink/70">
@@ -313,6 +315,10 @@ export function TermsPage() {
         </p>
 
         <p className="mt-6 text-base">
+          <Link className="text-ba-accent underline" to="/">
+            Home
+          </Link>{' '}
+          ·{' '}
           <Link className="text-ba-accent underline" to="/signup">
             Back to Signup
           </Link>{' '}
@@ -323,5 +329,6 @@ export function TermsPage() {
         </p>
       </div>
     </div>
+    </PublicShell>
   );
 }
