@@ -1,189 +1,19 @@
-import { Link } from 'react-router';
 import { PublicShell } from '../components/PublicShell';
+import {
+  LegalPageFooter,
+  PRIVACY_VERSION,
+  PrivacyDocumentBody,
+} from '../content/legalDocuments';
 
-export const PRIVACY_VERSION = '2026-08-14.3';
-
-function Section({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <section className="mt-8">
-      <h2 className="font-display text-2xl font-bold">{title}</h2>
-      <div className="mt-3 space-y-3 text-base leading-relaxed text-ba-ink/90">
-        {children}
-      </div>
-    </section>
-  );
-}
+export { PRIVACY_VERSION };
 
 export function PrivacyPage() {
   return (
     <PublicShell compact>
       <div className="bg-ba-surface px-4 py-10">
         <div className="mx-auto max-w-3xl border border-ba-line bg-white p-8 md:p-10">
-          <h1 className="font-display text-3xl font-bold">Privacy Policy</h1>
-          <p className="mt-2 text-base text-ba-ink/70">
-            AI Business Advisor, operated by Somtico Technologies Inc. (Somtico
-            Tech)
-          </p>
-          <p className="mt-1 text-base text-ba-ink/70">
-            Version {PRIVACY_VERSION} · Effective 14 August 2026
-          </p>
-          <p className="mt-4 text-base text-ba-ink/80">
-            This policy explains how we handle personal information. It is
-            separate from the{' '}
-            <Link className="text-ba-accent underline" to="/terms">
-              Terms of Service
-            </Link>
-            , which cover the contract for using the product. This text is a
-            template pending lawyer review; it is not legal advice.
-          </p>
-
-          <Section title="1. Who We Are">
-            <p>
-              Somtico Technologies Inc., Saskatoon, Saskatchewan, Canada,
-              provides AI Business Advisor. Questions about privacy can be sent
-              through your account support channel or the contact address on{' '}
-              <a
-                className="text-ba-accent underline"
-                href="https://somticoweb.com"
-                target="_blank"
-                rel="noreferrer"
-              >
-                somticoweb.com
-              </a>
-              .
-            </p>
-          </Section>
-
-          <Section title="2. What We Collect">
-            <p>
-              Account data: name, email, password hash, organization name and
-              slug, role, and your acceptance of the Terms and this policy.
-            </p>
-            <p>
-              Customer Data you enter or connect: students, families, enrolments,
-              sessions, staff wages, expenses, subscriptions, targets, chat
-              questions, enrolment tactics you log (including the result you
-              describe), and similar operating records. That data stays scoped
-              to your organization.
-            </p>
-            <p>
-              Technical data needed to run the service: login times, tenant
-              slug, and AI usage metering (provider, token counts, cost
-              estimate). We do not sell personal information.
-            </p>
-          </Section>
-
-          <Section title="3. How We Use It">
-            <p>
-              We use personal information to provide the Service: sign-in,
-              analytics, pricing and enrolment guidance, Action Centre,
-              email verification, billing, weekly briefs, and support. We use
-              it to keep the product secure and to meet legal obligations.
-            </p>
-            <p>
-              We do not use your student, family, or staff records, chat
-              notes, or other identifiable Customer Data to train third-party
-              AI models (OpenAI, Anthropic, Google, or others). When Chuk,
-              the AI advisor, calls an AI provider, it sends aggregated
-              evidence from our analytics tools for that question, with
-              provider training and storage opted out where the provider
-              offers that control.
-            </p>
-          </Section>
-
-          <Section title="4. Optional De-Identified Tactic Outcomes">
-            <p>
-              On Enrolment Advisor you may opt in, record by record, when you
-              log a tactic with a clear outcome (helped, no effect, or hurt)
-              and Chuk has already named a leak. The opt-in
-              is shown only then. If you opt in, we store only: tactic type
-              (for example, family referral), cost band (free / low / paid),
-              outcome, the leak type at that moment, and a coarse education
-              bucket (STEM, tutoring, or other enrichment).
-            </p>
-            <p>
-              We do not copy your notes, student or family names, organization
-              id, location, or email. Those rows are not tied back to your
-              account. Do not put names in the result field.
-            </p>
-            <p>
-              If you opt in, Somtico Technologies Inc. may use that
-              de-identified row to show playbook counts after at least eight
-              similar reports, and to train, evaluate, and operate models and
-              ranking algorithms that Somtico owns, so Chuk can get better at
-              this industry from real results. Those Somtico-owned models and
-              the de-identified corpus are Somtico intellectual property. We
-              will not send that corpus to OpenAI, Anthropic, Google, or any
-              other provider for their training. Opt-in is off by default. A
-              contributed row cannot be pulled out of a trained model.
-            </p>
-          </Section>
-
-          <Section title="5. Sharing">
-            <p>
-              We share personal information with processors who help us run the
-              Service (hosting, email, payments, AI inference), under contracts
-              that limit their use. We may disclose information if required by
-              law or to protect the Service, our users, or the public.
-            </p>
-          </Section>
-
-          <Section title="6. Retention and Your Choices">
-            <p>
-              We keep Customer Data while your organization has an account, and
-              for a limited period after termination so you can request an
-              export (see the Terms). You may correct account details in the
-              app, delete tactic notes you logged, and ask us to export or
-              delete personal information we hold, subject to legal holds.
-            </p>
-          </Section>
-
-          <Section title="7. Children">
-            <p>
-              The Service is for businesses, not for children to use directly.
-              If you store information about students who are minors, you are
-              responsible for having the authority to do so and for the
-              accuracy of that data.
-            </p>
-          </Section>
-
-          <Section title="8. Canadian Privacy Law">
-            <p>
-              We handle personal information in accordance with applicable
-              Canadian privacy law, including the Personal Information
-              Protection and Electronic Documents Act (PIPEDA) where it
-              applies. Saskatchewan law and the courts in Saskatoon govern
-              disputes, as set out in the Terms.
-            </p>
-          </Section>
-
-          <Section title="9. Changes">
-            <p>
-              We may update this policy. Material changes take effect no less
-              than 30 days after notice. The version date above identifies the
-              text you accepted at signup.
-            </p>
-          </Section>
-
-          <p className="mt-10 text-base">
-            <Link className="text-ba-accent underline" to="/">
-              Home
-            </Link>{' '}
-            ·{' '}
-            <Link className="text-ba-accent underline" to="/terms">
-              Terms of Service
-            </Link>{' '}
-            ·{' '}
-            <Link className="text-ba-accent underline" to="/signup">
-              Signup
-            </Link>
-          </p>
+          <PrivacyDocumentBody />
+          <LegalPageFooter active="privacy" />
         </div>
       </div>
     </PublicShell>

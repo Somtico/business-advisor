@@ -1,6 +1,7 @@
 import { FormEvent, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { api } from '../lib/api';
+import { LegalAcceptScroll } from '../components/LegalAcceptScroll';
 import { PasswordField } from '../components/PasswordField';
 import { PublicShell } from '../components/PublicShell';
 import {
@@ -43,7 +44,9 @@ export function SignupPage() {
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
     if (!termsAccepted) {
-      setError('You must agree to the Terms of Service to continue.');
+      setError(
+        'You must scroll through and agree to the Terms of Service and Privacy Policy to continue.'
+      );
       return;
     }
     if (form.password !== form.confirmPassword) {
@@ -251,39 +254,10 @@ export function SignupPage() {
           </label>
         )}
 
-        <label className="mt-5 flex cursor-pointer items-start gap-3 text-base">
-          <input
-            type="checkbox"
-            checked={termsAccepted}
-            onChange={(e) => setTermsAccepted(e.target.checked)}
-            required
-            className="mt-1 cursor-pointer rounded border-ba-line"
-          />
-          <span>
-            I have read and agree to the{' '}
-            <Link
-              className="text-ba-accent underline"
-              to="/terms"
-              target="_blank"
-              rel="noreferrer"
-            >
-              Terms of Service
-            </Link>{' '}
-            and the{' '}
-            <Link
-              className="text-ba-accent underline"
-              to="/privacy"
-              target="_blank"
-              rel="noreferrer"
-            >
-              Privacy Policy
-            </Link>
-            , including that AI Business Advisor provides information only, not
-            professional advice, and that decisions and their outcomes remain
-            my organization's responsibility.
-            <RequiredMark />
-          </span>
-        </label>
+        <LegalAcceptScroll
+          accepted={termsAccepted}
+          onAcceptedChange={setTermsAccepted}
+        />
         {error && <p className="mt-3 text-base text-ba-warm">{error}</p>}
         {message && <p className="mt-3 text-base text-ba-accent">{message}</p>}
         <button
