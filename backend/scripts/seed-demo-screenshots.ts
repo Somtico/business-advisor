@@ -40,12 +40,14 @@ async function main() {
       organizationId: org.id,
       email: 'demo@northlight.test',
       passwordHash,
-      firstName: 'Amara',
-      lastName: 'Okafor',
+      firstName: 'John',
+      lastName: 'Smith',
       role: 'OWNER',
       emailVerified: true,
       termsAcceptedAt: new Date(),
-      termsVersion: '2026-08-14',
+      termsVersion: '2026-08-14.4',
+      privacyAcceptedAt: new Date(),
+      privacyVersion: '2026-08-14.4',
     },
   });
 

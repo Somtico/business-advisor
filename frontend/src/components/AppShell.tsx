@@ -30,7 +30,7 @@ export function AppShell() {
   return (
     <div className="min-h-screen bg-ba-surface text-ba-ink">
       <div className="flex min-h-screen">
-        <aside className="hidden w-64 shrink-0 border-r border-ba-line bg-white md:flex md:flex-col">
+        <aside className="sticky top-0 hidden h-screen w-64 shrink-0 border-r border-ba-line bg-white md:flex md:flex-col">
           <div className="border-b border-ba-line px-5 py-6">
             <BrandMark to="/app" size={36} />
             <p className="mt-2 text-base text-ba-ink/70">
@@ -40,7 +40,7 @@ export function AppShell() {
               {AI_NAME_INTRO} in this product. It is software, not a person.
             </p>
           </div>
-          <nav className="flex flex-1 flex-col gap-1 p-3">
+          <nav className="flex flex-1 flex-col gap-1 overflow-y-auto p-3">
             {links.map((l) => (
               <NavLink
                 key={l.to}
