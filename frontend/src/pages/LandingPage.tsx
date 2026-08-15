@@ -18,7 +18,7 @@ export function LandingPage() {
   const { accessToken, organization } = useAuth();
 
   useEffect(() => {
-    document.title = `${PRODUCT_NAME} | AI for After-School and Tutoring Centres`;
+    document.title = `${PRODUCT_NAME} | After-School and Tutoring Centres`;
     return () => {
       document.title = PRODUCT_NAME;
     };
@@ -42,7 +42,7 @@ export function LandingPage() {
               From Somtico Technologies Inc.
             </p>
             <h1 className="mt-3 font-display text-4xl font-bold leading-tight md:text-5xl">
-              AI Business Advisor
+              {PRODUCT_NAME}
             </h1>
             <p className="mt-4 max-w-xl text-lg text-ba-ink/80">
               Run your after-school, tutoring, or enrichment centre on real
@@ -77,7 +77,7 @@ export function LandingPage() {
           >
             <img
               src="/images/screenshots/command-centre.png"
-              alt="Business Advisor command centre with verified impact, students, expenses, and cash outlook"
+              alt="AI Business Advisor command centre with verified impact, students, expenses, and cash outlook"
               width={1440}
               height={900}
               className="h-auto w-full object-cover object-left-top"
@@ -96,7 +96,7 @@ export function LandingPage() {
               An Advisor That Never Guesses
             </h2>
             <p className="mt-3 text-base text-ba-ink/80">
-              Nonso is the AI at the heart of the Business Advisor platform. It
+              Nonso is the AI at the heart of the AI Business Advisor platform. It
               reads the numbers you record (enrolments, sessions, wages,
               expenses, and targets) and turns them into plain-language advice
               you can act on.
@@ -168,7 +168,7 @@ export function LandingPage() {
             Real Screens From the Product
           </h2>
           <p className="mt-3 max-w-3xl text-base text-ba-ink/80">
-            These are actual screenshots from Business Advisor, not mockups.
+            These are actual screenshots from AI Business Advisor, not mockups.
             Click any image to view it full size.
           </p>
           <ScreenshotGallery screenshots={advisorScreenshots} />
@@ -214,7 +214,7 @@ export function LandingPage() {
             </Link>
           </div>
           <p className="mt-6 max-w-2xl text-sm text-white/60">
-            Business Advisor provides informational analysis to support your
+            AI Business Advisor provides informational analysis to support your
             decisions; it is not financial, legal, tax, or accounting advice.
           </p>
         </div>

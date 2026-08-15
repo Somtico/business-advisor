@@ -27,7 +27,7 @@ export function PrivacyPage() {
         <div className="mx-auto max-w-3xl border border-ba-line bg-white p-8 md:p-10">
           <h1 className="font-display text-3xl font-bold">Privacy Policy</h1>
           <p className="mt-2 text-base text-ba-ink/70">
-            Business Advisor, operated by Somtico Technologies Inc. (Somtico
+            AI Business Advisor, operated by Somtico Technologies Inc. (Somtico
             Tech)
           </p>
           <p className="mt-1 text-base text-ba-ink/70">
@@ -46,7 +46,7 @@ export function PrivacyPage() {
           <Section title="1. Who We Are">
             <p>
               Somtico Technologies Inc., Saskatoon, Saskatchewan, Canada,
-              provides Business Advisor. Questions about privacy can be sent
+              provides AI Business Advisor. Questions about privacy can be sent
               through your account support channel or the contact address on{' '}
               <a
                 className="text-ba-accent underline"

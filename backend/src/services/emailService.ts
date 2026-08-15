@@ -5,7 +5,7 @@
 
 const SENDER_EMAIL =
   process.env.BREVO_SENDER_EMAIL || 'noreply@businessadvisor.app';
-const SENDER_NAME = process.env.BREVO_SENDER_NAME || 'Business Advisor';
+const SENDER_NAME = process.env.BREVO_SENDER_NAME || 'AI Business Advisor';
 
 async function sendBrevoEmail(params: {
   toEmail: string;
@@ -52,11 +52,11 @@ export async function sendVerificationEmail(params: {
   verificationUrl: string;
 }): Promise<{ sent: boolean; dryRun: boolean }> {
   const name = params.firstName || 'there';
-  const subject = 'Business Advisor — Verify Your Email';
+  const subject = 'AI Business Advisor — Verify Your Email';
   const htmlContent = `
     <p style="color:#333;line-height:1.6">Hello ${name},</p>
     <p style="color:#333;line-height:1.6">
-      Thanks for creating a Business Advisor account. Verify your email to sign in
+      Thanks for creating an AI Business Advisor account. Verify your email to sign in
       by clicking the button below.
     </p>
     <p style="text-align:center;margin:28px 0">
@@ -76,11 +76,11 @@ export async function sendVerificationEmail(params: {
     </p>
   `;
   const textContent = `
-Business Advisor — Verify Your Email
+AI Business Advisor — Verify Your Email
 
 Hello ${name},
 
-Thanks for creating a Business Advisor account. Verify your email to sign in:
+Thanks for creating an AI Business Advisor account. Verify your email to sign in:
 
 ${params.verificationUrl}
 

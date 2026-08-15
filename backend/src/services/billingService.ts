@@ -19,7 +19,7 @@ async function ensurePilotPriceId(): Promise<string> {
   if (existing.data[0]) return existing.data[0].id;
 
   const product = await stripe.products.create({
-    name: 'Business Advisor Pilot',
+    name: 'AI Business Advisor Pilot',
     metadata: { plan: 'PILOT' },
   });
   const price = await stripe.prices.create({

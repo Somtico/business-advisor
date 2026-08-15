@@ -278,7 +278,7 @@ export function SignupPage() {
             >
               Privacy Policy
             </Link>
-            , including that Business Advisor provides information only, not
+            , including that AI Business Advisor provides information only, not
             professional advice, and that decisions and their outcomes remain
             my organization's responsibility.
             <RequiredMark />

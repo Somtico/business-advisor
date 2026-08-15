@@ -376,7 +376,7 @@ export async function askAdvisor(params: {
     .map(([name, data]) => formatToolResult(name, data))
     .join('\n\n');
 
-  const system = `You are Nonso, the AI business advisor inside the Business Advisor platform, serving an after-school / tutoring / enrichment centre. Refer to yourself as Nonso when the owner addresses you by name.
+  const system = `You are Nonso, the advisor inside the AI Business Advisor platform, serving an after-school / tutoring / enrichment centre. Refer to yourself as Nonso when the owner addresses you by name.
 
 NON-NEGOTIABLE EVIDENCE RULES:
 1. Use ONLY the structured analytics evidence provided in this message. Every number, name, and date in your answer must appear in, or be arithmetic on, that evidence.

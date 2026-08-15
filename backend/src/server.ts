@@ -7,6 +7,6 @@ import { startBackgroundJobs } from './jobs/scheduler';
 const PORT = Number(process.env.PORT) || 5007;
 
 app.listen(PORT, () => {
-  console.log(`Business Advisor API listening on :${PORT}`);
+  console.log(`AI Business Advisor API listening on :${PORT}`);
   startBackgroundJobs();
 });

@@ -21,7 +21,7 @@ export function TermsPage() {
       <div className="mx-auto max-w-3xl border border-ba-line bg-white p-8 md:p-10">
         <h1 className="font-display text-3xl font-bold">Terms of Service</h1>
         <p className="mt-2 text-base text-ba-ink/70">
-          Business Advisor — operated by Somtico Technologies Inc.
+          AI Business Advisor — operated by Somtico Technologies Inc.
         </p>
         <p className="mt-1 text-base text-ba-ink/70">
           Version {TERMS_VERSION} · Effective 14 August 2026
@@ -32,7 +32,7 @@ export function TermsPage() {
             These Terms of Service (the "Terms") are a binding agreement between
             Somtico Technologies Inc. ("Somtico Tech", "we", "us", "our") and the
             organization on whose behalf you create an account (the "Customer",
-            "you", "your") governing your access to and use of the Business
+            "you", "your") governing your access to and use of the AI Business
             Advisor software-as-a-service platform, including its web
             application, APIs, connectors, email reports, AI features, and
             related services (collectively, the "Service").
@@ -316,7 +316,7 @@ export function TermsPage() {
         </Section>
 
         <p className="mt-10 text-sm text-ba-ink/60">
-          Summary for convenience (the sections above control): Business Advisor
+          Summary for convenience (the sections above control): AI Business Advisor
           gives you information calculated from your own data. It is not
           professional advice, your decisions remain your own, and Somtico Tech's
           liability is limited to the fees you paid in the last 12 months.

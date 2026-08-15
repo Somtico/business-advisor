@@ -1,4 +1,4 @@
-export const PRODUCT_NAME = 'Business Advisor';
+export const PRODUCT_NAME = 'AI Business Advisor';
 export const AI_NAME = 'Nonso';
 export const COMPANY_NAME = 'Somtico Technologies Inc.';
 export const COMPANY_SHORT = 'Somtico Tech';
@@ -69,7 +69,7 @@ export const advisorCapabilities = [
 export const advisorScreenshots = [
   {
     src: '/images/screenshots/command-centre.png',
-    alt: "Business Advisor command centre showing Nonso's verified impact, active students, expenses, and cash outlook",
+    alt: "AI Business Advisor command centre showing Nonso's verified impact, active students, expenses, and cash outlook",
     caption: "Command Centre: your key numbers and Nonso's verified impact at a glance",
   },
   {

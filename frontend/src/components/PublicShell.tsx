@@ -61,7 +61,16 @@ export function PublicShell({
       <footer className="border-t border-ba-line bg-white">
         <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-8 text-base text-ba-ink/70 md:flex-row md:items-center md:justify-between md:px-8">
           <p>
-            {PRODUCT_NAME} is a product of {COMPANY_NAME}.
+            {PRODUCT_NAME} is a product of{' '}
+            <a
+              className="text-ba-accent underline"
+              href={COMPANY_SITE}
+              target="_blank"
+              rel="noreferrer"
+            >
+              {COMPANY_NAME}
+            </a>
+            .
           </p>
           <p className="flex flex-wrap gap-x-4 gap-y-1">
             <Link className="text-ba-accent underline" to="/terms">
@@ -73,14 +82,6 @@ export function PublicShell({
             <Link className="text-ba-accent underline" to="/login">
               Sign In
             </Link>
-            <a
-              className="text-ba-accent underline"
-              href={COMPANY_SITE}
-              target="_blank"
-              rel="noreferrer"
-            >
-              {COMPANY_NAME}
-            </a>
           </p>
         </div>
       </footer>

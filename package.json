@@ -1,7 +1,7 @@
 {
   "name": "business-advisor",
   "version": "1.0.0",
-  "description": "Business Advisor — AI business intelligence for after-school and enrichment centres",
+  "description": "AI Business Advisor — business intelligence for after-school and enrichment centres",
   "private": true,
   "scripts": {
     "build": "npm run build:backend && npm run build:frontend",
