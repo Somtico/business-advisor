@@ -137,9 +137,14 @@ async function main() {
         "costBand" "TacticCostBand" NOT NULL,
         "leakType" TEXT NOT NULL,
         "educationBucket" TEXT NOT NULL,
+        "purposeVersion" TEXT NOT NULL DEFAULT 'playbook_counts_v1',
         "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
         CONSTRAINT "anonymized_tactic_outcomes_pkey" PRIMARY KEY ("id")
       );
+    `);
+    await prisma.$executeRawUnsafe(`
+      ALTER TABLE "anonymized_tactic_outcomes"
+        ADD COLUMN IF NOT EXISTS "purposeVersion" TEXT NOT NULL DEFAULT 'playbook_counts_v1';
     `);
     await prisma.$executeRawUnsafe(`
       CREATE INDEX IF NOT EXISTS "anonymized_tactic_outcomes_tacticKey_leakType_outcome_idx"

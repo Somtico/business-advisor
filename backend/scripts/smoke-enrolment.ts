@@ -83,6 +83,7 @@ async function main() {
         (row) =>
           row.outcome === 'NO_EFFECT' &&
           row.costBand === 'FREE' &&
+          row.purposeVersion === 'somtico_models_v1' &&
           !('resultSummary' in row)
       );
     console.log('saved askTried', after.askTriedAndResults, 'anon rows', anon.length);

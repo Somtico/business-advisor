@@ -390,7 +390,8 @@ export function EnrolmentPage() {
             <span>
               Share a de-identified copy (tactic type, cost band, outcome, and
               leak type only; no notes, names, or organization id) so Nonso can
-              improve the playbook for other centres. Off by default.{' '}
+              improve the playbook and, later, Somtico-owned models for this
+              industry. Off by default.{' '}
               <Link className="text-ba-accent underline" to="/privacy">
                 Privacy Policy
               </Link>

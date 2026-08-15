@@ -1,7 +1,7 @@
 import { Link } from 'react-router';
 import { PublicShell } from '../components/PublicShell';
 
-export const PRIVACY_VERSION = '2026-08-14';
+export const PRIVACY_VERSION = '2026-08-14.2';
 
 function Section({
   title,
@@ -31,7 +31,8 @@ export function PrivacyPage() {
             Tech)
           </p>
           <p className="mt-1 text-base text-ba-ink/70">
-            Version {PRIVACY_VERSION} · Effective 14 August 2026
+            Version {PRIVACY_VERSION} · Effective 14 August 2026 (updated same
+            day to disclose Somtico-owned model improvement)
           </p>
           <p className="mt-4 text-base text-ba-ink/80">
             This policy explains how we handle personal information. It is
@@ -87,11 +88,12 @@ export function PrivacyPage() {
               it to keep the product secure and to meet legal obligations.
             </p>
             <p>
-              We do not use your student, family, or staff records to train
-              third-party AI models. When Nonso calls an AI provider, it sends
-              aggregated evidence from our analytics tools for that question,
-              with provider training and storage opted out where the provider
-              offers that control.
+              We do not use your student, family, or staff records, chat
+              notes, or other identifiable Customer Data to train third-party
+              AI models (OpenAI, Anthropic, Google, or others). When Nonso
+              calls an AI provider, it sends aggregated evidence from our
+              analytics tools for that question, with provider training and
+              storage opted out where the provider offers that control.
             </p>
           </Section>
 
@@ -101,23 +103,33 @@ export function PrivacyPage() {
               de-identified copy of a tactic outcome. If you opt in, we store
               only: tactic type (for example, family referral), cost band (free /
               low / paid), outcome (helped / no effect / hurt), the leak type
-              at that moment (for example, conversion leak), and a coarse
-              education bucket (STEM, tutoring, or other enrichment).
+              at that moment (for example, conversion leak), a coarse
+              education bucket (STEM, tutoring, or other enrichment), and a
+              purpose version that records the uses you agreed to on that
+              record.
             </p>
             <p>
               We do not copy your notes, student or family names, organization
               id, location, or email into that table. Those rows are not tied
-              back to your account. We use them only as counts in the playbook
-              (shown only after at least eight similar reports) so Nonso can
-              see which cheap tactics other centres marked as helpful for the
-              same leak. That is a deterministic aggregate, not training data
-              for OpenAI, Anthropic, Gemini, or any other model provider.
+              back to your account. Do not put names in the result field.
             </p>
             <p>
-              Opt-in is off by default. Removing a tactic from your
-              organization log does not delete a de-identified row already
-              contributed, because it no longer identifies you. Do not put
-              names in the result field.
+              If you opt in, Somtico Technologies Inc. may use that
+              de-identified row to (a) show playbook counts after at least
+              eight similar reports, and (b) train, evaluate, and operate
+              models and ranking algorithms that Somtico owns, so Nonso can
+              get better at this industry from real results rather than from
+              a general-purpose model. Those Somtico-owned models and the
+              de-identified corpus are Somtico intellectual property. We will
+              not send that corpus to OpenAI, Anthropic, Google, or any other
+              provider for their training.
+            </p>
+            <p>
+              Opt-in is off by default. A row collected only for playbook
+              counts is not later moved into a training corpus. Removing a
+              tactic from your organization log does not delete a
+              de-identified row already contributed, because it no longer
+              identifies you, and a trained model cannot be fully unwound.
             </p>
           </Section>
 

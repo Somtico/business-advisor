@@ -4,7 +4,7 @@ import {
   TacticOutcome,
 } from '@prisma/client';
 import prisma from '../config/prisma';
-import { ADVICE_DISCLAIMER } from '../config/legal';
+import { ADVICE_DISCLAIMER, OUTCOME_CORPUS_PURPOSE_VERSION } from '../config/legal';
 import {
   cashOutlook,
   enrolmentMetrics,
@@ -361,7 +361,7 @@ export async function enrolmentGuidance(organizationId: string) {
     generatedAt: now.toISOString(),
     privacy: {
       anonymizedSharing:
-        'Optional. If you opt in, Nonso stores only the tactic type, cost band, outcome, leak type, and a coarse education bucket. Your notes, names, and organization id are not copied. Aggregates appear only after 8 similar reports. This improves the playbook; it is not used to train third-party AI on your data.',
+        'Optional. If you opt in, Nonso stores only the tactic type, cost band, outcome, leak type, and a coarse education bucket. Your notes, names, and organization id are not copied. Aggregates appear only after 8 similar reports. Somtico may later use those de-identified rows to improve its own playbook and models. They are never sent to train OpenAI, Anthropic, Gemini, or any other third-party model.',
       minPeerSample: MIN_PEER_SAMPLE,
     },
     educationBucket: educationBucket(org.educationSubtype),
@@ -424,6 +424,7 @@ export async function recordEnrolmentTactic(
         costBand: input.costBand,
         leakType: leakTypeAtReport,
         educationBucket: educationBucket(org.educationSubtype),
+        purposeVersion: OUTCOME_CORPUS_PURPOSE_VERSION,
       },
     });
   }

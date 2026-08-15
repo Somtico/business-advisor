@@ -715,6 +715,7 @@ model AnonymizedTacticOutcome {
   costBand         TacticCostBand
   leakType         String
   educationBucket  String
+  purposeVersion   String            @default("playbook_counts_v1")
   createdAt        DateTime          @default(now())
 
   @@index([tacticKey, leakType, outcome])

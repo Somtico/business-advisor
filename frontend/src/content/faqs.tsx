@@ -84,12 +84,13 @@ export const FAQ_SECTIONS: FaqSection[] = [
         q: 'Do you use my enrolment notes to train AI?',
         a: (
           <>
-            No. Your notes stay on your organization. If you opt in on a
-            record, we store only a de-identified count (tactic type, cost
-            band, outcome, leak type, coarse education bucket), with no names
-            or organization id. Those counts improve the playbook after at
-            least eight similar reports. They are not sent to train third-party
-            models. See the{' '}
+            Your notes stay on your organization and are never used to train
+            OpenAI, Claude, Gemini, or any other third-party model. If you
+            opt in on a record, we store only a de-identified row (tactic
+            type, cost band, outcome, leak type, coarse education bucket),
+            with no names or organization id. Those rows improve the playbook
+            after at least eight similar reports, and Somtico may later use
+            them to train its own industry models. See the{' '}
             <Link className="text-ba-accent underline" to="/privacy">
               Privacy Policy
             </Link>

@@ -1,7 +1,7 @@
 import { Link } from 'react-router';
 import { PublicShell } from '../components/PublicShell';
 
-export const TERMS_VERSION = '2026-08-14';
+export const TERMS_VERSION = '2026-08-14.2';
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -24,7 +24,8 @@ export function TermsPage() {
           AI Business Advisor — operated by Somtico Technologies Inc.
         </p>
         <p className="mt-1 text-base text-ba-ink/70">
-          Version {TERMS_VERSION} · Effective 14 August 2026
+          Version {TERMS_VERSION} · Effective 14 August 2026 (updated same day
+          to disclose Somtico-owned model improvement)
         </p>
 
         <Section title="1. Agreement to These Terms">
@@ -136,9 +137,22 @@ export function TermsPage() {
             the Service ("Customer Data"). You grant Somtico Tech a worldwide,
             non-exclusive licence to host, process, transmit, display, and
             create derivative analytical results from Customer Data solely to
-            provide, secure, support, and improve the Service. We may use
-            aggregated or de-identified data that does not identify you or any
-            person for analytics, benchmarking, and product improvement. You
+            provide, secure, support, and improve the Service. Identifiable
+            Customer Data (including student, family, and staff records, chat
+            notes, and free-text results) is not used to train third-party AI
+            models.
+            </p>
+            <p>
+            We may use aggregated or de-identified data that does not identify
+            you or any person for analytics, benchmarking, and product
+            improvement. If you opt in on a specific enrolment-tactic record,
+            you also grant Somtico Tech a perpetual licence to use that
+            de-identified row (tactic type, cost band, outcome, leak type,
+            coarse education bucket, and purpose version only) to improve the
+            Service, including training, evaluating, and operating models and
+            ranking algorithms that Somtico owns. Somtico owns those models,
+            playbooks, and the de-identified corpus. We will not send that
+            corpus to a third-party model provider for their training. You
             represent that you have all rights and consents needed (including
             from parents, guardians, students, and staff, where applicable) to
             submit Customer Data.
@@ -174,10 +188,12 @@ export function TermsPage() {
         <Section title="9. Intellectual Property">
           <p>
             Somtico Tech and its licensors own the Service, including all software,
-            models, designs, blueprints, documentation, and trademarks. No
-            rights are granted except the limited right to use the Service under
-            these Terms. Feedback you provide may be used by Somtico Tech without
-            restriction or obligation.
+            models (including any Somtico-owned models trained or evaluated on
+            de-identified opted-in outcomes), playbooks, designs, blueprints,
+            documentation, and trademarks. No rights are granted except the
+            limited right to use the Service under these Terms. Feedback you
+            provide may be used by Somtico Tech without restriction or
+            obligation.
           </p>
         </Section>
 
@@ -204,8 +220,9 @@ export function TermsPage() {
             Documents Act (PIPEDA) where it applies. We do not sell Customer
             Data. AI requests are configured to opt out of provider training
             where the provider offers that control. Optional de-identified
-            enrolment-tactic counts (no names, notes, or organization id) are
-            described in the Privacy Policy and are off unless you opt in.
+            enrolment-tactic outcomes (no names, notes, or organization id)
+            are described in the Privacy Policy, are off unless you opt in,
+            and may be used to improve Somtico-owned playbooks and models.
           </p>
         </Section>
 
