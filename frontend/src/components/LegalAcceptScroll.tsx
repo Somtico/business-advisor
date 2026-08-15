@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router';
 import {
   PrivacyDocumentBody,
   TermsDocumentBody,
@@ -88,8 +89,25 @@ export function LegalAcceptScroll({
           className="mt-1 rounded border-ba-line disabled:cursor-not-allowed disabled:opacity-50"
         />
         <span>
-          I have read and agree to the Terms of Service and the Privacy Policy,
-          including that AI Business Advisor provides information only, not
+          I have read and agree to the{' '}
+          <Link
+            className="text-ba-accent underline"
+            to="/terms"
+            target="_blank"
+            rel="noreferrer"
+          >
+            Terms of Service
+          </Link>{' '}
+          and the{' '}
+          <Link
+            className="text-ba-accent underline"
+            to="/privacy"
+            target="_blank"
+            rel="noreferrer"
+          >
+            Privacy Policy
+          </Link>
+          , including that AI Business Advisor provides information only, not
           professional advice, and that decisions and their outcomes remain my
           organization's responsibility.
           <RequiredMark />
