@@ -1,8 +1,8 @@
 import type { ReactNode } from 'react';
 import { Link } from 'react-router';
 
-export const TERMS_VERSION = '2026-08-14.2';
-export const PRIVACY_VERSION = '2026-08-14.3';
+export const TERMS_VERSION = '2026-08-14.4';
+export const PRIVACY_VERSION = '2026-08-14.4';
 
 export function LegalSection({
   title,
@@ -32,8 +32,7 @@ export function TermsDocumentBody({ compact = false }: { compact?: boolean }) {
         AI Business Advisor — operated by Somtico Technologies Inc.
       </p>
       <p className="mt-1 text-base text-ba-ink/70">
-        Version {TERMS_VERSION} · Effective 14 August 2026 (updated same day to
-        disclose Somtico-owned model improvement)
+        Version {TERMS_VERSION} · Effective 14 August 2026
       </p>
 
       <Section title="1. Agreement to These Terms">
@@ -89,14 +88,15 @@ export function TermsDocumentBody({ compact = false }: { compact?: boolean }) {
           it.
         </p>
         <p>
-          Parts of the Service use artificial-intelligence models. AI-generated
-          content can be incomplete, out of date, or incorrect, and may not
-          reflect your actual circumstances even when presented confidently. The
-          Service is designed to decline to answer and request more data when
-          inputs are missing, but no design eliminates all error. Somtico Tech
-          does not warrant that any Output (including forecasts, projections, cost
-          floors, and price recommendations) is accurate, complete, or fit for any
-          particular decision.
+          Parts of the Service use artificial-intelligence models, including an
+          AI advisor feature named Chuk ("Chuk"). Chuk is software, not a person.
+          AI-generated content can be incomplete, out of date, or incorrect, and
+          may not reflect your actual circumstances even when presented
+          confidently. The Service is designed to decline to answer and request
+          more data when inputs are missing, but no design eliminates all error.
+          Somtico Tech does not warrant that any Output (including forecasts,
+          projections, cost floors, and price recommendations) is accurate,
+          complete, or fit for any particular decision.
         </p>
       </Section>
 
@@ -151,16 +151,21 @@ export function TermsDocumentBody({ compact = false }: { compact?: boolean }) {
         <p>
           We may use aggregated or de-identified data that does not identify you
           or any person for analytics, benchmarking, and product improvement. If
-          you opt in on a specific enrolment-tactic record, you also grant
-          Somtico Tech a perpetual licence to use that de-identified row (tactic
-          type, cost band, outcome, leak type, coarse education bucket, and
-          purpose version only) to improve the Service, including training,
-          evaluating, and operating models and ranking algorithms that Somtico
-          owns. Somtico owns those models, playbooks, and the de-identified
-          corpus. We will not send that corpus to a third-party model provider for
-          their training. You represent that you have all rights and consents
-          needed (including from parents, guardians, students, and staff, where
-          applicable) to submit Customer Data.
+          you opt in on a specific enrolment-tactic record (a log of a growth
+          step you tried and the result you got, as described in the Privacy
+          Policy), you also grant Somtico Tech a perpetual licence to use that
+          de-identified row (tactic type, cost band, outcome, leak type, coarse
+          education bucket, and purpose version only) to improve the Service,
+          including training, evaluating, and operating models and ranking
+          algorithms that Somtico owns. In this context, a "leak" is the Service's
+          diagnosis of an enrolment problem from your records (for example weak
+          trial conversion or spare seats), not a security incident. "Playbooks"
+          means operational guidance the Service surfaces from those records and
+          from de-identified outcome counts. Somtico owns those models,
+          playbooks, and the de-identified corpus. We will not send that corpus to
+          a third-party model provider for their training. You represent that you
+          have all rights and consents needed (including from parents, guardians,
+          students, and staff, where applicable) to submit Customer Data.
         </p>
       </Section>
 
@@ -403,14 +408,24 @@ export function PrivacyDocumentBody({ compact = false }: { compact?: boolean }) 
         <p>
           We do not use your student, family, or staff records, chat notes, or
           other identifiable Customer Data to train third-party AI models
-          (OpenAI, Anthropic, Google, or others). When Chuk, the AI advisor,
-          calls an AI provider, it sends aggregated evidence from our analytics
-          tools for that question, with provider training and storage opted out
-          where the provider offers that control.
+          (OpenAI, Anthropic, Google, or others). When Chuk (the AI advisor
+          feature in the Service; software, not a person) calls an AI provider, it
+          sends aggregated evidence from our analytics tools for that question,
+          with provider training and storage opted out where the provider offers
+          that control.
         </p>
       </Section>
 
       <Section title="4. Optional De-Identified Tactic Outcomes">
+        <p>
+          Enrolment Advisor is a feature that diagnoses enrolment problems from
+          your records and suggests next steps. In that feature, a "leak" means
+          the diagnosed enrolment problem (for example weak trial-to-paid
+          conversion, retention churn, slipping starts, or spare seats). It is
+          not a data breach or security incident. A "tactic" is a growth step you
+          record (for example following up with trial families). An "outcome" is
+          your label for the result: helped, no clear effect, or hurt.
+        </p>
         <p>
           On Enrolment Advisor you may opt in, record by record, when you log a
           tactic with a clear outcome (helped, no effect, or hurt) and Chuk has
@@ -426,9 +441,10 @@ export function PrivacyDocumentBody({ compact = false }: { compact?: boolean }) 
         </p>
         <p>
           If you opt in, Somtico Technologies Inc. may use that de-identified row
-          to show playbook counts after at least eight similar reports, and to
-          train, evaluate, and operate models and ranking algorithms that Somtico
-          owns, so Chuk can get better at this industry from real results. Those
+          to show playbook counts (aggregate "helped in X of Y reports" tallies
+          shown in the Service after at least eight similar reports) and to train,
+          evaluate, and operate models and ranking algorithms that Somtico owns,
+          so Chuk can get better at this industry from real results. Those
           Somtico-owned models and the de-identified corpus are Somtico
           intellectual property. We will not send that corpus to OpenAI,
           Anthropic, Google, or any other provider for their training. Opt-in is
