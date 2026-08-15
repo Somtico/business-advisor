@@ -11,11 +11,11 @@ const EMAIL = 'demo@northlight.test';
 const PASSWORD = 'DemoPass!234';
 
 const PAGES = [
-  { path: '/app', file: 'command-centre.png', ready: 'Active Students' },
-  { path: '/app/pricing', file: 'pricing-advisor.png', ready: 'Robotics Club' },
-  { path: '/app/actions', file: 'action-centre.png', ready: 'Verified Saved' },
-  { path: '/app/advisor', file: 'ask-chuk.png', ready: 'Ask Chuk' },
-  { path: '/app/help', file: 'help-faq.png', ready: 'Meet Chuk' },
+  { path: '/app', file: 'command-centre-v2.png', ready: 'Active Students' },
+  { path: '/app/pricing', file: 'pricing-advisor-v2.png', ready: 'Robotics Club' },
+  { path: '/app/actions', file: 'action-centre-v2.png', ready: 'Verified Saved' },
+  { path: '/app/advisor', file: 'ask-chuk-v2.png', ready: 'Ask Chuk' },
+  { path: '/app/help', file: 'help-faq-v2.png', ready: 'Meet Chuk' },
 ];
 
 const browser = await chromium.launch({ headless: true });

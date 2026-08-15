@@ -1,6 +1,5 @@
 import { Link, NavLink, Outlet, Navigate } from 'react-router';
 import { BrandMark } from './BrandMark';
-import { AI_NAME_INTRO } from '../content/product';
 import { useAuth } from '../context/AuthContext';
 
 const links = [
@@ -35,9 +34,6 @@ export function AppShell() {
             <BrandMark to="/app" size={36} />
             <p className="mt-2 text-base text-ba-ink/70">
               {organization?.name || 'Organization'}
-            </p>
-            <p className="mt-1 text-base text-ba-ink/60">
-              {AI_NAME_INTRO} in this product. It is software, not a person.
             </p>
           </div>
           <nav className="flex flex-1 flex-col gap-1 overflow-y-auto p-3">
@@ -74,9 +70,6 @@ export function AppShell() {
         <main className="flex-1 overflow-auto">
           <div className="border-b border-ba-line bg-white px-4 py-3 md:hidden">
             <BrandMark to="/app" size={32} />
-            <p className="mt-1 text-base text-ba-ink/60">
-              {AI_NAME_INTRO} in this product. It is software, not a person.
-            </p>
           </div>
           <div className="mx-auto max-w-6xl px-4 py-8 md:px-8">
             <Outlet />

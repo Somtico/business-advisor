@@ -70,27 +70,27 @@ export const advisorCapabilities = [
 
 export const advisorScreenshots = [
   {
-    src: '/images/screenshots/command-centre.png',
+    src: '/images/screenshots/command-centre-v2.png',
     alt: "AI Business Advisor command centre showing Chuk's verified impact, active students, expenses, and cash outlook",
     caption: "Command Centre: your key numbers and Chuk's verified impact at a glance",
   },
   {
-    src: '/images/screenshots/pricing-advisor.png',
+    src: '/images/screenshots/pricing-advisor-v2.png',
     alt: 'Pricing Advisor page showing cost floors, recommended prices, and verdicts per programme',
     caption: 'Pricing Advisor: the cheapest you can afford to charge, and what you should charge',
   },
   {
-    src: '/images/screenshots/action-centre.png',
+    src: '/images/screenshots/action-centre-v2.png',
     alt: 'Action Centre showing verified savings and open recommendations with expected impact',
     caption: 'Action Centre: advice becomes tracked actions with verified dollar impact',
   },
   {
-    src: '/images/screenshots/ask-chuk.png',
+    src: '/images/screenshots/ask-chuk-v2.png',
     alt: 'Ask Chuk chat page where owners ask questions about their business data',
     caption: 'Ask Chuk: plain-language answers grounded in your own records',
   },
   {
-    src: '/images/screenshots/help-faq.png',
+    src: '/images/screenshots/help-faq-v2.png',
     alt: 'Help and FAQ page introducing Chuk and its no-guessing rules',
     caption: 'Meet Chuk: the rules it follows, in plain language',
   },

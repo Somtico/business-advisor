@@ -76,7 +76,7 @@ export function LandingPage() {
             aria-label="View product screenshots"
           >
             <img
-              src="/images/screenshots/command-centre.png"
+              src="/images/screenshots/command-centre-v2.png"
               alt="AI Business Advisor command centre with verified impact, students, expenses, and cash outlook"
               width={1440}
               height={900}
