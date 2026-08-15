@@ -186,8 +186,7 @@ export function EnrolmentPage() {
       <div>
         <h1 className="font-display text-3xl font-bold">Enrolment Advisor</h1>
         <p className="mt-2 max-w-3xl text-base text-ba-ink/70">
-          Chuk, the AI advisor, is reading fill, conversion, and what you have
-          already tried.
+          Chuk is reading fill, conversion, and what you have already tried.
         </p>
         <div className="mt-8 space-y-4">
           <AnalysisProgress steps={STEPS} />
@@ -209,10 +208,10 @@ export function EnrolmentPage() {
     <div>
       <h1 className="font-display text-3xl font-bold">Enrolment Advisor</h1>
       <p className="mt-2 max-w-3xl text-base text-ba-ink/70">
-        Chuk, the AI advisor, names the leak from your records, then suggests
-        cheap next steps first. A paid test appears only when conversion is
-        healthy, seats are open, and cash can absorb it. Record what you tried
-        and the result you got; empty seats alone are not a marketing plan.
+        Chuk names the leak from your records, then suggests cheap next steps
+        first. A paid test appears only when conversion is healthy, seats are
+        open, and cash can absorb it. Record what you tried and the result you
+        got; empty seats alone are not a marketing plan.
       </p>
 
       {message && <p className="mt-3 text-base text-ba-accent">{message}</p>}
@@ -399,7 +398,7 @@ export function EnrolmentPage() {
                 <span>
                   Share a de-identified copy (tactic type, cost band, outcome,
                   and leak type only; no notes, names, or organization id) so
-                  Chuk, the AI advisor, can improve the playbook and, later,
+                  Chuk can improve the playbook and, later,
                   Somtico-owned models for this industry. Off by default.{' '}
                   <Link className="text-ba-accent underline" to="/privacy">
                     Privacy Policy
@@ -414,7 +413,7 @@ export function EnrolmentPage() {
             <p className="text-base text-ba-ink/70">
               {data.canShareAnonymized
                 ? 'Pick a clear outcome (helped, no effect, or hurt) to choose whether to share a de-identified copy. Too soon to say stays on your organization only.'
-                : 'A de-identified share is offered after Chuk, the AI advisor, can name a leak from your records.'}
+                : 'A de-identified share is offered after Chuk can name a leak from your records.'}
             </p>
           )}
           <button

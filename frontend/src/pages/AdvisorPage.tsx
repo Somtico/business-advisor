@@ -106,7 +106,6 @@ export function AdvisorPage() {
     <div>
       <h1 className="font-display text-3xl font-bold">Ask Chuk</h1>
       <p className="mt-2 max-w-2xl text-base text-ba-ink/70">
-        Chuk is the AI advisor in this product. It is software, not a person.
         Every answer is grounded in trusted
         analytics tools reading your own records — never free-form database
         access, never guesses. When data is missing, Chuk asks for it.{' '}

@@ -101,7 +101,7 @@ export function PrivacyPage() {
             <p>
               On Enrolment Advisor you may opt in, record by record, when you
               log a tactic with a clear outcome (helped, no effect, or hurt)
-              and Chuk, the AI advisor, has already named a leak. The opt-in
+              and Chuk has already named a leak. The opt-in
               is shown only then. If you opt in, we store only: tactic type
               (for example, family referral), cost band (free / low / paid),
               outcome, the leak type at that moment, and a coarse education

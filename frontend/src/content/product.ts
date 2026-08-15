@@ -39,7 +39,7 @@ export const advisorHowItWorks = [
       'Add programmes, enrolments, wages, sessions, and expenses by hand, CSV import, or a portal connector.',
   },
   {
-    title: 'Chuk, the AI, Analyzes',
+    title: 'Chuk Analyzes',
     description:
       'Deterministic analytics read your records and surface pricing gaps, staffing waste, and cash risks.',
   },
