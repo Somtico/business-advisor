@@ -240,7 +240,7 @@ export async function runBusinessInsights(organizationId: string) {
       title: 'Pricing Guidance Needs More Data',
       summary: `${pricingBlocked.length} programme(s) cannot get pricing guidance yet: ${pricingBlocked
         .map((prog) => prog.name)
-        .join(', ')}. Nonso never guesses; it needs the missing records first.`,
+        .join(', ')}. Chuk never guesses; it needs the missing records first.`,
       evidence: {
         programmes: pricingBlocked.map((prog) => ({
           name: prog.name,

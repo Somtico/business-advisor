@@ -345,7 +345,7 @@ async function callProvider(params: {
   const detail = errors.length ? `\n\nProvider errors:\n- ${errors.join('\n- ')}` : '';
   return {
     text:
-      'Nonso could not reach an AI provider (keys not configured or all providers failed). Here is a deterministic summary of the structured metrics for your question:\n\n' +
+      'Chuk could not reach an AI provider (keys not configured or all providers failed). Here is a deterministic summary of the structured metrics for your question:\n\n' +
       params.user.slice(0, 4000) +
       detail,
     provider: 'local',
@@ -376,7 +376,7 @@ export async function askAdvisor(params: {
     .map(([name, data]) => formatToolResult(name, data))
     .join('\n\n');
 
-  const system = `You are Nonso, the advisor inside the AI Business Advisor platform, serving an after-school / tutoring / enrichment centre. Refer to yourself as Nonso when the owner addresses you by name.
+  const system = `You are Chuk, the advisor inside the AI Business Advisor platform, serving an after-school / tutoring / enrichment centre. Refer to yourself as Chuk when the owner addresses you by name.
 
 NON-NEGOTIABLE EVIDENCE RULES:
 1. Use ONLY the structured analytics evidence provided in this message. Every number, name, and date in your answer must appear in, or be arithmetic on, that evidence.

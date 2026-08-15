@@ -1,19 +1,19 @@
 export const PRODUCT_NAME = 'AI Business Advisor';
-export const AI_NAME = 'Nonso';
-/** First-mention gloss so Nonso is not read as a person. */
-export const AI_NAME_INTRO = 'Nonso, the AI advisor';
+export const AI_NAME = 'Chuk';
+/** First-mention gloss so Chuk is not read as a person. */
+export const AI_NAME_INTRO = 'Chuk, the AI advisor';
 export const COMPANY_NAME = 'Somtico Technologies Inc.';
 export const COMPANY_SHORT = 'Somtico Tech';
 export const COMPANY_SITE = 'https://somticoweb.com';
 export const PILOT_PRICE = '$5 CAD / month';
-export const LOGO_SRC = '/images/logo/nonso-ai-mark.png';
-export const LOGO_FULL_SRC = '/images/logo/nonso-ai-logo.png';
+export const LOGO_SRC = '/images/logo/chuk-ai-mark.png';
+export const LOGO_FULL_SRC = '/images/logo/chuk-ai-logo.png';
 
 export const advisorTrustPoints = [
   {
     title: 'Never Guesses',
     description:
-      'Nonso only uses figures calculated from your records. When data is missing, it asks for exactly what it needs instead of estimating.',
+      'Chuk only uses figures calculated from your records. When data is missing, it asks for exactly what it needs instead of estimating.',
   },
   {
     title: 'Shows Its Work',
@@ -39,7 +39,7 @@ export const advisorHowItWorks = [
       'Add programmes, enrolments, wages, sessions, and expenses by hand, CSV import, or a portal connector.',
   },
   {
-    title: 'Nonso, the AI, Analyzes',
+    title: 'Chuk, the AI, Analyzes',
     description:
       'Deterministic analytics read your records and surface pricing gaps, staffing waste, and cash risks.',
   },
@@ -60,7 +60,7 @@ export const advisorCapabilities = [
   "Verified impact ledger: proof of what the advice saved or earned",
   'Executive command centre with enrolment, labour, and cash KPIs',
   'Action Centre that turns insights into tracked, measurable steps',
-  'Ask Nonso anything about your numbers in plain language',
+  'Ask Chuk anything about your numbers in plain language',
   'Enrolment Advisor: name the leak, cheap next steps, then a paid test only when the data supports it',
   'Targets and forecasts across conservative to growth scenarios',
   'Staffing versus demand analysis to catch overscheduled weeks',
@@ -71,8 +71,8 @@ export const advisorCapabilities = [
 export const advisorScreenshots = [
   {
     src: '/images/screenshots/command-centre.png',
-    alt: "AI Business Advisor command centre showing Nonso's verified impact, active students, expenses, and cash outlook",
-    caption: "Command Centre: your key numbers and Nonso's verified impact at a glance",
+    alt: "AI Business Advisor command centre showing Chuk's verified impact, active students, expenses, and cash outlook",
+    caption: "Command Centre: your key numbers and Chuk's verified impact at a glance",
   },
   {
     src: '/images/screenshots/pricing-advisor.png',
@@ -85,13 +85,13 @@ export const advisorScreenshots = [
     caption: 'Action Centre: advice becomes tracked actions with verified dollar impact',
   },
   {
-    src: '/images/screenshots/ask-nonso.png',
-    alt: 'Ask Nonso chat page where owners ask questions about their business data',
-    caption: 'Ask Nonso: plain-language answers grounded in your own records',
+    src: '/images/screenshots/ask-chuk.png',
+    alt: 'Ask Chuk chat page where owners ask questions about their business data',
+    caption: 'Ask Chuk: plain-language answers grounded in your own records',
   },
   {
     src: '/images/screenshots/help-faq.png',
-    alt: 'Help and FAQ page introducing Nonso and its no-guessing rules',
-    caption: 'Meet Nonso: the rules it follows, in plain language',
+    alt: 'Help and FAQ page introducing Chuk and its no-guessing rules',
+    caption: 'Meet Chuk: the rules it follows, in plain language',
   },
 ] as const;

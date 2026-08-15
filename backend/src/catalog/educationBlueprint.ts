@@ -106,7 +106,7 @@ export const EDUCATION_DATASETS: BlueprintDataset[] = [
     datasetKey: 'enrolment_tactics',
     label: 'Enrolment Tactics Tried',
     whyItMatters:
-      'What you already tried, and the result you got, stops Nonso from inventing a marketing plan or repeating a paid channel that did not fill seats.',
+      'What you already tried, and the result you got, stops Chuk from inventing a marketing plan or repeating a paid channel that did not fill seats.',
     exampleInsight:
       'You followed up 6 trial families; 1 enrolled. Conversion is still the leak, so cheap follow-up beats ads.',
     priority: 86,

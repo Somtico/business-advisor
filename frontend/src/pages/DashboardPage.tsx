@@ -8,7 +8,7 @@ const DASHBOARD_ANALYSIS_STEPS = [
   'Checking staffing versus demand',
   'Rolling up expenses and subscriptions',
   'Calculating cash outlook and targets',
-  "Tallying Nonso's verified impact",
+  "Tallying Chuk's verified impact",
 ];
 
 interface Dashboard {
@@ -82,7 +82,7 @@ export function DashboardPage() {
       <div>
         <h1 className="font-display text-3xl font-bold">Command Centre</h1>
         <p className="mt-2 max-w-2xl text-base text-ba-ink/70">
-          Nonso, the AI advisor, is analysing your centre from your recorded
+          Chuk, the AI advisor, is analysing your centre from your recorded
           numbers.
         </p>
         <div className="mt-8 space-y-4">
@@ -103,7 +103,7 @@ export function DashboardPage() {
       <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {[
           {
-            label: "Nonso's Impact",
+            label: "Chuk's Impact",
             value: money(data.advisorImpact.verified.totalCents),
             note:
               data.advisorImpact.verified.totalCents > 0

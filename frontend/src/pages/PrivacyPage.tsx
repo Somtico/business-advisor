@@ -89,7 +89,7 @@ export function PrivacyPage() {
             <p>
               We do not use your student, family, or staff records, chat
               notes, or other identifiable Customer Data to train third-party
-              AI models (OpenAI, Anthropic, Google, or others). When Nonso,
+              AI models (OpenAI, Anthropic, Google, or others). When Chuk,
               the AI advisor, calls an AI provider, it sends aggregated
               evidence from our analytics tools for that question, with
               provider training and storage opted out where the provider
@@ -101,7 +101,7 @@ export function PrivacyPage() {
             <p>
               On Enrolment Advisor you may opt in, record by record, when you
               log a tactic with a clear outcome (helped, no effect, or hurt)
-              and Nonso, the AI advisor, has already named a leak. The opt-in
+              and Chuk, the AI advisor, has already named a leak. The opt-in
               is shown only then. If you opt in, we store only: tactic type
               (for example, family referral), cost band (free / low / paid),
               outcome, the leak type at that moment, and a coarse education
@@ -116,7 +116,7 @@ export function PrivacyPage() {
               If you opt in, Somtico Technologies Inc. may use that
               de-identified row to show playbook counts after at least eight
               similar reports, and to train, evaluate, and operate models and
-              ranking algorithms that Somtico owns, so Nonso can get better at
+              ranking algorithms that Somtico owns, so Chuk can get better at
               this industry from real results. Those Somtico-owned models and
               the de-identified corpus are Somtico intellectual property. We
               will not send that corpus to OpenAI, Anthropic, Google, or any

@@ -13,7 +13,7 @@ const links = [
   { to: '/app/actions', label: 'Action Centre' },
   { to: '/app/pricing', label: 'Pricing Advisor' },
   { to: '/app/enrolment', label: 'Enrolment Advisor' },
-  { to: '/app/advisor', label: 'Ask Nonso' },
+  { to: '/app/advisor', label: 'Ask Chuk' },
   { to: '/app/help', label: 'Help & FAQ' },
   { to: '/app/settings', label: 'Settings' },
 ];

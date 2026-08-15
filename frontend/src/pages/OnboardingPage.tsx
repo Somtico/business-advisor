@@ -53,7 +53,7 @@ export function OnboardingPage() {
       <p className="mt-2 max-w-2xl text-base text-ba-ink/70">
         Your organization uses the After-School / Tutoring / Enrichment blueprint.
         There is no generic industry selector. Add data progressively — skip what
-        you do not have yet. Nonso, the AI advisor in this product, will use
+        you do not have yet. Chuk, the AI advisor in this product, will use
         these records. It is software, not a person.
       </p>
       <form onSubmit={onSubmit} className="mt-8 max-w-lg space-y-4">

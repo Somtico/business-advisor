@@ -161,7 +161,7 @@ export function EnrolmentPage() {
       setResultSummary('');
       setOtherLabel('');
       setShareAnonymized(false);
-      setMessage('Recorded. Nonso will use this result the next time it advises.');
+      setMessage('Recorded. Chuk will use this result the next time it advises.');
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not save');
@@ -186,7 +186,7 @@ export function EnrolmentPage() {
       <div>
         <h1 className="font-display text-3xl font-bold">Enrolment Advisor</h1>
         <p className="mt-2 max-w-3xl text-base text-ba-ink/70">
-          Nonso, the AI advisor, is reading fill, conversion, and what you have
+          Chuk, the AI advisor, is reading fill, conversion, and what you have
           already tried.
         </p>
         <div className="mt-8 space-y-4">
@@ -209,7 +209,7 @@ export function EnrolmentPage() {
     <div>
       <h1 className="font-display text-3xl font-bold">Enrolment Advisor</h1>
       <p className="mt-2 max-w-3xl text-base text-ba-ink/70">
-        Nonso, the AI advisor, names the leak from your records, then suggests
+        Chuk, the AI advisor, names the leak from your records, then suggests
         cheap next steps first. A paid test appears only when conversion is
         healthy, seats are open, and cash can absorb it. Record what you tried
         and the result you got; empty seats alone are not a marketing plan.
@@ -285,7 +285,7 @@ export function EnrolmentPage() {
 
       {data.missingData.length > 0 && (
         <section className="mt-6 border border-ba-line bg-white p-5">
-          <h2 className="text-xl font-semibold">What Nonso Still Needs</h2>
+          <h2 className="text-xl font-semibold">What Chuk Still Needs</h2>
           <ul className="mt-3 list-disc space-y-2 pl-6 text-base">
             {data.missingData.map((item) => (
               <li key={item}>{item}</li>
@@ -399,7 +399,7 @@ export function EnrolmentPage() {
                 <span>
                   Share a de-identified copy (tactic type, cost band, outcome,
                   and leak type only; no notes, names, or organization id) so
-                  Nonso, the AI advisor, can improve the playbook and, later,
+                  Chuk, the AI advisor, can improve the playbook and, later,
                   Somtico-owned models for this industry. Off by default.{' '}
                   <Link className="text-ba-accent underline" to="/privacy">
                     Privacy Policy
@@ -414,7 +414,7 @@ export function EnrolmentPage() {
             <p className="text-base text-ba-ink/70">
               {data.canShareAnonymized
                 ? 'Pick a clear outcome (helped, no effect, or hurt) to choose whether to share a de-identified copy. Too soon to say stays on your organization only.'
-                : 'A de-identified share is offered after Nonso, the AI advisor, can name a leak from your records.'}
+                : 'A de-identified share is offered after Chuk, the AI advisor, can name a leak from your records.'}
             </p>
           )}
           <button

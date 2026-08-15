@@ -46,7 +46,7 @@ export function LandingPage() {
             </h1>
             <p className="mt-4 max-w-xl text-lg text-ba-ink/80">
               Run your after-school, tutoring, or enrichment centre on real
-              numbers. Nonso, the AI advisor inside, tells you the cheapest you
+              numbers. Chuk, the AI advisor inside, tells you the cheapest you
               can afford to charge, what you should charge, where money is
               leaking, and then proves what its advice saved you.
             </p>
@@ -90,13 +90,13 @@ export function LandingPage() {
         <div className="grid gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
           <div>
             <p className="text-base font-semibold uppercase tracking-wide text-ba-accent">
-              Meet Nonso, the AI Advisor
+              Meet Chuk, the AI Advisor
             </p>
             <h2 className="mt-2 font-display text-3xl font-bold">
               An Advisor That Never Guesses
             </h2>
             <p className="mt-3 text-base text-ba-ink/80">
-              Nonso is the AI advisor at the heart of the AI Business Advisor
+              Chuk is the AI advisor at the heart of the AI Business Advisor
               platform. It is software, not a person. It reads the numbers you
               record (enrolments, sessions, wages, expenses, and targets) and
               turns them into plain-language advice you can act on.
@@ -183,7 +183,7 @@ export function LandingPage() {
           Frequently Asked Questions
         </h2>
         <p className="mt-3 max-w-3xl text-base text-ba-ink/80">
-          The same answers you will find inside the product, covering Nonso,
+          The same answers you will find inside the product, covering Chuk,
           pricing, privacy, and the pilot plan.
         </p>
         <div className="mt-10">
@@ -195,7 +195,7 @@ export function LandingPage() {
         <div className="mx-auto max-w-6xl px-4 py-16 md:px-8">
           <h2 className="font-display text-3xl font-bold">Start Your Pilot</h2>
           <p className="mt-3 max-w-2xl text-base text-white/80">
-            Create an organization, connect your numbers, and let Nonso work
+            Create an organization, connect your numbers, and let Chuk work
             from your records. Pilot plan {PILOT_PRICE}, billed through Stripe.
             Cancel any time.
           </p>
