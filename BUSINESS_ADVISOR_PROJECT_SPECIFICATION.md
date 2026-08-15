@@ -72,7 +72,7 @@ Automated daily PostgreSQL dumps to Cloudflare R2 via GitHub Actions (same patte
 - **Workflow:** `.github/workflows/database-backup.yml` — daily at 2:00 AM UTC; also `workflow_dispatch`
 - **Bucket (recommended):** `business-advisor-database-backups`
 - **Object path:** `backups/YYYY/MM/backup-YYYY-MM-DD-HHMMSS.sql.gz`
-- **Retention:** Object lifecycle rule delete after 30 days (optional but recommended)
+- **Retention:** Object lifecycle rule delete after 30 days with prefix **`backups/`** only (optional but recommended). Never leave the rule-scope prefix empty; that deletes every object in the bucket (same failure mode as SFNWA / FNOCC).
 - **GitHub Secrets required:** `RAILWAY_DATABASE_URL` (Railway `DATABASE_PUBLIC_URL`), `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET_NAME`, `R2_ENDPOINT`
 
 Complete Cloudflare + GitHub secret setup before the first manual Actions run. Local `prisma migrate deploy` does not configure R2 or GitHub Secrets.

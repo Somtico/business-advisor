@@ -2,6 +2,8 @@
 
 This comprehensive guide will walk you through setting up **automated daily backups** from your Railway PostgreSQL database to Cloudflare R2 using GitHub Actions.
 
+**Object lifecycle warning:** SQL dumps are stored under `backups/YYYY/MM/`. If you add a 30-day delete rule with an **empty** rule-scope prefix, R2 deletes **every** object in the bucket after 30 days — including any non-backup uploads later stored in the same bucket. That failure mode hit **sfnwa-website** and **fnocc**. Always set the lifecycle prefix to **`backups/`** only.
+
 ---
 
 ## 🎯 What You'll Accomplish
@@ -11,7 +13,7 @@ By the end of this guide, you will have:
 - ✅ Set up API credentials for R2
 - ✅ Configured GitHub Actions workflow for automated backups
 - ✅ Backups uploading to R2 every day automatically at 2:00 AM UTC
-- ✅ Backup retention policies configured
+- ✅ Backup retention policies configured (lifecycle prefix `backups/` only)
 - ✅ Disaster recovery plan in place
 
 ---
@@ -189,22 +191,25 @@ Set up automatic cleanup of old backups to save on storage costs.
 4. Click the **"Add"** button to create a new lifecycle rule
 5. Fill out the form:
    - **Rule name**: Enter `backup-retention-policy` (or any descriptive name)
-   - **Rule scope**: 
-     - **"Apply to objects with the following prefix (optional)"**: Leave this **empty** to apply to all objects in the bucket
-     - If you want to target specific paths (e.g., only backups in a certain folder), enter a prefix like `backups/daily/`
-     - For backups, leaving it empty (applying to all objects) is recommended
+   - **Rule scope**:
+     - **"Apply to objects with the following prefix (optional)"**: set to **`backups/`** (required)
+     - ⚠️ **Do not leave the prefix empty.** An empty scope deletes **all** objects in the bucket after the retention period (the SFNWA / FNOCC failure mode).
+     - The GitHub Action writes dumps under `backups/YYYY/MM/…`, so prefix `backups/` matches only those SQL backups.
+     - Do **not** use a narrower prefix like `backups/daily/` unless you also change the workflow upload path to match.
    - **Lifecycle action**: Select **"Delete uploaded objects after:"**
      - Enter **30** in the "Days" field (for daily backups)
-     - This will automatically delete backups older than 30 days
+     - This will automatically delete SQL dumps older than 30 days under `backups/`
    - **Optional actions** (you can leave these unchecked):
      - "Abort incomplete multipart uploads after:" - Leave default or set to 7 days
      - "Transition objects to Infrequent Access storage class after:" - Not needed for backups
 6. Click **"Save changes"** button to create the rule
 
 **Note**: You can create multiple rules if needed:
-   - One rule for daily backups: Delete after 30 days
-   - Another rule for weekly backups: Delete after 90 days (with prefix like `backups/weekly/`)
+   - One rule for daily backups: Delete after 30 days with prefix **`backups/`**
+   - Another rule for weekly backups: Delete after 90 days (with prefix like `backups/weekly/` if you split paths)
    - Another rule for monthly backups: Delete after 365 days (with prefix like `backups/monthly/`)
+
+The included GitHub Action writes to `backups/YYYY/MM/` only. Any future non-backup objects in this bucket (for example under `uploads/` or `media/`) must **not** match the retention prefix.
 
 ✅ This will automatically delete old backups and save you money!
 
@@ -596,7 +601,7 @@ After setup, verify everything works:
 - [ ] Bucket created (`business-advisor-database-backups`)
 - [ ] Account ID copied
 - [ ] API token created (Access Key ID + Secret Access Key saved)
-- [ ] Lifecycle rules configured (optional)
+- [ ] Lifecycle rules configured (optional) with prefix **`backups/`** — never empty
 - [ ] All 6 GitHub Secrets added
 - [ ] GitHub Actions workflow file created
 - [ ] Test backup ran successfully
@@ -720,8 +725,8 @@ Your backups will run:
 - **Daily**: Every day at 2:00 AM UTC (8:00 PM CST previous day)
 - **Manual**: You can trigger backups anytime from GitHub Actions tab
 - **Retention**: 
-  - Daily backups retained for 30 days (via lifecycle rules)
-  - You can adjust retention in R2 bucket settings
+  - Daily backups retained for 30 days (via lifecycle rules scoped to prefix `backups/`)
+  - You can adjust retention in R2 bucket settings; keep the prefix as `backups/`
 
 **To change the schedule:**
 - Edit `.github/workflows/database-backup.yml`
