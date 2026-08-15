@@ -361,9 +361,10 @@ export async function enrolmentGuidance(organizationId: string) {
     generatedAt: now.toISOString(),
     privacy: {
       anonymizedSharing:
-        'Optional. If you opt in, Nonso stores only the tactic type, cost band, outcome, leak type, and a coarse education bucket. Your notes, names, and organization id are not copied. Aggregates appear only after 8 similar reports. Somtico may later use those de-identified rows to improve its own playbook and models. They are never sent to train OpenAI, Anthropic, Gemini, or any other third-party model.',
+        'Optional. Shown only when a leak is named and you pick a clear outcome. If you opt in, we store only the tactic type, cost band, outcome, leak type, and a coarse education bucket. Your notes, names, and organization id are not copied. Aggregates appear only after 8 similar reports. Somtico may later use those de-identified rows to improve its own playbook and models. They are never sent to train OpenAI, Anthropic, Gemini, or any other third-party model.',
       minPeerSample: MIN_PEER_SAMPLE,
     },
+    canShareAnonymized: leak !== 'INSUFFICIENT_DATA',
     educationBucket: educationBucket(org.educationSubtype),
   };
 }

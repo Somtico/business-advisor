@@ -77,6 +77,7 @@ interface Guidance {
   }>;
   disclaimer: string;
   privacy: { anonymizedSharing: string };
+  canShareAnonymized: boolean;
 }
 
 const OUTCOME_LABELS: Record<Outcome, string> = {
@@ -151,7 +152,10 @@ export function EnrolmentPage() {
           resultSummary,
           outcome,
           costBand,
-          shareAnonymized,
+          shareAnonymized:
+            Boolean(data?.canShareAnonymized) &&
+            outcome !== 'UNKNOWN' &&
+            shareAnonymized,
         }),
       });
       setResultSummary('');
@@ -182,7 +186,8 @@ export function EnrolmentPage() {
       <div>
         <h1 className="font-display text-3xl font-bold">Enrolment Advisor</h1>
         <p className="mt-2 max-w-3xl text-base text-ba-ink/70">
-          Nonso is reading fill, conversion, and what you have already tried.
+          Nonso, the AI advisor, is reading fill, conversion, and what you have
+          already tried.
         </p>
         <div className="mt-8 space-y-4">
           <AnalysisProgress steps={STEPS} />
@@ -193,6 +198,8 @@ export function EnrolmentPage() {
   }
 
   const catalog = data.tacticCatalog;
+  const canShareThisRecord =
+    data.canShareAnonymized && outcome !== 'UNKNOWN';
   const tacticLabel = (key: TacticKey, other: string | null) =>
     key === 'OTHER' && other
       ? other
@@ -202,10 +209,10 @@ export function EnrolmentPage() {
     <div>
       <h1 className="font-display text-3xl font-bold">Enrolment Advisor</h1>
       <p className="mt-2 max-w-3xl text-base text-ba-ink/70">
-        Nonso names the leak from your records, then suggests cheap next steps
-        first. A paid test appears only when conversion is healthy, seats are
-        open, and cash can absorb it. Record what you tried and the result you
-        got; empty seats alone are not a marketing plan.
+        Nonso, the AI advisor, names the leak from your records, then suggests
+        cheap next steps first. A paid test appears only when conversion is
+        healthy, seats are open, and cash can absorb it. Record what you tried
+        and the result you got; empty seats alone are not a marketing plan.
       </p>
 
       {message && <p className="mt-3 text-base text-ba-accent">{message}</p>}
@@ -380,24 +387,36 @@ export function EnrolmentPage() {
               </select>
             </label>
           </div>
-          <label className="flex cursor-pointer items-start gap-3 text-base">
-            <input
-              type="checkbox"
-              checked={shareAnonymized}
-              onChange={(e) => setShareAnonymized(e.target.checked)}
-              className="mt-1 cursor-pointer rounded border-ba-line"
-            />
-            <span>
-              Share a de-identified copy (tactic type, cost band, outcome, and
-              leak type only; no notes, names, or organization id) so Nonso can
-              improve the playbook and, later, Somtico-owned models for this
-              industry. Off by default.{' '}
-              <Link className="text-ba-accent underline" to="/privacy">
-                Privacy Policy
-              </Link>
-            </span>
-          </label>
-          <p className="text-sm text-ba-ink/60">{data.privacy.anonymizedSharing}</p>
+          {canShareThisRecord ? (
+            <>
+              <label className="flex cursor-pointer items-start gap-3 text-base">
+                <input
+                  type="checkbox"
+                  checked={shareAnonymized}
+                  onChange={(e) => setShareAnonymized(e.target.checked)}
+                  className="mt-1 cursor-pointer rounded border-ba-line"
+                />
+                <span>
+                  Share a de-identified copy (tactic type, cost band, outcome,
+                  and leak type only; no notes, names, or organization id) so
+                  Nonso, the AI advisor, can improve the playbook and, later,
+                  Somtico-owned models for this industry. Off by default.{' '}
+                  <Link className="text-ba-accent underline" to="/privacy">
+                    Privacy Policy
+                  </Link>
+                </span>
+              </label>
+              <p className="text-sm text-ba-ink/60">
+                {data.privacy.anonymizedSharing}
+              </p>
+            </>
+          ) : (
+            <p className="text-base text-ba-ink/70">
+              {data.canShareAnonymized
+                ? 'Pick a clear outcome (helped, no effect, or hurt) to choose whether to share a de-identified copy. Too soon to say stays on your organization only.'
+                : 'A de-identified share is offered after Nonso, the AI advisor, can name a leak from your records.'}
+            </p>
+          )}
           <button
             type="submit"
             disabled={saving}

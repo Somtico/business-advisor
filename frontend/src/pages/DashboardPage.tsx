@@ -82,7 +82,8 @@ export function DashboardPage() {
       <div>
         <h1 className="font-display text-3xl font-bold">Command Centre</h1>
         <p className="mt-2 max-w-2xl text-base text-ba-ink/70">
-          Nonso is analysing your centre from your recorded numbers.
+          Nonso, the AI advisor, is analysing your centre from your recorded
+          numbers.
         </p>
         <div className="mt-8 space-y-4">
           <AnalysisProgress steps={DASHBOARD_ANALYSIS_STEPS} />

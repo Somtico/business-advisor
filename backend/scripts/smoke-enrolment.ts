@@ -11,7 +11,8 @@ async function main() {
   });
   try {
     const empty = await enrolmentGuidance(org.id);
-    const emptyOk = empty.leak === 'INSUFFICIENT_DATA';
+    const emptyOk =
+      empty.leak === 'INSUFFICIENT_DATA' && empty.canShareAnonymized === false;
     console.log('empty leak:', empty.leak);
     console.log(emptyOk ? 'EMPTY OK' : 'EMPTY FAILED');
 
@@ -60,6 +61,7 @@ async function main() {
     const leakOk =
       leak.leak === 'CONVERSION_LEAK' &&
       leak.askTriedAndResults === true &&
+      leak.canShareAnonymized === true &&
       leak.paidTest.eligible === false &&
       leak.cheapNextSteps.length > 0;
     console.log('leak:', leak.leak, 'askTried', leak.askTriedAndResults);

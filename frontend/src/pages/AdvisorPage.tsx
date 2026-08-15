@@ -106,7 +106,8 @@ export function AdvisorPage() {
     <div>
       <h1 className="font-display text-3xl font-bold">Ask Nonso</h1>
       <p className="mt-2 max-w-2xl text-base text-ba-ink/70">
-        Nonso is your AI business advisor. Every answer is grounded in trusted
+        Nonso is the AI advisor in this product. It is software, not a person.
+        Every answer is grounded in trusted
         analytics tools reading your own records — never free-form database
         access, never guesses. When data is missing, Nonso asks for it.{' '}
         <Link className="text-ba-accent underline" to="/app/help">

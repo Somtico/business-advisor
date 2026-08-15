@@ -1,5 +1,7 @@
 export const PRODUCT_NAME = 'AI Business Advisor';
 export const AI_NAME = 'Nonso';
+/** First-mention gloss so Nonso is not read as a person. */
+export const AI_NAME_INTRO = 'Nonso, the AI advisor';
 export const COMPANY_NAME = 'Somtico Technologies Inc.';
 export const COMPANY_SHORT = 'Somtico Tech';
 export const COMPANY_SITE = 'https://somticoweb.com';
@@ -37,7 +39,7 @@ export const advisorHowItWorks = [
       'Add programmes, enrolments, wages, sessions, and expenses by hand, CSV import, or a portal connector.',
   },
   {
-    title: 'Nonso Analyzes',
+    title: 'Nonso, the AI, Analyzes',
     description:
       'Deterministic analytics read your records and surface pricing gaps, staffing waste, and cash risks.',
   },

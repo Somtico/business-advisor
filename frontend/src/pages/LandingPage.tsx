@@ -90,16 +90,16 @@ export function LandingPage() {
         <div className="grid gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
           <div>
             <p className="text-base font-semibold uppercase tracking-wide text-ba-accent">
-              Meet Nonso
+              Meet Nonso, the AI Advisor
             </p>
             <h2 className="mt-2 font-display text-3xl font-bold">
               An Advisor That Never Guesses
             </h2>
             <p className="mt-3 text-base text-ba-ink/80">
-              Nonso is the AI at the heart of the AI Business Advisor platform. It
-              reads the numbers you record (enrolments, sessions, wages,
-              expenses, and targets) and turns them into plain-language advice
-              you can act on.
+              Nonso is the AI advisor at the heart of the AI Business Advisor
+              platform. It is software, not a person. It reads the numbers you
+              record (enrolments, sessions, wages, expenses, and targets) and
+              turns them into plain-language advice you can act on.
             </p>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">

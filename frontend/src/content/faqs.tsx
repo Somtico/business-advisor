@@ -10,7 +10,7 @@ export const FAQ_SECTIONS: FaqSection[] = [
     items: [
       {
         q: 'Who is Nonso?',
-        a: 'Nonso is the advisor inside AI Business Advisor. Nonso reads your own records — enrolments, sessions, wages, expenses, subscriptions, and targets — and turns them into plain-language advice: where money is leaking, what to charge, which actions to take next, and what those actions saved or earned once you complete them.',
+        a: 'Nonso is the AI advisor inside AI Business Advisor. It is software, not a person. Nonso reads your own records — enrolments, sessions, wages, expenses, subscriptions, and targets — and turns them into plain-language advice: where money is leaking, what to charge, which actions to take next, and what those actions saved or earned once you complete them.',
       },
       {
         q: "Where do Nonso's numbers come from?",

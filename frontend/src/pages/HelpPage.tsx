@@ -10,7 +10,8 @@ export function HelpPage() {
       <section className="mt-6 border border-ba-line bg-white p-6">
         <h2 className="font-display text-2xl font-bold">Meet Nonso</h2>
         <p className="mt-3 max-w-3xl text-base text-ba-ink/80">
-          Nonso is your AI business advisor. It watches the numbers you record —
+          Nonso is the AI advisor in this product. It is software, not a
+          person. It watches the numbers you record —
           enrolments, sessions, wages, expenses, and targets — and tells you
           what they mean: the cheapest you can afford to charge, what you
           should charge, where money is leaking, and which action to take next.

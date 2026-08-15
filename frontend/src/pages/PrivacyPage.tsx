@@ -1,7 +1,7 @@
 import { Link } from 'react-router';
 import { PublicShell } from '../components/PublicShell';
 
-export const PRIVACY_VERSION = '2026-08-14.2';
+export const PRIVACY_VERSION = '2026-08-14.3';
 
 function Section({
   title,
@@ -31,8 +31,7 @@ export function PrivacyPage() {
             Tech)
           </p>
           <p className="mt-1 text-base text-ba-ink/70">
-            Version {PRIVACY_VERSION} · Effective 14 August 2026 (updated same
-            day to disclose Somtico-owned model improvement)
+            Version {PRIVACY_VERSION} · Effective 14 August 2026
           </p>
           <p className="mt-4 text-base text-ba-ink/80">
             This policy explains how we handle personal information. It is
@@ -90,46 +89,39 @@ export function PrivacyPage() {
             <p>
               We do not use your student, family, or staff records, chat
               notes, or other identifiable Customer Data to train third-party
-              AI models (OpenAI, Anthropic, Google, or others). When Nonso
-              calls an AI provider, it sends aggregated evidence from our
-              analytics tools for that question, with provider training and
-              storage opted out where the provider offers that control.
+              AI models (OpenAI, Anthropic, Google, or others). When Nonso,
+              the AI advisor, calls an AI provider, it sends aggregated
+              evidence from our analytics tools for that question, with
+              provider training and storage opted out where the provider
+              offers that control.
             </p>
           </Section>
 
           <Section title="4. Optional De-Identified Tactic Outcomes">
             <p>
-              On Enrolment Advisor you may opt in, record by record, to share a
-              de-identified copy of a tactic outcome. If you opt in, we store
-              only: tactic type (for example, family referral), cost band (free /
-              low / paid), outcome (helped / no effect / hurt), the leak type
-              at that moment (for example, conversion leak), a coarse
-              education bucket (STEM, tutoring, or other enrichment), and a
-              purpose version that records the uses you agreed to on that
-              record.
+              On Enrolment Advisor you may opt in, record by record, when you
+              log a tactic with a clear outcome (helped, no effect, or hurt)
+              and Nonso, the AI advisor, has already named a leak. The opt-in
+              is shown only then. If you opt in, we store only: tactic type
+              (for example, family referral), cost band (free / low / paid),
+              outcome, the leak type at that moment, and a coarse education
+              bucket (STEM, tutoring, or other enrichment).
             </p>
             <p>
               We do not copy your notes, student or family names, organization
-              id, location, or email into that table. Those rows are not tied
-              back to your account. Do not put names in the result field.
+              id, location, or email. Those rows are not tied back to your
+              account. Do not put names in the result field.
             </p>
             <p>
               If you opt in, Somtico Technologies Inc. may use that
-              de-identified row to (a) show playbook counts after at least
-              eight similar reports, and (b) train, evaluate, and operate
-              models and ranking algorithms that Somtico owns, so Nonso can
-              get better at this industry from real results rather than from
-              a general-purpose model. Those Somtico-owned models and the
-              de-identified corpus are Somtico intellectual property. We will
-              not send that corpus to OpenAI, Anthropic, Google, or any other
-              provider for their training.
-            </p>
-            <p>
-              Opt-in is off by default. A row collected only for playbook
-              counts is not later moved into a training corpus. Removing a
-              tactic from your organization log does not delete a
-              de-identified row already contributed, because it no longer
-              identifies you, and a trained model cannot be fully unwound.
+              de-identified row to show playbook counts after at least eight
+              similar reports, and to train, evaluate, and operate models and
+              ranking algorithms that Somtico owns, so Nonso can get better at
+              this industry from real results. Those Somtico-owned models and
+              the de-identified corpus are Somtico intellectual property. We
+              will not send that corpus to OpenAI, Anthropic, Google, or any
+              other provider for their training. Opt-in is off by default. A
+              contributed row cannot be pulled out of a trained model.
             </p>
           </Section>
 
