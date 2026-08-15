@@ -4,7 +4,7 @@
 **Customer #1:** STEM Lantern Education Inc. (operating name STEM Lantern)  
 **Portal data source (during rebrand):** Skill Samurai Saskatoon Registration Portal  
 **Ports:** frontend 3007 · backend 5007  
-**Revision:** Phase 0 + Phase 1 beachhead + advice impact ledger + pricing advisor + enrolment advisor + privacy policy + terms of service + Chuk branding + signup UX / email verification + public landing page — 14 August 2026
+**Revision:** Phase 0 + Phase 1 beachhead + advice impact ledger + pricing advisor + enrolment advisor + privacy policy + terms of service + Chuk branding + signup UX / email verification + public landing page + Cloudflare R2 daily DB backups — 15 August 2026
 
 ## Positioning
 
@@ -38,6 +38,7 @@ AI business intelligence and operating advisor for independent after-school, tut
 - Signup UX + email verification (14 Aug 2026): required-field asterisks; label **Business / Organization Name**; organization **slug** helper copy (subdomain + sign-in identifier) with auto-fill from the name (still editable); confirm password + shared eye/slash password reveal on signup and login; education subtype **STEM Academy** (was STEM / Coding Academy; coding is under STEM) plus **Other** with required free-text (`educationSubtypeOther`); signup shows Terms of Service and Privacy Policy in a scrollable mini panel (`LegalAcceptScroll`); the accept checkbox stays disabled until the owner scrolls to the end (Skill Samurai waiver pattern); Brevo verification link flow (`POST /api/auth/verify-email`, `POST /api/auth/resend-verification`, `/verify-email` page) mirroring SFNWA — login blocked until verified when `BREVO_API_KEY` is set; without Brevo, local/dev auto-verifies and dry-runs the email.
 - Chuk branding (14 Aug 2026): the AI is named **Chuk** in all user-facing copy — nav ("Ask Chuk"), chat page, Pricing Advisor, Action Centre messages, Command Centre "Chuk's Impact" card, weekly brief, and the system prompt (the model refers to itself as Chuk). The signed-in sidebar shows the organization name only (no "software, not a person" gloss under the business name). That gloss stays on the landing hero, Privacy section 3, and the FAQ "Who is Chuk?". Later mentions on the same page are just **Chuk**. The product name is **AI Business Advisor**.
 - Analysis loading states (14 Aug 2026): `AnalysisProgress` component (staged step list with spinner/checkmarks, cosmetic pacing, unmounts when real results land) + `SkeletonCard` pulse placeholders. Pricing Advisor shows the six datasets being checked plus skeleton cards (and again when recalculating after a session is added); Ask Chuk shows a five-step reasoning progression and hides the previous answer until the new one lands; Command Centre and Action Centre "Run Insights" use the same staged progress instead of a blank wait.
+- Cloudflare R2 database backups (15 Aug 2026): `.github/workflows/database-backup.yml` dumps Railway PostgreSQL daily at 2:00 AM UTC (gzip → `backups/YYYY/MM/`), with setup steps in `R2_BACKUP_SETUP_GUIDE.md`. Requires the six GitHub Secrets listed under **Database backups (Cloudflare R2)** below.
 - Help & FAQ page (14 Aug 2026): `/app/help` ("Help & FAQ" nav item) opens with a "Meet Chuk" introduction, then accordion FAQs across About Chuk, Pricing Advisor, Impact Ledger, Data & Privacy, Getting Started, and Accounts, Billing & Access. The same FAQ source (`frontend/src/content/faqs.tsx`) feeds a visitor subset on the public landing page.
 - Public landing page + brand (14 Aug 2026): `/` is a marketing homepage (logged-in users are sent to `/app`) with Somtico Technologies Inc. attribution, Meet Chuk trust points, how-it-works, capabilities, the same product screenshots used on somticoweb.com (`/images/screenshots/`), visitor FAQs, and Start Pilot / Sign In CTAs. Public chrome (`PublicShell`) wraps landing, login, signup, terms, and email verification. Footer copy is "{product} is a product of Somtico Technologies Inc." with the company name linked to somticoweb.com (no second company link in the footer nav). Chuk logo lives at `frontend/public/images/logo/` (`chuk-ai-logo.png` full mark, `chuk-ai-mark.png` for UI); favicon set is `frontend/public/favicon.ico`, `favicon-32x32.png`, and `apple-touch-icon.png`. `/login` remains the sign-in form.
 - Marketing screenshots tooling: `backend/scripts/seed-demo-screenshots.ts` seeds (and `--cleanup` deletes) a fictional local org (Northlight Learning Studio) signed in as **John Smith** (`demo@northlight.test`), with programmes, enrolments, wages, sessions, expenses, subscriptions, targets, and a verified recommendation. `backend/scripts/capture-demo-screenshots.mjs` logs in at 1440×900 and writes Command Centre, Pricing Advisor, Action Centre, Ask Chuk, and Help & FAQ PNGs (`*-v2.png`) to the gitignored `.screenshots/` folder, then those files are copied into `frontend/public/images/screenshots/` and somtico-tech.
@@ -62,3 +63,16 @@ Use `/signup` to create an organization (education blueprint applied automatical
 ## Env
 
 See `backend/.env.example` and `frontend/.env.example`.
+
+## Database backups (Cloudflare R2)
+
+Automated daily PostgreSQL dumps to Cloudflare R2 via GitHub Actions (same pattern as Skill Samurai Saskatoon Portal).
+
+- **Guide:** `R2_BACKUP_SETUP_GUIDE.md` (repo root)
+- **Workflow:** `.github/workflows/database-backup.yml` — daily at 2:00 AM UTC; also `workflow_dispatch`
+- **Bucket (recommended):** `business-advisor-database-backups`
+- **Object path:** `backups/YYYY/MM/backup-YYYY-MM-DD-HHMMSS.sql.gz`
+- **Retention:** Object lifecycle rule delete after 30 days (optional but recommended)
+- **GitHub Secrets required:** `RAILWAY_DATABASE_URL` (Railway `DATABASE_PUBLIC_URL`), `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET_NAME`, `R2_ENDPOINT`
+
+Complete Cloudflare + GitHub secret setup before the first manual Actions run. Local `prisma migrate deploy` does not configure R2 or GitHub Secrets.

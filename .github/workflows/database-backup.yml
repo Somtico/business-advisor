@@ -1,0 +1,266 @@
+name: Daily Database Backup to R2
+
+on:
+  schedule:
+    # Daily backup at 2:00 AM UTC (8:00 PM CST previous day)
+    - cron: '0 2 * * *'
+  workflow_dispatch: # Allows manual trigger from GitHub UI
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install PostgreSQL 17+ client
+        shell: bash
+        run: |
+          set -euo pipefail
+          
+          sudo apt-get update
+          sudo apt-get install -y wget ca-certificates lsb-release gnupg
+          
+          # Clean any preinstalled PG bits to avoid wrapper picking old defaults
+          sudo apt-get remove -y postgresql-client postgresql-client-* postgresql-* postgresql-common postgresql-client-common 2>/dev/null || true
+          
+          # Remove any existing PostgreSQL repository to avoid conflicts
+          sudo rm -f /etc/apt/sources.list.d/pgdg.list || true
+          
+          # Add PostgreSQL official APT repository
+          # Import the repository signing key using modern method
+          wget -qO- https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo gpg --dearmor -o /usr/share/keyrings/postgresql-keyring.gpg
+          
+          # Add repository with signed-by option
+          echo "deb [signed-by=/usr/share/keyrings/postgresql-keyring.gpg] http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list >/dev/null
+          
+          # Update package lists
+          sudo apt-get update
+          
+          # Try to install PostgreSQL 19, 18, or 17 client (in order of preference)
+          # PostgreSQL 18+ clients can dump from PostgreSQL 17 servers
+          if apt-cache show postgresql-client-19 >/dev/null 2>&1; then
+            sudo apt-get install -y postgresql-client-19
+            echo "✅ Installed PostgreSQL 19 client"
+          elif apt-cache show postgresql-client-18 >/dev/null 2>&1; then
+            sudo apt-get install -y postgresql-client-18
+            echo "✅ Installed PostgreSQL 18 client"
+          else
+            sudo apt-get install -y postgresql-client-17
+            echo "✅ Installed PostgreSQL 17 client"
+          fi
+          
+          # Resolve the real binary dir (bypass /usr/bin/pg_dump -> pg_wrapper)
+          # The actual binaries are in /usr/lib/postgresql/<version>/bin/
+          PG_BIN=$(ls -d /usr/lib/postgresql/*/bin | sort -V | tail -1)
+          
+          if [ -z "$PG_BIN" ]; then
+            echo "❌ ERROR: Could not find PostgreSQL binary directory"
+            echo "Searching for PostgreSQL binaries..."
+            find /usr/lib/postgresql -type d -name bin 2>/dev/null || true
+            exit 1
+          fi
+          
+          echo "Using PG_BIN=$PG_BIN"
+          
+          # Export for future steps
+          echo "$PG_BIN" >> "$GITHUB_PATH"
+          echo "PG_BIN=$PG_BIN" >> "$GITHUB_ENV"
+          
+          # Export PATH in THIS step so verification uses the real binary
+          export PATH="$PG_BIN:$PATH"
+          echo "PATH now: $PATH"
+          
+          # Verify the actual binary exists and is executable
+          PG_DUMP="$PG_BIN/pg_dump"
+          
+          if [ ! -x "$PG_DUMP" ]; then
+            echo "❌ ERROR: Real pg_dump not found at $PG_DUMP"
+            ls -la "$PG_BIN" || echo "Could not list $PG_BIN"
+            exit 1
+          fi
+          
+          echo "✅ Found real pg_dump at: $PG_DUMP"
+          
+          # Verify version (this calls the real binary, not pg_wrapper)
+          echo "Verifying pg_dump version:"
+          "$PG_DUMP" --version
+          
+          # Extract and verify version
+          PG_VERSION_OUTPUT=$("$PG_DUMP" --version)
+          PG_VERSION=$(echo "$PG_VERSION_OUTPUT" | grep -oE '[0-9]+' | head -1)
+          
+          if [ -z "$PG_VERSION" ] || [ "$PG_VERSION" -lt 17 ]; then
+            echo "❌ ERROR: Installed pg_dump version is $PG_VERSION, but need 17 or higher"
+            echo "Version output: $PG_VERSION_OUTPUT"
+            exit 1
+          fi
+          
+          echo "✅ pg_dump version check passed (version $PG_VERSION)"
+          
+          # Verify PATH resolution uses the real binary (not wrapper)
+          echo "Verifying PATH resolution:"
+          command -v pg_dump
+          pg_dump --version
+          
+          # Verify major version from PATH-resolved pg_dump
+          PG_MAJOR=$(pg_dump --version | grep -oE '[0-9]+' | head -1)
+          if [ -z "$PG_MAJOR" ] || [ "$PG_MAJOR" -lt 17 ]; then
+            echo "❌ ERROR: PATH-resolved pg_dump major=$PG_MAJOR, need >=17"
+            exit 1
+          fi
+          
+          echo "✅ pg_dump major $PG_MAJOR ready"
+
+      - name: Configure AWS CLI for R2
+        env:
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+        run: |
+          # Check if AWS CLI is already installed (GitHub Actions runners have it pre-installed)
+          if command -v aws &> /dev/null; then
+            echo "✅ AWS CLI already installed"
+            aws --version
+          else
+            echo "Installing AWS CLI..."
+            curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+            unzip awscliv2.zip
+            sudo ./aws/install
+            rm -rf aws awscliv2.zip
+            aws --version
+          fi
+          
+          # Configure AWS CLI with R2 credentials
+          mkdir -p ~/.aws
+          cat > ~/.aws/credentials << EOF
+          [default]
+          aws_access_key_id = ${R2_ACCESS_KEY_ID}
+          aws_secret_access_key = ${R2_SECRET_ACCESS_KEY}
+          EOF
+
+      - name: Create database backup
+        env:
+          # Optional: force script to use exact binary (avoids pg_wrapper)
+          PG_DUMP: ${{ env.PG_BIN }}/pg_dump
+          PG_BIN: ${{ env.PG_BIN }}
+          DATABASE_URL: ${{ secrets.RAILWAY_DATABASE_URL }}
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
+        run: |
+          set -e  # Exit on error
+          
+          TIMESTAMP=$(date +"%Y-%m-%d-%H%M%S")
+          YEAR=$(date +"%Y")
+          MONTH=$(date +"%m")
+          BACKUP_FILE="backup-${TIMESTAMP}.sql"
+          BACKUP_PATH="backups/${YEAR}/${MONTH}/${BACKUP_FILE}"
+          
+          echo "📦 Creating database backup..."
+          
+          # Verify DATABASE_URL is set
+          if [ -z "$DATABASE_URL" ]; then
+            echo "❌ DATABASE_URL is not set!"
+            exit 1
+          fi
+          
+          # Verify pg_dump is available (from GITHUB_PATH or via PG_DUMP env var)
+          echo "Using pg_dump at: $(command -v pg_dump || echo $PG_DUMP)"
+          if [ -n "$PG_DUMP" ] && [ -x "$PG_DUMP" ]; then
+            "$PG_DUMP" --version
+            PG_DUMP_CMD="$PG_DUMP"
+          else
+            pg_dump --version
+            PG_DUMP_CMD="pg_dump"
+          fi
+          
+          echo "Creating backup from: $(echo $DATABASE_URL | sed 's/:[^:]*@/:***@/')"
+          
+          # Create backup with error output to separate file
+          if ! "$PG_DUMP_CMD" "$DATABASE_URL" \
+            --no-owner \
+            --no-acl \
+            --clean \
+            --if-exists \
+            --verbose \
+            > "$BACKUP_FILE" 2>backup_error.log; then
+            echo "❌ Database backup failed!"
+            echo "Error details:"
+            cat backup_error.log
+            echo ""
+            echo "Troubleshooting:"
+            echo "- Check that RAILWAY_DATABASE_URL secret is set correctly"
+            echo "- Verify the database URL is the EXTERNAL URL (not internal)"
+            echo "- Ensure the database allows connections from GitHub Actions IPs"
+            exit 1
+          fi
+          
+          # Check for warnings even if command succeeded
+          if [ -s backup_error.log ]; then
+            echo "⚠️ Warnings during backup:"
+            cat backup_error.log
+          fi
+          rm -f backup_error.log
+          
+          # Check if backup file was created and has content
+          if [ ! -s "$BACKUP_FILE" ]; then
+            echo "❌ Backup file is empty!"
+            exit 1
+          fi
+          
+          ORIGINAL_SIZE=$(stat -f%z "$BACKUP_FILE" 2>/dev/null || stat -c%s "$BACKUP_FILE")
+          echo "📊 Original backup size: $(numfmt --to=iec-i --suffix=B $ORIGINAL_SIZE)"
+          
+          echo "🗜️ Compressing backup..."
+          gzip "$BACKUP_FILE"
+          COMPRESSED_FILE="${BACKUP_FILE}.gz"
+          
+          COMPRESSED_SIZE=$(stat -f%z "$COMPRESSED_FILE" 2>/dev/null || stat -c%s "$COMPRESSED_FILE")
+          COMPRESSION_RATIO=$(echo "scale=1; (1 - $COMPRESSED_SIZE / $ORIGINAL_SIZE) * 100" | bc)
+          echo "📊 Compressed size: $(numfmt --to=iec-i --suffix=B $COMPRESSED_SIZE)"
+          echo "📊 Compression ratio: ${COMPRESSION_RATIO}%"
+          
+          echo "☁️ Uploading to Cloudflare R2..."
+          ENDPOINT_URL="https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com"
+          
+          if ! aws s3 cp "$COMPRESSED_FILE" \
+            "s3://${R2_BUCKET_NAME}/${BACKUP_PATH}" \
+            --endpoint-url="$ENDPOINT_URL" \
+            --region auto \
+            --metadata "backup-date=${TIMESTAMP},database=railway,original-size=${ORIGINAL_SIZE}"; then
+            echo "❌ Upload to R2 failed!"
+            exit 1
+          fi
+          
+          echo "✅ Backup uploaded successfully!"
+          echo "📍 Location: s3://${R2_BUCKET_NAME}/${BACKUP_PATH}"
+          
+          # Verify upload
+          echo "🔍 Verifying upload..."
+          if aws s3 ls "s3://${R2_BUCKET_NAME}/${BACKUP_PATH}" \
+            --endpoint-url="$ENDPOINT_URL" \
+            --region auto > /dev/null 2>&1; then
+            echo "✅ Upload verification successful"
+          else
+            echo "❌ Upload verification failed!"
+            exit 1
+          fi
+          
+          # Clean up
+          rm -f "$COMPRESSED_FILE"
+          echo "🧹 Cleanup complete"
+
+      - name: Backup summary
+        if: always()
+        run: |
+          echo "## Backup Summary" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ job.status }}" == "success" ]; then
+            echo "✅ Database backup completed successfully!" >> $GITHUB_STEP_SUMMARY
+            echo "- Backup uploaded to Cloudflare R2" >> $GITHUB_STEP_SUMMARY
+            echo "- Timestamp: $(date -u +"%Y-%m-%d %H:%M:%S UTC")" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ Database backup failed!" >> $GITHUB_STEP_SUMMARY
+            echo "Check the logs above for error details." >> $GITHUB_STEP_SUMMARY
+          fi
+
