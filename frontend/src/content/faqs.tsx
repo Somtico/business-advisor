@@ -14,7 +14,11 @@ export const FAQ_SECTIONS: FaqSection[] = [
       },
       {
         q: "Where do Chuk's numbers come from?",
-        a: "Every figure comes from a fixed set of analytics tools reading your organization's data. Chuk has no free-form database access and cannot see other organizations' data. If a number is not in your records, Chuk does not have it.",
+        a: "Every figure comes from a fixed set of analytics tools reading your organization's data — including this centre's last 90 days of actions and tactics. Chuk has no free-form database access and cannot see other organizations' identifiable data. If a number is not in your records, Chuk does not have it.",
+      },
+      {
+        q: 'Which AI model does Chuk use?',
+        a: 'Chuk prefers Claude, then OpenAI if Claude is unavailable. The model only phrases answers. Verdicts such as cost floors, enrolment leaks, and cash-safe spend caps are calculated by Somtico tools from your records. Gemini is not used.',
       },
       {
         q: 'Does Chuk ever guess?',
@@ -85,7 +89,7 @@ export const FAQ_SECTIONS: FaqSection[] = [
         a: (
           <>
             Your notes stay on your organization and are never used to train
-            OpenAI, Claude, Gemini, or any other third-party model. If you
+            Claude, OpenAI, or any other third-party model. If you
             opt in on a record, we store only a de-identified row (tactic
             type, cost band, outcome, leak type, coarse education bucket),
             with no names or organization id. Those rows improve the playbook
@@ -145,7 +149,7 @@ export const FAQ_SECTIONS: FaqSection[] = [
       },
       {
         q: 'What are the weekly briefs?',
-        a: "A weekly email summarizing your key numbers, open actions, and Chuk's verified impact to date, with the same advice disclaimer that applies in the app.",
+        a: "A Monday email of the same operating loop you see first on Command Centre: the named enrolment leak, the cheap next step, what you already tried, open actions, and Chuk's verified impact, plus the week's numbers. The same advice disclaimer applies.",
       },
       {
         q: 'Can Chuk change my data or act on my behalf?',
@@ -158,7 +162,7 @@ export const FAQ_SECTIONS: FaqSection[] = [
     items: [
       {
         q: 'What should I do first after signing up?',
-        a: "Add your programmes with list prices and capacity, enrol your current students, add staff with wage profiles, schedule this week's class sessions, and record expenses or subscriptions. Then open Pricing Advisor and Ask Chuk. The Data Readiness page lists every dataset and why it matters.",
+        a: "Add your programmes with list prices and capacity, enrol your current students, add staff with wage profiles, schedule this week's class sessions, and record expenses or subscriptions. Then open Command Centre for this week's loop, Pricing Advisor, and Enrolment Advisor. Ask Chuk explains the same numbers. The Data Readiness page lists every dataset and why it matters.",
       },
       {
         q: 'Do I have to enter everything by hand?',

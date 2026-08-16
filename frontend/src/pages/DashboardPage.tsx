@@ -64,6 +64,32 @@ interface Dashboard {
     thisMonth: { totalCents: number };
     awaitingConfirmationCount: number;
   };
+  operatingLoop?: {
+    leak: string;
+    leakLabel: string;
+    focus: string;
+    cheapNextStep: { title: string; detail: string } | null;
+    lastTactic: { label: string; outcome: string; createdAt: string } | null;
+    tacticsTriedCount: number;
+    askTriedAndResults: boolean;
+    peerPlaybook: Array<{
+      tacticKey: string;
+      label: string;
+      helped: number;
+      total: number;
+    }>;
+    openActions: Array<{
+      id: string;
+      title: string;
+      expectedImpactCents: number | null;
+      impactType: string | null;
+    }>;
+    awaitingConfirmationCount: number;
+    verifiedImpactCents: number;
+    paidTestEligible: boolean;
+    weeklySpendCapCents: number | null;
+    weeklyBriefNote: string;
+  };
 }
 
 export function DashboardPage() {
@@ -96,8 +122,80 @@ export function DashboardPage() {
     <div>
       <h1 className="font-display text-3xl font-bold">Command Centre</h1>
       <p className="mt-2 max-w-2xl text-base text-ba-ink/70">
-        Know what is happening in your centre before it becomes expensive.
+        Start with this week's operating loop, then the numbers behind it.
       </p>
+
+      {data.operatingLoop && (
+        <section className="mt-8 border border-ba-line bg-white p-5">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <h2 className="font-display text-2xl font-bold">This Week</h2>
+            <span className="rounded px-3 py-1 text-base font-semibold bg-ba-mist">
+              {data.operatingLoop.leakLabel}
+            </span>
+          </div>
+          <p className="mt-3 text-base">{data.operatingLoop.focus}</p>
+          {data.operatingLoop.cheapNextStep && (
+            <p className="mt-3 text-base">
+              <span className="font-semibold">
+                {data.operatingLoop.cheapNextStep.title}.
+              </span>{' '}
+              {data.operatingLoop.cheapNextStep.detail}{' '}
+              <Link className="text-ba-accent underline" to="/app/enrolment">
+                Open Enrolment Advisor
+              </Link>
+            </p>
+          )}
+          {data.operatingLoop.lastTactic ? (
+            <p className="mt-3 text-base text-ba-ink/80">
+              Last tactic you recorded: {data.operatingLoop.lastTactic.label} (
+              {data.operatingLoop.lastTactic.outcome.replace(/_/g, ' ').toLowerCase()}
+              ).
+            </p>
+          ) : data.operatingLoop.askTriedAndResults ? (
+            <p className="mt-3 text-base text-ba-ink/80">
+              Record what you tried and the result you got so Chuk does not
+              invent a plan.{' '}
+              <Link className="text-ba-accent underline" to="/app/enrolment">
+                Log a Tactic
+              </Link>
+            </p>
+          ) : null}
+          {data.operatingLoop.peerPlaybook.length > 0 && (
+            <ul className="mt-3 space-y-1 text-base">
+              {data.operatingLoop.peerPlaybook.map((p) => (
+                <li key={p.tacticKey}>
+                  Playbook: {p.label} helped in {p.helped} of {p.total} similar
+                  reports.
+                </li>
+              ))}
+            </ul>
+          )}
+          {data.operatingLoop.openActions.length > 0 && (
+            <ul className="mt-4 space-y-2">
+              {data.operatingLoop.openActions.map((a) => (
+                <li key={a.id} className="border border-ba-line px-3 py-2 text-base">
+                  {a.title}
+                  {a.expectedImpactCents != null
+                    ? ` · ${money(a.expectedImpactCents)} estimated`
+                    : ''}
+                </li>
+              ))}
+            </ul>
+          )}
+          <p className="mt-4 text-base">
+            <Link className="text-ba-accent underline" to="/app/actions">
+              Action Centre
+            </Link>
+            {' · '}
+            <Link className="text-ba-accent underline" to="/app/advisor">
+              Ask Chuk
+            </Link>
+          </p>
+          <p className="mt-2 text-sm text-ba-ink/60">
+            {data.operatingLoop.weeklyBriefNote}
+          </p>
+        </section>
+      )}
 
       <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {[

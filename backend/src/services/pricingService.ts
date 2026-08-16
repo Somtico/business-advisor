@@ -582,3 +582,39 @@ export async function pricingGuidance(
     generatedAt: now.toISOString(),
   };
 }
+
+/**
+ * HTTP response for Pricing Advisor. Drops per-instructor hourly rates and
+ * burden percents so a Network-tab copy cannot replay the wage formula.
+ * Chuk still receives the full `pricingGuidance` tool result server-side.
+ */
+export function sanitizePricingGuidanceForClient(
+  data: PricingGuidanceResult
+): PricingGuidanceResult {
+  return {
+    ...data,
+    programmes: data.programmes.map((p) => {
+      if (!p.evidence || typeof p.evidence !== 'object') return p;
+      const ev = p.evidence as {
+        sessions?: Array<Record<string, unknown>>;
+        [key: string]: unknown;
+      };
+      const sessions = Array.isArray(ev.sessions)
+        ? ev.sessions.map((s) => ({
+            sessionId: s.sessionId,
+            startsAt: s.startsAt,
+            hours: s.hours,
+            instructor: s.instructor,
+            costCents: s.costCents,
+          }))
+        : [];
+      return {
+        ...p,
+        evidence: {
+          ...ev,
+          sessions,
+        },
+      };
+    }),
+  };
+}

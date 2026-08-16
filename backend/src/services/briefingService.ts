@@ -5,6 +5,7 @@ import { buildForecasts } from './metrics/analyticsService';
 import { impactSummary } from './impactService';
 import { runImpactVerificationForOrg } from './impactVerificationService';
 import { ADVICE_DISCLAIMER } from '../config/legal';
+import { operatingLoop } from './organizationMemoryService';
 
 function dollars(cents: number): string {
   return `$${(cents / 100).toFixed(2)}`;
@@ -19,6 +20,7 @@ export async function sendWeeklyExecutiveBrief(organizationId: string) {
   });
   const dash = await executiveDashboard(organizationId);
   const impact = await impactSummary(organizationId);
+  const loop = await operatingLoop(organizationId);
   const openRecs = await prisma.recommendation.findMany({
     where: { organizationId, status: 'OPEN' },
     orderBy: { createdAt: 'desc' },
@@ -56,7 +58,27 @@ export async function sendWeeklyExecutiveBrief(organizationId: string) {
     <h1>${subject}</h1>
     <h2>Chuk's Impact</h2>
     ${impactLines.join('\n    ')}
-    <h2>This Week</h2>
+    <h2>This Week's Operating Loop</h2>
+    <p>Enrolment diagnosis: <strong>${loop.leakLabel}</strong></p>
+    <p>${loop.focus}</p>
+    ${
+      loop.cheapNextStep
+        ? `<p>Cheap next step: <strong>${loop.cheapNextStep.title}</strong> — ${loop.cheapNextStep.detail}</p>`
+        : ''
+    }
+    ${
+      loop.lastTactic
+        ? `<p>Last tactic you recorded: <strong>${loop.lastTactic.label}</strong> (${loop.lastTactic.outcome}).</p>`
+        : '<p>Record what you tried and the result you got on Enrolment Advisor so next week is not a guess.</p>'
+    }
+    ${
+      loop.peerPlaybook.length
+        ? `<p>Playbook (8+ similar reports): ${loop.peerPlaybook
+            .map((p) => `${p.label} helped in ${p.helped} of ${p.total}`)
+            .join('; ')}.</p>`
+        : ''
+    }
+    <h2>This Week's Numbers</h2>
     <p>Active students: <strong>${dash.enrolment.activeStudents}</strong></p>
     <p>Month expenses: <strong>$${(dash.expenses.monthExpenseCents / 100).toFixed(2)}</strong></p>
     <p>Cash net monthly outlook: <strong>$${(dash.cash.netMonthlyCents / 100).toFixed(2)}</strong></p>

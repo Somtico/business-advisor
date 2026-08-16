@@ -42,8 +42,6 @@ export function AdvisorPage() {
           answer: string;
           conversationId: string;
           toolsUsed: string[];
-          provider: string;
-          model: string;
           disclaimer?: string;
         };
       }>('/api/app/advisor/ask', {
@@ -54,7 +52,9 @@ export function AdvisorPage() {
       setConversationId(res.data.conversationId);
       setDisclaimer(res.data.disclaimer || null);
       setMeta(
-        `${res.data.provider}/${res.data.model} · tools: ${res.data.toolsUsed.join(', ')}`
+        res.data.toolsUsed.length
+          ? `Grounded in your records · ${res.data.toolsUsed.length} analytics tool${res.data.toolsUsed.length === 1 ? '' : 's'}`
+          : 'Grounded in your records'
       );
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Advisor failed');

@@ -58,7 +58,7 @@ export const advisorHowItWorks = [
 export const advisorCapabilities = [
   'Pricing guidance: your true cost floor and what you should charge',
   "Verified impact ledger: proof of what the advice saved or earned",
-  'Executive command centre with enrolment, labour, and cash KPIs',
+  "Command Centre this-week loop: named leak, what you tried, open actions, and verified impact",
   'Action Centre that turns insights into tracked, measurable steps',
   'Ask Chuk anything about your numbers in plain language',
   'Enrolment Advisor: name the leak, cheap next steps, then a paid test only when the data supports it',

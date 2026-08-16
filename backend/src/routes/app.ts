@@ -4,7 +4,12 @@ import { authenticateToken, requireRole } from '../middleware/auth';
 import { requireTenant } from '../middleware/tenant';
 import prisma from '../config/prisma';
 import { impactSummary } from '../services/impactService';
-import { pricingGuidance } from '../services/pricingService';
+import {
+  pricingGuidance,
+  sanitizePricingGuidanceForClient,
+} from '../services/pricingService';
+import { listConnectors } from '../services/connectorsService';
+import { operatingLoop } from '../services/organizationMemoryService';
 import {
   deleteEnrolmentTactic,
   enrolmentGuidance,
@@ -32,7 +37,16 @@ const router = Router();
 router.use(requireTenant, authenticateToken);
 
 router.get('/dashboard', async (req: Request, res: Response) => {
-  const data = await executiveDashboard(req.user!.organizationId);
+  const organizationId = req.user!.organizationId;
+  const [data, loop] = await Promise.all([
+    executiveDashboard(organizationId),
+    operatingLoop(organizationId),
+  ]);
+  res.json({ success: true, data: { ...data, operatingLoop: loop } });
+});
+
+router.get('/connectors', async (req: Request, res: Response) => {
+  const data = await listConnectors(req.user!.organizationId);
   res.json({ success: true, data });
 });
 
@@ -698,7 +712,10 @@ router.post('/forecasts/rebuild', async (req: Request, res: Response) => {
 
 router.get('/pricing/guidance', async (req: Request, res: Response) => {
   const data = await pricingGuidance(req.user!.organizationId);
-  res.json({ success: true, data });
+  res.json({
+    success: true,
+    data: sanitizePricingGuidanceForClient(data),
+  });
 });
 
 router.get('/enrolment/guidance', async (req: Request, res: Response) => {

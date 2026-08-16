@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { Link } from 'react-router';
 
 export const TERMS_VERSION = '2026-08-14.4';
-export const PRIVACY_VERSION = '2026-08-14.4';
+export const PRIVACY_VERSION = '2026-08-15.1';
 
 export function LegalSection({
   title,
@@ -408,11 +408,12 @@ export function PrivacyDocumentBody({ compact = false }: { compact?: boolean }) 
         <p>
           We do not use your student, family, or staff records, chat notes, or
           other identifiable Customer Data to train third-party AI models
-          (OpenAI, Anthropic, Google, or others). When Chuk (the AI advisor
-          feature in the Service; software, not a person) calls an AI provider, it
-          sends aggregated evidence from our analytics tools for that question,
-          with provider training and storage opted out where the provider offers
-          that control.
+          (Anthropic, OpenAI, or others). When Chuk (the AI advisor feature in
+          the Service; software, not a person) calls an AI provider, it prefers
+          Anthropic (Claude) and falls back to OpenAI. It sends aggregated
+          evidence from our analytics tools for that question, with provider
+          training and storage opted out where the provider offers that control.
+          Google Gemini is not used.
         </p>
       </Section>
 
@@ -446,8 +447,8 @@ export function PrivacyDocumentBody({ compact = false }: { compact?: boolean }) 
           evaluate, and operate models and ranking algorithms that Somtico owns,
           so Chuk can get better at this industry from real results. Those
           Somtico-owned models and the de-identified corpus are Somtico
-          intellectual property. We will not send that corpus to OpenAI,
-          Anthropic, Google, or any other provider for their training. Opt-in is
+          intellectual property. We will not send that corpus to Anthropic,
+          OpenAI, or any other provider for their training. Opt-in is
           off by default. A contributed row cannot be pulled out of a trained
           model.
         </p>

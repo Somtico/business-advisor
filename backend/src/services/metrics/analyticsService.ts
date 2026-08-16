@@ -381,6 +381,304 @@ export async function executiveDashboard(organizationId: string) {
   };
 }
 
+function medianCents(values: number[]): number {
+  if (values.length === 0) return 0;
+  const sorted = [...values].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 === 1
+    ? sorted[mid]
+    : Math.round((sorted[mid - 1] + sorted[mid]) / 2);
+}
+
+/**
+ * Instructor labour per learner-hour from the next 7 days of scheduled sessions.
+ * Missing wages or session end times produce INSUFFICIENT_DATA, not a guess.
+ */
+export async function instructorCostPerSeatHour(organizationId: string) {
+  const now = new Date();
+  const weekEnd = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+  const sessions = await prisma.session.findMany({
+    where: { organizationId, startsAt: { gte: now, lte: weekEnd } },
+    include: {
+      staffMember: { include: { compensation: true } },
+    },
+  });
+
+  const missing: string[] = [];
+  if (sessions.length === 0) {
+    missing.push(
+      'Schedule this week\'s class sessions with start and end times and an instructor.'
+    );
+  }
+
+  let labourCents = 0;
+  let seatHours = 0;
+  let hoursMissingEnd = 0;
+  let hoursMissingWage = 0;
+  for (const s of sessions) {
+    if (!s.endsAt) {
+      hoursMissingEnd += 1;
+      continue;
+    }
+    const hours = Math.max(
+      0,
+      (s.endsAt.getTime() - s.startsAt.getTime()) / 3_600_000
+    );
+    const roster = s.rosterCount ?? 0;
+    seatHours += hours * roster;
+    const c = s.staffMember?.compensation;
+    if (!c || (c.hourlyCents == null && c.salaryAnnualCents == null)) {
+      hoursMissingWage += 1;
+      continue;
+    }
+    const hourly =
+      c.hourlyCents ?? Math.round((c.salaryAnnualCents as number) / 2080);
+    const burden = 1 + (c.burdenPercent ?? 0) / 100;
+    labourCents += Math.round(hours * hourly * burden);
+  }
+
+  if (hoursMissingEnd > 0) {
+    missing.push(
+      `${hoursMissingEnd} session(s) are missing an end time, so seat-hours cannot be calculated.`
+    );
+  }
+  if (hoursMissingWage > 0) {
+    missing.push(
+      `${hoursMissingWage} session(s) have an instructor without a wage profile.`
+    );
+  }
+  if (seatHours <= 0 && sessions.length > 0) {
+    missing.push(
+      'Add roster counts on this week\'s sessions so labour can be divided by learner-hours.'
+    );
+  }
+
+  if (missing.length > 0 || seatHours <= 0 || labourCents <= 0) {
+    return {
+      status: 'INSUFFICIENT_DATA' as const,
+      missingData: missing,
+      centsPerSeatHour: null,
+      labourCents,
+      seatHours: Number(seatHours.toFixed(2)),
+      sessionCount: sessions.length,
+    };
+  }
+
+  return {
+    status: 'READY' as const,
+    missingData: [] as string[],
+    centsPerSeatHour: Math.round(labourCents / seatHours),
+    labourCents,
+    seatHours: Number(seatHours.toFixed(2)),
+    sessionCount: sessions.length,
+  };
+}
+
+/**
+ * Monthly tuition per household (or per student when no household is linked).
+ * No names. Annualized figure is 12 × current monthly list price, not a forecast.
+ */
+export async function householdLtv(organizationId: string) {
+  const engagements = await prisma.engagement.findMany({
+    where: {
+      organizationId,
+      isTrial: false,
+      status: { in: ['ACTIVE', 'PAUSED'] },
+    },
+    select: {
+      personId: true,
+      person: { select: { householdId: true } },
+      productService: { select: { priceCents: true } },
+    },
+  });
+
+  const missing: string[] = [];
+  if (engagements.length === 0) {
+    missing.push('Record paid enrolments before household value can be calculated.');
+  }
+
+  const byGroup = new Map<string, number>();
+  let missingPrice = 0;
+  for (const e of engagements) {
+    const price = e.productService?.priceCents;
+    if (price == null) {
+      missingPrice += 1;
+      continue;
+    }
+    const key = e.person.householdId || `person:${e.personId}`;
+    byGroup.set(key, (byGroup.get(key) || 0) + price);
+  }
+  if (missingPrice > 0) {
+    missing.push(
+      `${missingPrice} paid enrolment(s) sit on a programme with no list price.`
+    );
+  }
+
+  const monthly = [...byGroup.values()];
+  if (monthly.length === 0) {
+    return {
+      status: 'INSUFFICIENT_DATA' as const,
+      missingData: missing.length
+        ? missing
+        : ['Add programme list prices so household value can be calculated.'],
+      householdCount: 0,
+      averageMonthlyCents: null,
+      medianMonthlyCents: null,
+      annualizedAverageCents: null,
+    };
+  }
+
+  const averageMonthlyCents = Math.round(
+    monthly.reduce((s, n) => s + n, 0) / monthly.length
+  );
+  return {
+    status: 'READY' as const,
+    missingData: missing,
+    householdCount: monthly.length,
+    averageMonthlyCents,
+    medianMonthlyCents: medianCents(monthly),
+    annualizedAverageCents: averageMonthlyCents * 12,
+    note: 'Annualized value is 12 × current monthly list price on active enrolments, not a predicted lifetime.',
+  };
+}
+
+/**
+ * Trial-to-paid conversion per programme from recorded engagements.
+ * A conversion is a person who has both a trial and a later paid enrolment
+ * on the same programme. No invented rates.
+ */
+export async function trialToPaidByProgramme(organizationId: string) {
+  const programmes = await prisma.productService.findMany({
+    where: { organizationId, isActive: true },
+    select: { id: true, name: true },
+  });
+  const missing: string[] = [];
+  if (programmes.length === 0) {
+    missing.push('Add at least one active programme.');
+  }
+
+  const rows = [];
+  let anyTrials = false;
+  for (const p of programmes) {
+    const engagements = await prisma.engagement.findMany({
+      where: { organizationId, productServiceId: p.id },
+      select: { personId: true, isTrial: true, createdAt: true, startDate: true },
+    });
+    const trialAt = new Map<string, Date>();
+    const paidAt = new Map<string, Date>();
+    for (const e of engagements) {
+      const when = e.startDate ?? e.createdAt;
+      if (e.isTrial) {
+        const prev = trialAt.get(e.personId);
+        if (!prev || when < prev) trialAt.set(e.personId, when);
+      } else {
+        const prev = paidAt.get(e.personId);
+        if (!prev || when < prev) paidAt.set(e.personId, when);
+      }
+    }
+    if (trialAt.size > 0) anyTrials = true;
+    let converted = 0;
+    for (const [personId, trialDate] of trialAt) {
+      const paidDate = paidAt.get(personId);
+      if (paidDate && paidDate >= trialDate) converted += 1;
+    }
+    rows.push({
+      programmeId: p.id,
+      name: p.name,
+      trialPeople: trialAt.size,
+      convertedPeople: converted,
+      conversionRate:
+        trialAt.size > 0 ? Number((converted / trialAt.size).toFixed(2)) : null,
+    });
+  }
+
+  if (programmes.length > 0 && !anyTrials) {
+    missing.push(
+      'Record trials or enquiries per programme so conversion can be measured.'
+    );
+  }
+
+  return {
+    status: missing.length > 0 && rows.every((r) => r.trialPeople === 0)
+      ? ('INSUFFICIENT_DATA' as const)
+      : ('READY' as const),
+    missingData: missing,
+    programmes: rows,
+  };
+}
+
+const CASH_SAFE_MAX_WEEKLY_CENTS = 15_000;
+const CASH_SAFE_MIN_WEEKLY_CENTS = 2_500;
+const SURPLUS_SHARE = 0.25;
+const MONTHLY_IN_SHARE = 0.05;
+const MIN_RUNWAY_WEEKS = 8;
+
+/**
+ * Largest weekly paid-test spend this centre's cash can absorb.
+ * Never a promise that ads will fill seats.
+ */
+export async function cashSafeTestSize(organizationId: string) {
+  const cash = await cashOutlook(organizationId);
+  const missing: string[] = [];
+  if (cash.monthlyInCents <= 0) {
+    missing.push(
+      'Record tuition or recurring revenue so a cash-safe weekly spend cap can be calculated.'
+    );
+  }
+
+  const weeklySurplus = cash.netMonthlyCents / 4.345;
+  const fromSurplus =
+    weeklySurplus > 0 ? Math.floor(weeklySurplus * SURPLUS_SHARE) : 0;
+  const fromRevenue =
+    cash.monthlyInCents > 0
+      ? Math.floor((cash.monthlyInCents * MONTHLY_IN_SHARE) / 4.345)
+      : 0;
+  const rawCap = Math.min(
+    CASH_SAFE_MAX_WEEKLY_CENTS,
+    ...[fromSurplus, fromRevenue].filter((n) => n > 0)
+  );
+  const shrinking =
+    cash.netMonthlyCents < 0 &&
+    (cash.runwayWeeks == null || cash.runwayWeeks < MIN_RUNWAY_WEEKS);
+
+  if (shrinking) {
+    return {
+      status: 'READY' as const,
+      missingData: missing,
+      eligible: false,
+      weeklyCapCents: 0,
+      netMonthlyCents: cash.netMonthlyCents,
+      runwayWeeks: cash.runwayWeeks,
+      note: 'Cash is shrinking and runway is under 8 weeks. A paid test is not cash-safe.',
+    };
+  }
+
+  if (missing.length > 0 || rawCap < CASH_SAFE_MIN_WEEKLY_CENTS) {
+    return {
+      status: missing.length > 0 ? ('INSUFFICIENT_DATA' as const) : ('READY' as const),
+      missingData: missing,
+      eligible: false,
+      weeklyCapCents: 0,
+      netMonthlyCents: cash.netMonthlyCents,
+      runwayWeeks: cash.runwayWeeks,
+      note:
+        missing.length > 0
+          ? missing[0]
+          : 'Weekly surplus is too small for a paid test. Cheap fills come first.',
+    };
+  }
+
+  return {
+    status: 'READY' as const,
+    missingData: [] as string[],
+    eligible: true,
+    weeklyCapCents: rawCap,
+    netMonthlyCents: cash.netMonthlyCents,
+    runwayWeeks: cash.runwayWeeks,
+    note: `Cash can absorb a time-boxed paid test up to $${(rawCap / 100).toFixed(0)}/week. That is a spend cap, not a forecast of new students.`,
+  };
+}
+
 /** Tool surface for AI advisor — deterministic only */
 export const analyticsTools = {
   enrolmentMetrics,
@@ -392,4 +690,8 @@ export const analyticsTools = {
   executiveDashboard,
   countActiveStudents,
   advisorImpact: impactSummary,
+  instructorCostPerSeatHour,
+  householdLtv,
+  trialToPaidByProgramme,
+  cashSafeTestSize,
 };

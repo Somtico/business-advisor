@@ -57,7 +57,12 @@ interface Guidance {
   priorStarts: number;
   churnRate: number;
   cheapNextSteps: Array<{ title: string; detail: string }>;
-  paidTest: { eligible: boolean; monitorWeeks: number | null; note: string };
+  paidTest: {
+    eligible: boolean;
+    monitorWeeks: number | null;
+    weeklySpendCapCents: number | null;
+    note: string;
+  };
   tacticsTried: TacticTried[];
   askTriedAndResults: boolean;
   peerPatterns: Array<{
@@ -270,12 +275,37 @@ export function EnrolmentPage() {
         </ol>
       </section>
 
+      {data.peerPatterns.length > 0 && (
+        <section className="mt-6 border border-ba-line bg-white p-5">
+          <h2 className="text-xl font-semibold">Playbook From Similar Centres</h2>
+          <p className="mt-2 text-base text-ba-ink/70">
+            De-identified counts only, shown after at least 8 similar reports.
+            Ranked by how often the tactic helped. This is not a promise the
+            same tactic will work here.
+          </p>
+          <ul className="mt-3 space-y-2 text-base">
+            {data.peerPatterns.map((p) => (
+              <li key={p.tacticKey}>
+                {p.label}: helped in {p.helped} of {p.total} reports for this
+                leak type.
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       {data.paidTest.eligible && (
         <section className="mt-6 border border-ba-ink/20 bg-ba-mist/50 p-5">
           <h2 className="text-xl font-semibold">
             Optional {data.paidTest.monitorWeeks}-Week Paid Test
           </h2>
           <p className="mt-2 text-base">{data.paidTest.note}</p>
+          {data.paidTest.weeklySpendCapCents != null && (
+            <p className="mt-2 text-base font-semibold">
+              Cash-safe cap: $
+              {(data.paidTest.weeklySpendCapCents / 100).toFixed(0)}/week
+            </p>
+          )}
         </section>
       )}
       {!data.paidTest.eligible && (
@@ -288,24 +318,6 @@ export function EnrolmentPage() {
           <ul className="mt-3 list-disc space-y-2 pl-6 text-base">
             {data.missingData.map((item) => (
               <li key={item}>{item}</li>
-            ))}
-          </ul>
-        </section>
-      )}
-
-      {data.peerPatterns.length > 0 && (
-        <section className="mt-6 border border-ba-line bg-white p-5">
-          <h2 className="text-xl font-semibold">What Other Centres Reported</h2>
-          <p className="mt-2 text-base text-ba-ink/70">
-            De-identified counts only, shown after at least 8 similar reports.
-            This is not a promise the same tactic will work here.
-          </p>
-          <ul className="mt-3 space-y-2 text-base">
-            {data.peerPatterns.map((p) => (
-              <li key={p.tacticKey}>
-                {p.label}: helped in {p.helped} of {p.total} reports for this
-                leak type.
-              </li>
             ))}
           </ul>
         </section>

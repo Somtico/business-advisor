@@ -7,6 +7,7 @@ import prisma from '../config/prisma';
 import { ADVICE_DISCLAIMER, OUTCOME_CORPUS_PURPOSE_VERSION } from '../config/legal';
 import {
   cashOutlook,
+  cashSafeTestSize,
   enrolmentMetrics,
   programmePerformance,
 } from './metrics/analyticsService';
@@ -168,30 +169,38 @@ export async function peerPatternsForLeak(leakType: string) {
       helpedShare: Number((stats.helped / stats.total).toFixed(2)),
     });
   }
+  out.sort((a, b) => b.helpedShare - a.helpedShare || b.helped - a.helped);
   return out;
+}
+
+function rankTacticCatalog(
+  peerPatterns: Array<{ tacticKey: EnrolmentTacticKey }>
+) {
+  const rank = new Map(peerPatterns.map((p, i) => [p.tacticKey, i]));
+  return [...TACTIC_CATALOG].sort((a, b) => {
+    const ra = rank.has(a.key) ? (rank.get(a.key) as number) : 999;
+    const rb = rank.has(b.key) ? (rank.get(b.key) as number) : 999;
+    return ra - rb;
+  });
 }
 
 export async function enrolmentGuidance(organizationId: string) {
   const now = new Date();
-  const [
-    org,
-    enrolment,
-    programmes,
-    cash,
-    tactics,
-  ] = await Promise.all([
-    prisma.organization.findUniqueOrThrow({
-      where: { id: organizationId },
-      select: { educationSubtype: true },
-    }),
-    enrolmentMetrics(organizationId),
-    programmePerformance(organizationId),
-    cashOutlook(organizationId),
-    prisma.enrolmentTacticTried.findMany({
-      where: { organizationId },
-      orderBy: { createdAt: 'desc' },
-    }),
-  ]);
+  const [org, enrolment, programmes, cash, cashSafe, tactics] =
+    await Promise.all([
+      prisma.organization.findUniqueOrThrow({
+        where: { id: organizationId },
+        select: { educationSubtype: true },
+      }),
+      enrolmentMetrics(organizationId),
+      programmePerformance(organizationId),
+      cashOutlook(organizationId),
+      cashSafeTestSize(organizationId),
+      prisma.enrolmentTacticTried.findMany({
+        where: { organizationId },
+        orderBy: { createdAt: 'desc' },
+      }),
+    ]);
 
   const withCapacity = programmes.filter(
     (p) => p.capacity != null && p.capacity > 0
@@ -285,7 +294,8 @@ export async function enrolmentGuidance(organizationId: string) {
     leak === 'UNDERFILLED' &&
     conversionHealthy &&
     spareSeats > 0 &&
-    cashAllowsPaid;
+    cashAllowsPaid &&
+    cashSafe.eligible;
   const triedPaid = tactics.some((t) => t.tacticKey === 'PAID_ADS');
 
   const diagnosisNote = (() => {
@@ -335,20 +345,24 @@ export async function enrolmentGuidance(organizationId: string) {
       ? {
           eligible: true,
           monitorWeeks: PAID_TEST_MONITOR_WEEKS,
-          note: `Consider a ${PAID_TEST_MONITOR_WEEKS}-week paid test with a hard spend cap, then watch enquiries, trials, and paid starts. Do not treat spend as proof it will fill seats.${triedPaid ? ' You already logged paid ads; read that result before repeating the same spend.' : ''} Cheap referral and follow-up still come first.`,
+          weeklySpendCapCents: cashSafe.weeklyCapCents,
+          note: `Consider a ${PAID_TEST_MONITOR_WEEKS}-week paid test capped at $${(cashSafe.weeklyCapCents / 100).toFixed(0)}/week (cash-safe from your recorded surplus), then watch enquiries, trials, and paid starts. Do not treat spend as proof it will fill seats.${triedPaid ? ' You already logged paid ads; read that result before repeating the same spend.' : ''} Cheap referral and follow-up still come first.`,
         }
       : {
           eligible: false,
           monitorWeeks: null,
+          weeklySpendCapCents: null,
           note:
             leak === 'FULL_ROOM'
               ? 'Paid acquisition is not suggested while the room cannot seat new students.'
-              : 'Paid spend is not the first move. Conversion, retention, or unused capacity still look cheaper to fix.',
+              : cashAllowsPaid && !cashSafe.eligible
+                ? cashSafe.note
+                : 'Paid spend is not the first move. Conversion, retention, or unused capacity still look cheaper to fix.',
         },
     tacticsTried: tactics,
     askTriedAndResults: tactics.length === 0,
     peerPatterns,
-    tacticCatalog: TACTIC_CATALOG,
+    tacticCatalog: rankTacticCatalog(peerPatterns),
     programmes: programmes.map((p) => ({
       id: p.id,
       name: p.name,
@@ -361,7 +375,7 @@ export async function enrolmentGuidance(organizationId: string) {
     generatedAt: now.toISOString(),
     privacy: {
       anonymizedSharing:
-        'Optional. Shown only when a leak is named and you pick a clear outcome. If you opt in, we store only the tactic type, cost band, outcome, leak type, and a coarse education bucket. Your notes, names, and organization id are not copied. Aggregates appear only after 8 similar reports. Somtico may later use those de-identified rows to improve its own playbook and models. They are never sent to train OpenAI, Anthropic, Gemini, or any other third-party model.',
+        'Optional. Shown only when a leak is named and you pick a clear outcome. If you opt in, we store only the tactic type, cost band, outcome, leak type, and a coarse education bucket. Your notes, names, and organization id are not copied. Aggregates appear only after 8 similar reports. Somtico may later use those de-identified rows to improve its own playbook and models. They are never sent to train Anthropic, OpenAI, or any other third-party model.',
       minPeerSample: MIN_PEER_SAMPLE,
     },
     canShareAnonymized: leak !== 'INSUFFICIENT_DATA',

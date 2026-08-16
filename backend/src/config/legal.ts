@@ -5,7 +5,7 @@
  * Bump PRIVACY_VERSION the same way when the Privacy Policy text changes.
  */
 export const TERMS_VERSION = '2026-08-14.4';
-export const PRIVACY_VERSION = '2026-08-14.4';
+export const PRIVACY_VERSION = '2026-08-15.1';
 
 /** De-identified tactic rows written under this purpose may later train Somtico-owned models. */
 export const OUTCOME_CORPUS_PURPOSE_VERSION = 'somtico_models_v1';

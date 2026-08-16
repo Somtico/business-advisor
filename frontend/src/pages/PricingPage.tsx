@@ -25,8 +25,6 @@ interface PricingSessionEvidence {
   startsAt: string;
   hours: number;
   instructor: string;
-  hourlyCents: number;
-  burdenPercent: number;
   costCents: number;
 }
 
@@ -146,9 +144,8 @@ function CalculationBreakdown({ p }: { p: ProgrammeGuidance }) {
           <ul className="mt-1 list-disc space-y-1 pl-6">
             {ev.sessions.map((s) => (
               <li key={s.sessionId}>
-                {sessionWhen(s.startsAt)} · {s.instructor}: {s.hours} h ×{' '}
-                {money(s.hourlyCents)}/h × {(1 + s.burdenPercent / 100).toFixed(2)}{' '}
-                wage burden = <strong>{money(s.costCents)}</strong>
+                {sessionWhen(s.startsAt)} · {s.instructor}: {s.hours} h ={' '}
+                <strong>{money(s.costCents)}</strong> session labour
               </li>
             ))}
           </ul>

@@ -47,7 +47,7 @@ async function main() {
       termsAcceptedAt: new Date(),
       termsVersion: '2026-08-14.4',
       privacyAcceptedAt: new Date(),
-      privacyVersion: '2026-08-14.4',
+      privacyVersion: '2026-08-15.1',
     },
   });
 

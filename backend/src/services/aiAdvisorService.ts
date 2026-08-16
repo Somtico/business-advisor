@@ -1,12 +1,18 @@
 import prisma from '../config/prisma';
 import { analyticsTools } from './metrics/analyticsService';
 import { enrolmentGuidance } from './enrolmentService';
+import { organizationMemory } from './organizationMemoryService';
 import { pricingGuidance } from './pricingService';
 import { ADVICE_DISCLAIMER } from '../config/legal';
 import { writeAudit } from './auditService';
 
 /** Deterministic tool surface: analytics plus pricing guidance. */
-const advisorTools = { ...analyticsTools, pricingGuidance, enrolmentGuidance };
+const advisorTools = {
+  ...analyticsTools,
+  pricingGuidance,
+  enrolmentGuidance,
+  organizationMemory,
+};
 
 type ToolName = keyof typeof advisorTools;
 
@@ -24,12 +30,21 @@ const TOOL_DESCRIPTIONS: Record<string, string> = {
     'Per-programme cost floor, recommended price and verdict (Below Cost, Below Target, On Track, or Above Target price test); reports missing data instead of guessing. A price test is a time-boxed experiment that still clears the cost floor — never a claim that price caused empty seats, and never based on household income.',
   enrolmentGuidance:
     'Enrolment leak diagnosis (full room, conversion, churn, velocity, spare seats), cheap next steps, whether a small paid test is on the table, what the owner already tried and the results they recorded, and aggregate de-identified peer patterns only when at least 8 similar reports exist. Asks for tried-and-results when that log is empty. Never invents a marketing plan or promised student counts.',
+  organizationMemory:
+    'This centre\'s last 90 days of actions, verified impact, and enrolment tactics already tried. Cite these before suggesting a repeat. Do not recommend a tactic whose recorded outcome here was NO_EFFECT or HURT unless the owner asks.',
+  instructorCostPerSeatHour:
+    'Instructor labour cost per learner-hour from this week\'s scheduled sessions. Reports missing data instead of guessing.',
+  householdLtv:
+    'Average and median monthly tuition per household (or per student when no household is linked). Annualized figure is 12 × current list price, not a predicted lifetime.',
+  trialToPaidByProgramme:
+    'Trial-to-paid conversion per programme from recorded engagements. A conversion is a person with both a trial and a later paid enrolment on the same programme.',
+  cashSafeTestSize:
+    'Largest weekly paid-test spend this centre\'s recorded cash can absorb. A spend cap, not a forecast of new students.',
 };
 
-/** Latest high-capability defaults; override with OPENAI_MODEL / ANTHROPIC_MODEL / GEMINI_MODEL */
+/** Latest high-capability defaults; override with ANTHROPIC_MODEL / OPENAI_MODEL */
 const DEFAULT_OPENAI_MODEL = 'gpt-5.6';
 const DEFAULT_ANTHROPIC_MODEL = 'claude-opus-5';
-const DEFAULT_GEMINI_MODEL = 'gemini-2.5-pro';
 
 function pickTools(question: string): ToolName[] {
   const q = question.toLowerCase();
@@ -65,7 +80,22 @@ function pickTools(question: string): ToolName[] {
   ) {
     tools.push('enrolmentGuidance');
   }
+  if (/seat.?hour|learner.?hour|cost per seat|labour efficiency|labor efficiency/.test(q)) {
+    tools.push('instructorCostPerSeatHour');
+  }
+  if (/ltv|lifetime|household|family value|per family|per household/.test(q)) {
+    tools.push('householdLtv');
+  }
+  if (/which programme|which program|converts|trial.to.paid|by programme|by program/.test(q)) {
+    tools.push('trialToPaidByProgramme');
+  }
+  if (/ad spend|how much can i (spend|afford)|paid test|spend cap|cash.safe/.test(q)) {
+    tools.push('cashSafeTestSize');
+  }
   if (tools.length === 0) tools.push('executiveDashboard');
+  if (!tools.includes('organizationMemory')) {
+    tools.unshift('organizationMemory');
+  }
   return tools;
 }
 
@@ -230,124 +260,70 @@ function parseAnthropicResponse(
   };
 }
 
-async function callGemini(
-  system: string,
-  user: string
-): Promise<ProviderResult | null> {
-  const geminiKey = process.env.GEMINI_API_KEY;
-  if (!geminiKey) return null;
-
-  const model = process.env.GEMINI_MODEL || DEFAULT_GEMINI_MODEL;
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`;
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      systemInstruction: { parts: [{ text: system }] },
-      contents: [{ role: 'user', parts: [{ text: user }] }],
-      generationConfig: {
-        temperature: 0.2,
-        // Prefer deeper reasoning when the model supports thinking budgets
-        thinkingConfig: {
-          thinkingBudget: Number(process.env.GEMINI_THINKING_BUDGET || 8192),
-        },
-      },
-    }),
-  });
-
-  if (!res.ok) {
-    const errText = await res.text();
-    // Retry without thinkingConfig if unsupported
-    if (/thinking|Thinking/i.test(errText)) {
-      const retry = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          systemInstruction: { parts: [{ text: system }] },
-          contents: [{ role: 'user', parts: [{ text: user }] }],
-          generationConfig: { temperature: 0.2 },
-        }),
-      });
-      if (!retry.ok) throw new Error(`Gemini error: ${await retry.text()}`);
-      return parseGeminiResponse(
-        (await retry.json()) as Parameters<typeof parseGeminiResponse>[0],
-        model
+function deterministicFallbackText(toolResults: Record<string, unknown>): string {
+  const lines = [
+    'Chuk could not reach Claude or OpenAI. Open Command Centre, Enrolment Advisor, and Pricing Advisor for the full picture. Deterministic read of your records:',
+    '',
+  ];
+  const memory = toolResults.organizationMemory as
+    | { verifiedImpactCents?: number; tacticsTried?: Array<{ label: string; outcome: string }> }
+    | undefined;
+  if (memory) {
+    lines.push(
+      `Verified impact on file: $${((memory.verifiedImpactCents ?? 0) / 100).toFixed(2)}.`
+    );
+    const last = memory.tacticsTried?.[0];
+    if (last) {
+      lines.push(`Last tactic recorded: ${last.label} (${last.outcome}).`);
+    }
+  }
+  const enrolment = toolResults.enrolmentGuidance as
+    | { leakLabel?: string; missingData?: string[] }
+    | undefined;
+  if (enrolment?.leakLabel) {
+    lines.push(`Enrolment diagnosis: ${enrolment.leakLabel}.`);
+    if (enrolment.missingData?.length) {
+      lines.push(`Still needed: ${enrolment.missingData.join(' ')}`);
+    }
+  }
+  const pricing = toolResults.pricingGuidance as
+    | { programmes?: Array<{ name: string; verdict: string | null; status: string }> }
+    | undefined;
+  if (pricing?.programmes?.length) {
+    for (const p of pricing.programmes.slice(0, 6)) {
+      lines.push(
+        `${p.name}: ${p.status === 'INSUFFICIENT_DATA' ? 'needs data' : p.verdict || 'ready'}.`
       );
     }
-    throw new Error(`Gemini error: ${errText}`);
   }
-
-  return parseGeminiResponse(
-    (await res.json()) as Parameters<typeof parseGeminiResponse>[0],
-    model
-  );
-}
-
-function parseGeminiResponse(
-  json: {
-    candidates?: { content?: { parts?: { text?: string }[] } }[];
-    usageMetadata?: {
-      promptTokenCount?: number;
-      candidatesTokenCount?: number;
-    };
-  },
-  model: string
-): ProviderResult {
-  const inputTokens = json.usageMetadata?.promptTokenCount ?? 0;
-  const outputTokens = json.usageMetadata?.candidatesTokenCount ?? 0;
-  return {
-    text:
-      json.candidates?.[0]?.content?.parts?.map((p) => p.text || '').join('') ||
-      'No response',
-    provider: 'gemini',
-    model,
-    inputTokens,
-    outputTokens,
-    estimatedCostUsdCents: Math.max(
-      1,
-      Math.round((inputTokens * 1.25 + outputTokens * 10) / 10000)
-    ),
-    privacyPolicy: 'gemini_paid_quota_no_training_zdr_org_optional',
-  };
+  return lines.join('\n');
 }
 
 /**
- * Provider order: OpenAI → Anthropic (Claude) → Gemini → local fallback.
- * Only one provider is called per question.
+ * Provider order: Anthropic (Claude) → OpenAI → local fallback.
+ * Only one provider is called per question. Gemini is not used.
  */
 async function callProvider(params: {
   system: string;
   user: string;
+  toolResults: Record<string, unknown>;
 }): Promise<ProviderResult> {
-  const errors: string[] = [];
+  try {
+    const anthropic = await callAnthropic(params.system, params.user);
+    if (anthropic) return anthropic;
+  } catch {
+    // Fall through to OpenAI
+  }
 
   try {
     const openai = await callOpenAI(params.system, params.user);
     if (openai) return openai;
-  } catch (err) {
-    errors.push(err instanceof Error ? err.message : 'OpenAI failed');
+  } catch {
+    // Fall through to deterministic local summary
   }
 
-  try {
-    const anthropic = await callAnthropic(params.system, params.user);
-    if (anthropic) return anthropic;
-  } catch (err) {
-    errors.push(err instanceof Error ? err.message : 'Anthropic failed');
-  }
-
-  try {
-    const gemini = await callGemini(params.system, params.user);
-    if (gemini) return gemini;
-  } catch (err) {
-    errors.push(err instanceof Error ? err.message : 'Gemini failed');
-  }
-
-  const detail = errors.length ? `\n\nProvider errors:\n- ${errors.join('\n- ')}` : '';
   return {
-    text:
-      'Chuk could not reach an AI provider (keys not configured or all providers failed). Here is a deterministic summary of the structured metrics for your question:\n\n' +
-      params.user.slice(0, 4000) +
-      detail,
+    text: deterministicFallbackText(params.toolResults),
     provider: 'local',
     model: 'deterministic-fallback',
     inputTokens: 0,
@@ -386,7 +362,9 @@ NON-NEGOTIABLE EVIDENCE RULES:
 5. Projections may only restate the scenario figures present in the evidence, labelled as scenarios, never as certainties.
 6. Do not provide legal, tax, accounting, or investment advice; frame everything as operational information the owner must verify and decide on.
 7. If pricingGuidance includes verdict ABOVE_TARGET, present it as a time-boxed price test that still clears the cost floor. Do not say the price caused low sales. Do not promise that lowering the price will fill seats. Do not use or invent household income, census, or area-affordability figures.
-8. If enrolmentGuidance is present: name the leak from that evidence. Prioritize the cheapNextSteps. Suggest paid spend only when paidTest.eligible is true. If askTriedAndResults is true, your answer must ask what they have already tried AND what result they got, and point them to Enrolment Advisor to record it. Use their tacticsTried outcomes when present. You may cite peerPatterns only as counts already in the evidence ("helped in X of Y reports"), never as proof a tactic will work here. Do not invent channels, student counts, or ROI.
+8. If enrolmentGuidance is present: name the leak from that evidence. Prioritize the cheapNextSteps. Suggest paid spend only when paidTest.eligible is true, and only up to paidTest.weeklySpendCapCents when that figure is present. If askTriedAndResults is true, your answer must ask what they have already tried AND what result they got, and point them to Enrolment Advisor to record it. Use their tacticsTried outcomes when present. You may cite peerPatterns only as counts already in the evidence ("helped in X of Y reports"), never as proof a tactic will work here. Do not invent channels, student counts, or ROI.
+9. If organizationMemory is present, treat it as this centre's history. Cite specific actions and tactics already tried. Do not recommend repeating a tactic whose recorded outcome was NO_EFFECT or HURT unless the owner asks. Prefer tactics that HELPED here, then peerPatterns counts.
+10. instructorCostPerSeatHour, householdLtv, trialToPaidByProgramme, and cashSafeTestSize are calculated verdicts. Restate them. Do not recompute or invent a different figure.
 
 Speak plainly to the owner. Prefer dollars, students, capacity, and next actions.
 Canadian English spelling.`;
@@ -395,7 +373,11 @@ Canadian English spelling.`;
     .map((t) => `${t} (${TOOL_DESCRIPTIONS[t]})`)
     .join(', ')}\n\nEvidence:\n${evidenceBlock}`;
 
-  const result = await callProvider({ system, user: userPrompt });
+  const result = await callProvider({
+    system,
+    user: userPrompt,
+    toolResults,
+  });
 
   let conversationId = params.conversationId;
   if (!conversationId) {
@@ -459,9 +441,6 @@ Canadian English spelling.`;
     conversationId,
     answer: result.text,
     toolsUsed: tools,
-    provider: result.provider,
-    model: result.model,
-    privacyPolicy: result.privacyPolicy,
     disclaimer: ADVICE_DISCLAIMER,
   };
 }

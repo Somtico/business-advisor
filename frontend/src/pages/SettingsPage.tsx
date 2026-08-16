@@ -1,6 +1,23 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router';
 import { api } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
+
+interface ConnectorRow {
+  key: string;
+  label: string;
+  status: string;
+  detail: string;
+  href: string;
+  lastSyncedAt: string | null;
+}
+
+const CONNECTOR_STATUS: Record<string, string> = {
+  connected: 'Connected',
+  configured: 'Ready to Sync',
+  available: 'Available',
+  not_configured: 'Not Configured',
+};
 
 export function SettingsPage() {
   const { organization } = useAuth();
@@ -15,6 +32,7 @@ export function SettingsPage() {
       stripeConnectReady: boolean;
     } | null;
   } | null>(null);
+  const [connectors, setConnectors] = useState<ConnectorRow[]>([]);
   const [message, setMessage] = useState<string | null>(null);
 
   useEffect(() => {
@@ -23,6 +41,9 @@ export function SettingsPage() {
     )
       .then((r) => setBilling(r.data))
       .catch((e) => setMessage(e.message));
+    api<{ success: boolean; data: ConnectorRow[] }>('/api/app/connectors')
+      .then((r) => setConnectors(r.data))
+      .catch(() => setConnectors([]));
   }, []);
 
   async function checkout() {
@@ -119,6 +140,30 @@ export function SettingsPage() {
         >
           Connect Onboarding
         </button>
+      </section>
+
+      <section className="mt-6 border border-ba-line bg-white p-5">
+        <h2 className="font-display text-2xl font-bold">Data Sources</h2>
+        <p className="mt-2 text-base text-ba-ink/70">
+          Connect the registration portal, import CSV, or type records in.
+          Chuk uses whatever is on file and asks for the rest.
+        </p>
+        <ul className="mt-4 space-y-3">
+          {connectors.map((c) => (
+            <li key={c.key} className="border border-ba-line p-3 text-base">
+              <div className="flex flex-wrap items-baseline justify-between gap-2">
+                <p className="font-semibold">{c.label}</p>
+                <p className="text-ba-ink/70">
+                  {CONNECTOR_STATUS[c.status] || c.status}
+                </p>
+              </div>
+              <p className="mt-1 text-ba-ink/80">{c.detail}</p>
+              <Link className="mt-2 inline-block text-ba-accent underline" to={c.href}>
+                Open
+              </Link>
+            </li>
+          ))}
+        </ul>
       </section>
 
       <section className="mt-6 border border-ba-line bg-white p-5">
