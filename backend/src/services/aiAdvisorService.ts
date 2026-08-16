@@ -301,7 +301,7 @@ function deterministicFallbackText(toolResults: Record<string, unknown>): string
 
 /**
  * Provider order: Anthropic (Claude) → OpenAI → local fallback.
- * Only one provider is called per question. Gemini is not used.
+ * Only one provider is called per question.
  */
 async function callProvider(params: {
   system: string;

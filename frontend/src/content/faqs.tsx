@@ -18,7 +18,7 @@ export const FAQ_SECTIONS: FaqSection[] = [
       },
       {
         q: 'Which AI model does Chuk use?',
-        a: 'Chuk prefers Claude, then OpenAI if Claude is unavailable. The model only phrases answers. Verdicts such as cost floors, enrolment leaks, and cash-safe spend caps are calculated by Somtico tools from your records. Gemini is not used.',
+        a: 'Chuk prefers Claude, then OpenAI if Claude is unavailable. The model only phrases answers. Verdicts such as cost floors, enrolment leaks, and cash-safe spend caps are calculated by Somtico tools from your records.',
       },
       {
         q: 'Does Chuk ever guess?',

@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { Link } from 'react-router';
 
 export const TERMS_VERSION = '2026-08-14.4';
-export const PRIVACY_VERSION = '2026-08-15.1';
+export const PRIVACY_VERSION = '2026-08-15.2';
 
 export function LegalSection({
   title,
@@ -353,13 +353,12 @@ export function PrivacyDocumentBody({ compact = false }: { compact?: boolean }) 
         AI Business Advisor, operated by Somtico Technologies Inc. (Somtico Tech)
       </p>
       <p className="mt-1 text-base text-ba-ink/70">
-        Version {PRIVACY_VERSION} · Effective 14 August 2026
+        Version {PRIVACY_VERSION} · Effective 15 August 2026
       </p>
       <p className="mt-4 text-base text-ba-ink/80">
         This policy explains how we handle personal information. It is separate
         from the Terms of Service, which cover the contract for using the
-        product. This text is a template pending lawyer review; it is not legal
-        advice.
+        product.
       </p>
 
       <Section title="1. Who We Are">
@@ -413,7 +412,6 @@ export function PrivacyDocumentBody({ compact = false }: { compact?: boolean }) 
           Anthropic (Claude) and falls back to OpenAI. It sends aggregated
           evidence from our analytics tools for that question, with provider
           training and storage opted out where the provider offers that control.
-          Google Gemini is not used.
         </p>
       </Section>
 
