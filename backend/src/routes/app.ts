@@ -32,6 +32,26 @@ import {
   runDailyAnalysisForOrg,
   sendWeeklyExecutiveBrief,
 } from '../services/briefingService';
+import {
+  attachDecisionOutcomeForRecommendation,
+  getDecisionOutcomeForOrg,
+  inferLifecycleFromRealizedImpact,
+  recordLifecycleOutcome,
+  syncDecisionFromRecommendationStatus,
+} from '../services/moat/decisionOutcomeService';
+import {
+  grantLearningConsent,
+  listLearningConsents,
+  withdrawLearningConsent,
+} from '../services/moat/learningConsentService';
+import {
+  BENCHMARK_SNAPSHOTS_PURPOSE_VERSION,
+  OUTCOME_CORPUS_PURPOSE_VERSION_V2,
+} from '../config/legal';
+import { proposeMappings } from '../services/moat/sourceMappingService';
+import { contextualPeerPatterns } from '../services/moat/contextualPlaybookService';
+import { captureBenchmarkSnapshotsForOrg } from '../services/moat/benchmarkSnapshotService';
+import { LifecycleOutcome } from '@prisma/client';
 
 const router = Router();
 router.use(requireTenant, authenticateToken);
@@ -618,6 +638,15 @@ router.patch(
       where: { id: existing.id },
       data,
     });
+    if (status !== undefined) {
+      await syncDecisionFromRecommendationStatus({
+        organizationId: req.user!.organizationId,
+        recommendationId: existing.id,
+        status,
+      }).catch((err) =>
+        console.error('syncDecisionFromRecommendationStatus failed', err)
+      );
+    }
     res.json({ success: true, data: updated });
   }
 );
@@ -626,7 +655,7 @@ router.post(
   '/actions/:id/impact',
   requireRole(['OWNER', 'ADMIN', 'OPERATIONS', 'FINANCE']),
   async (req: Request, res: Response) => {
-    const { realizedImpactCents, impactType, note } = req.body || {};
+    const { realizedImpactCents, impactType, note, lifecycleOutcome } = req.body || {};
     if (
       typeof realizedImpactCents !== 'number' ||
       !Number.isInteger(realizedImpactCents) ||
@@ -647,6 +676,25 @@ router.post(
       res.status(400).json({
         success: false,
         error: { code: 'VALIDATION', message: 'Invalid impactType' },
+      });
+      return;
+    }
+    const allowedOutcomes: LifecycleOutcome[] = [
+      'HELPED',
+      'NO_EFFECT',
+      'HURT',
+      'UNKNOWN',
+    ];
+    if (
+      lifecycleOutcome !== undefined &&
+      !allowedOutcomes.includes(lifecycleOutcome)
+    ) {
+      res.status(400).json({
+        success: false,
+        error: {
+          code: 'VALIDATION',
+          message: 'lifecycleOutcome must be HELPED, NO_EFFECT, HURT, or UNKNOWN',
+        },
       });
       return;
     }
@@ -688,13 +736,29 @@ router.post(
         verificationDueAt: null,
       },
     });
+    await recordLifecycleOutcome({
+      organizationId: req.user!.organizationId,
+      recommendationId: existing.id,
+      lifecycleOutcome: inferLifecycleFromRealizedImpact(
+        realizedImpactCents,
+        lifecycleOutcome ?? null
+      ),
+      outcomeVerificationType: 'USER_CONFIRMED',
+      realizedImpactCents,
+    }).catch((err) =>
+      console.error('recordLifecycleOutcome after user confirm failed', err)
+    );
     await writeAudit({
       organizationId: req.user!.organizationId,
       actorUserId: req.user!.id,
       action: 'action.impact_confirmed',
       resourceType: 'Recommendation',
       resourceId: existing.id,
-      metadata: { realizedImpactCents, impactType: updated.impactType },
+      metadata: {
+        realizedImpactCents,
+        impactType: updated.impactType,
+        lifecycleOutcome: lifecycleOutcome ?? null,
+      },
     });
     res.json({ success: true, data: updated });
   }
@@ -955,6 +1019,18 @@ router.post(
         status: 'ACCEPTED',
       },
     });
+    await attachDecisionOutcomeForRecommendation({
+      organizationId: req.user!.organizationId,
+      recommendationId: rec.id,
+      title: rec.title,
+      source: 'ADVISOR_CHAT',
+      status: 'ACCEPTED',
+      expectedImpactCents: expectedImpactCents ?? null,
+      impactType: impactType ?? null,
+      captureContext: true,
+    }).catch((err) =>
+      console.error('attachDecisionOutcomeForRecommendation failed', err)
+    );
     await writeAudit({
       organizationId: req.user!.organizationId,
       actorUserId: req.user!.id,
@@ -1002,5 +1078,109 @@ router.get('/audit', requireRole(['OWNER', 'ADMIN']), async (req: Request, res: 
   });
   res.json({ success: true, data: rows });
 });
+
+/** Purpose/version-aware learning consent (v2 outcomes, benchmarks). */
+router.get('/learning/consents', async (req: Request, res: Response) => {
+  const data = await listLearningConsents(req.user!.organizationId);
+  res.json({ success: true, data });
+});
+
+router.post(
+  '/learning/consents',
+  requireRole(['OWNER', 'ADMIN']),
+  async (req: Request, res: Response) => {
+    const { purposeVersion } = req.body || {};
+    const allowed = [
+      OUTCOME_CORPUS_PURPOSE_VERSION_V2,
+      BENCHMARK_SNAPSHOTS_PURPOSE_VERSION,
+    ];
+    if (!allowed.includes(purposeVersion)) {
+      res.status(400).json({
+        success: false,
+        error: {
+          code: 'VALIDATION',
+          message: `purposeVersion must be one of ${allowed.join(', ')}`,
+        },
+      });
+      return;
+    }
+    const data = await grantLearningConsent({
+      organizationId: req.user!.organizationId,
+      purposeVersion,
+      grantedByUserId: req.user!.id,
+    });
+    if (purposeVersion === BENCHMARK_SNAPSHOTS_PURPOSE_VERSION) {
+      await captureBenchmarkSnapshotsForOrg(req.user!.organizationId).catch(
+        (err) => console.error('benchmark snapshot after consent failed', err)
+      );
+    }
+    res.status(201).json({ success: true, data });
+  }
+);
+
+router.post(
+  '/learning/consents/withdraw',
+  requireRole(['OWNER', 'ADMIN']),
+  async (req: Request, res: Response) => {
+    const { purposeVersion } = req.body || {};
+    if (typeof purposeVersion !== 'string' || !purposeVersion) {
+      res.status(400).json({
+        success: false,
+        error: { code: 'VALIDATION', message: 'purposeVersion required' },
+      });
+      return;
+    }
+    const data = await withdrawLearningConsent({
+      organizationId: req.user!.organizationId,
+      purposeVersion,
+    });
+    res.json({ success: true, data });
+  }
+);
+
+router.get('/actions/:id/decision-outcome', async (req: Request, res: Response) => {
+  const data = await getDecisionOutcomeForOrg(
+    req.user!.organizationId,
+    req.params.id
+  );
+  if (!data) {
+    res.status(404).json({
+      success: false,
+      error: { code: 'NOT_FOUND', message: 'Decision outcome not found' },
+    });
+    return;
+  }
+  res.json({ success: true, data });
+});
+
+router.post(
+  '/mapping/propose',
+  requireRole(['OWNER', 'ADMIN', 'OPERATIONS']),
+  async (req: Request, res: Response) => {
+    const { sourceSystemType, fields } = req.body || {};
+    if (
+      typeof sourceSystemType !== 'string' ||
+      !Array.isArray(fields) ||
+      fields.length === 0
+    ) {
+      res.status(400).json({
+        success: false,
+        error: {
+          code: 'VALIDATION',
+          message: 'sourceSystemType and fields[] required',
+        },
+      });
+      return;
+    }
+    const data = await proposeMappings({
+      sourceSystemType,
+      fields: fields.map((f: { name?: string; dataType?: string }) => ({
+        name: String(f.name || ''),
+        dataType: f.dataType ?? null,
+      })),
+    });
+    res.json({ success: true, data });
+  }
+);
 
 export default router;

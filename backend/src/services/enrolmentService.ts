@@ -320,6 +320,13 @@ export async function enrolmentGuidance(organizationId: string) {
   })();
 
   const peerPatterns = await peerPatternsForLeak(leak);
+  const { contextualPeerPatterns } = await import(
+    './moat/contextualPlaybookService'
+  );
+  const contextualPeers = await contextualPeerPatterns({
+    diagnosedLeak: leak === 'INSUFFICIENT_DATA' ? 'GENERAL' : leak,
+    educationSubtype: org.educationSubtype,
+  }).catch(() => null);
 
   return {
     leak,
@@ -362,6 +369,7 @@ export async function enrolmentGuidance(organizationId: string) {
     tacticsTried: tactics,
     askTriedAndResults: tactics.length === 0,
     peerPatterns,
+    contextualPeers,
     tacticCatalog: rankTacticCatalog(peerPatterns),
     programmes: programmes.map((p) => ({
       id: p.id,

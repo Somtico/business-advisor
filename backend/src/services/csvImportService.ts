@@ -102,6 +102,25 @@ export async function importCsv(params: {
   }
 
   if (params.kind === 'students') {
+    // Mapping intelligence: propose from reviewed knowledge; ambiguous fields stay manual.
+    try {
+      const { proposeMappings, seedCsvStudentMappingKnowledge } = await import(
+        './moat/sourceMappingService'
+      );
+      await seedCsvStudentMappingKnowledge();
+      const headers = Object.keys(rows[0] || {}).map((name) => ({
+        name,
+        dataType: 'string' as const,
+      }));
+      if (headers.length) {
+        await proposeMappings({
+          sourceSystemType: 'csv_students',
+          fields: headers,
+        });
+      }
+    } catch (err) {
+      console.error('csv mapping propose failed', err);
+    }
     for (const row of rows) {
       await prisma.person.create({
         data: {

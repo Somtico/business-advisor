@@ -4,6 +4,10 @@ import {
   staffingVersusDemand,
   expenseRollup,
 } from './metrics/analyticsService';
+import {
+  inferLifecycleFromRealizedImpact,
+  recordLifecycleOutcome,
+} from './moat/decisionOutcomeService';
 
 export const IMPACT_VERIFICATION_DELAY_DAYS = 30;
 
@@ -142,6 +146,15 @@ export async function runImpactVerificationForOrg(organizationId: string) {
             verificationDueAt: null,
           },
         });
+        await recordLifecycleOutcome({
+          organizationId,
+          recommendationId: rec.id,
+          lifecycleOutcome: inferLifecycleFromRealizedImpact(measured.cents),
+          outcomeVerificationType: 'MEASURED',
+          realizedImpactCents: measured.cents,
+        }).catch((err) =>
+          console.error('recordLifecycleOutcome after measure failed', err)
+        );
         measuredCount += 1;
       } else {
         await prisma.recommendation.update({

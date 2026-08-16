@@ -4,7 +4,7 @@
 **Customer #1:** STEM Lantern Education Inc. (operating name STEM Lantern)  
 **Portal data source (during rebrand):** Skill Samurai Saskatoon Registration Portal  
 **Ports:** frontend 3007 · backend 5007  
-**Revision:** Phase 0 + Phase 1 beachhead + advice impact ledger + pricing advisor + enrolment advisor + privacy policy + terms of service + Chuk branding + signup UX / email verification + public landing page + Cloudflare R2 daily DB backups + Claude-first advisor + operating-loop moat — 15 August 2026  
+**Revision:** Phase 0 + Phase 1 beachhead + advice impact ledger + pricing advisor + enrolment advisor + privacy policy + terms of service + Chuk branding + signup UX / email verification + public landing page + Cloudflare R2 daily DB backups + Claude-first advisor + operating-loop moat + proprietary intelligence flywheel foundation (decision/outcome lifecycle, context snapshots, somtico_models_v2, benchmark-ready snapshots, mapping knowledge, evaluation harness, moat health) — 16 August 2026  
 **Vision doc sync:** `AI_Business_Intelligence_SaaS_Product_Vision_and_Roadmap_Beachhead_Strategy.docx` updated 16 August 2026 so sections 38–40 and the header identity match this shipped behaviour (long-term roadmap sections remain intentional future scope).
 
 ## Positioning
@@ -57,10 +57,68 @@ AI business intelligence and operating advisor for independent after-school, tut
 - Restaurant / second vertical UI
 - Write-back agents, payroll automation
 - QuickBooks production connector
-- Somtico-owned industry model (fine-tune on `somtico_models_v1` de-identified outcomes once volume is enough; playbook counts and helped-share ranking ship now)
-- Benchmarking network
+- Somtico-owned industry model (fine-tune on `somtico_models_v1` / `somtico_models_v2` de-identified outcomes once volume is enough; playbook counts, helped-share ranking, and contextual ranking foundation ship now)
+- Customer-facing benchmarking network / peer percentile dashboard (benchmark-ready privacy-safe snapshots ship now; UI remains gated off)
 - Fast/Standard/Deep AI mode packaging
 - Public API/SDK marketplace
+- Full PlatformAdmin product UI (moat health is internal services/scripts only)
+
+## Proprietary intelligence flywheel (shipped 16 August 2026)
+
+Somtico-owned intelligence increasingly lives in canonical data, deterministic metrics, vertical diagnostics, tenant operating history, decision/outcome records, validated playbooks, mapping knowledge, privacy-safe aggregates, and evaluation fixtures. Frontier models (Claude first, OpenAI fallback) remain replaceable language infrastructure; they must not invent authoritative business numbers.
+
+### Decision / outcome lifecycle (`DecisionOutcome`)
+
+- 1:1 with `Recommendation` (Action Centre). Schema version `decision_outcome_v1`.
+- Captures diagnosis → evidence/context → recommendation → owner decision → action → outcome → learning eligibility.
+- Owner decisions: `ACCEPTED`, `REJECTED`, `DEFERRED`, `MODIFIED`, `NOT_ACTED`, `UNKNOWN`.
+- Outcomes: `PENDING`, `HELPED`, `NO_EFFECT`, `HURT`, `UNKNOWN` (`NO_EFFECT` and `HURT` are first-class learning signals).
+- Preserves Impact Ledger separation of expected vs measured vs owner-confirmed realized impact; never auto-copies estimates into realized.
+- Recommendations created before this system have no `DecisionOutcome` (or `contextAvailable=false` if later attached without capture) — historical context is not reconstructed.
+
+### Context snapshots (`decision_context_v1`)
+
+- Captured at recommendation creation from trusted deterministic services (enrolment, staffing, cash, locations, enrolment guidance).
+- Exact values remain tenant-private in `contextJson`. Only coarse bands enter cross-tenant V2 tables.
+
+### Learning consent (`LearningConsent`)
+
+- Purpose/version aware: `somtico_models_v2`, `benchmark_snapshots_v1`.
+- APIs: `GET/POST /api/app/learning/consents`, `POST /api/app/learning/consents/withdraw`.
+- A private decision/outcome is not permission to share. No V2 row without active consent.
+- Withdrawal stops future sharing and deletes previously shared V2 / benchmark rows via `contributorKey` (HMAC of org id; org id is not stored on anonymized tables).
+- `somtico_models_v1` rows in `anonymized_tactic_outcomes` remain unchanged (no contributorKey by design; irreversible aggregates).
+
+### Privacy-safe outcomes V2 (`anonymized_outcome_observations_v2`, purpose `somtico_models_v2`)
+
+- Derived from `DecisionOutcome` + banded context. No organizationId, PII, free text, chats, or raw DB rows.
+- Enrolment Advisor v1 opt-in path (`somtico_models_v1`) is preserved.
+
+### Contextual playbook ranking foundation
+
+- Transparent cohort grouping on V2 observations (diagnosis + optional context bands).
+- Below configurable min sample (default 8): peer evidence insufficient; fall back to deterministic education playbooks; never fabricate percentages.
+- Existing v1 peer patterns (≥8) remain.
+
+### Benchmark-ready snapshots (no customer UI)
+
+- Definitions in `benchmark_metric_definitions`; opt-in snapshots in `anonymized_benchmark_snapshots`.
+- `CUSTOMER_BENCHMARKS_ENABLED = false` with cohort suppression config ready.
+- Captured on benchmark consent grant from deterministic metrics only.
+
+### Source-mapping intelligence
+
+- `source_mapping_knowledge` stores schema fingerprints, field names, proposed canonical fields, confidence, review status, use/correction counts — never raw source row values.
+- `POST /api/app/mapping/propose`; CSV student import seeds synthetic approved mappings and proposes matches. Ambiguous mappings require confirmation (`confidence < 0.85` or not `APPROVED`).
+
+### Evaluation harness + moat health
+
+- Synthetic Chuk-vs-generic evaluation (`npm run moat:eval` / `evaluationHarness.ts`). Provider/model recorded; not shown in customer UI.
+- Moat health aggregates via `computeMoatHealthMetrics` / `npm run moat:health` (no PlatformAdmin dashboard).
+
+### Tests
+
+- Backend Jest suite under `backend/src/services/moat/*.test.ts` (`npm test -- --maxWorkers=1`).
 
 ## Onboarding
 

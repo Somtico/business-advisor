@@ -138,6 +138,46 @@ enum TacticCostBand {
   PAID
 }
 
+/// Owner decision on a recommendation (DecisionOutcome lifecycle).
+enum OwnerDecision {
+  ACCEPTED
+  REJECTED
+  DEFERRED
+  MODIFIED
+  NOT_ACTED
+  UNKNOWN
+}
+
+/// Lifecycle outcome after action; NO_EFFECT and HURT are first-class learning signals.
+enum LifecycleOutcome {
+  PENDING
+  HELPED
+  NO_EFFECT
+  HURT
+  UNKNOWN
+}
+
+enum OutcomeVerificationType {
+  NONE
+  PENDING
+  MEASURED
+  USER_CONFIRMED
+}
+
+enum LearningEligibility {
+  INELIGIBLE
+  ELIGIBLE_PENDING_CONSENT
+  SHARED
+  WITHDRAWN_BLOCKED
+}
+
+enum MappingReviewStatus {
+  PROPOSED
+  APPROVED
+  REJECTED
+  SUPERSEDED
+}
+
 enum ForecastScenario {
   CONSERVATIVE
   EXPECTED
@@ -206,6 +246,8 @@ model Organization {
   metricSnapshots MetricSnapshot[]
   insights       Insight[]
   recommendations Recommendation[]
+  decisionOutcomes DecisionOutcome[]
+  learningConsents LearningConsent[]
   alerts         Alert[]
   dataSources    DataSource[]
   externalIdentities ExternalIdentity[]
@@ -215,6 +257,7 @@ model Organization {
   aiUsageEvents  AiUsageEvent[]
   aiConversations AiConversation[]
   syncRuns       SyncRun[]
+  onboardingTelemetry OnboardingTelemetry[]
 
   @@map("organizations")
 }
@@ -822,11 +865,207 @@ model Recommendation {
   insight      Insight?     @relation(fields: [insightId], references: [id], onDelete: SetNull)
   owner        User?        @relation("RecommendationOwner", fields: [ownerUserId], references: [id], onDelete: SetNull)
   conversation AiConversation? @relation(fields: [conversationId], references: [id], onDelete: SetNull)
+  decisionOutcome DecisionOutcome?
 
   @@index([organizationId, status])
   @@index([organizationId, realizedAt])
   @@index([organizationId, verificationDueAt])
   @@map("recommendations")
+}
+
+/// Tenant-private diagnosis → decision → outcome lifecycle. Builds on Recommendation / Impact Ledger.
+model DecisionOutcome {
+  id                      String                   @id @default(cuid())
+  organizationId          String
+  recommendationId        String                   @unique
+  schemaVersion           String                   @default("decision_outcome_v1")
+  diagnosisCode           String?
+  interventionCode        String?
+  /// False for recommendations created before context snapshots existed.
+  contextAvailable        Boolean                  @default(false)
+  contextSchemaVersion    String?
+  contextCapturedAt       DateTime?
+  /// Versioned trusted context at recommendation creation (decision_context_v1). Exact values stay tenant-private.
+  contextJson             Json?
+  dataFreshness           String?
+  confidence              Float?
+  estimatedImpactCents    Int?
+  estimatedImpactType     ImpactType?
+  expectedOutcomeHorizonDays Int?
+  ownerDecision           OwnerDecision            @default(UNKNOWN)
+  decisionAt              DateTime?
+  lifecycleOutcome        LifecycleOutcome         @default(PENDING)
+  outcomeAt               DateTime?
+  outcomeVerificationType OutcomeVerificationType  @default(NONE)
+  realizedImpactCents     Int?
+  learningEligibility     LearningEligibility      @default(INELIGIBLE)
+  learningPurposeVersion  String?
+  implementationVersion   String?
+  routerVersion           String?
+  anonymizedObservationId String?
+  createdAt               DateTime                 @default(now())
+  updatedAt               DateTime                 @updatedAt
+
+  organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  recommendation Recommendation @relation(fields: [recommendationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, createdAt])
+  @@index([organizationId, diagnosisCode])
+  @@index([organizationId, lifecycleOutcome])
+  @@map("decision_outcomes")
+}
+
+/// Purpose/version-aware opt-in for cross-tenant learning (v2 outcomes, benchmarks).
+model LearningConsent {
+  id             String    @id @default(cuid())
+  organizationId String
+  purposeVersion String
+  grantedAt      DateTime  @default(now())
+  grantedByUserId String?
+  withdrawnAt    DateTime?
+  notes          String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, purposeVersion])
+  @@index([purposeVersion, withdrawnAt])
+  @@map("learning_consents")
+}
+
+/// Privacy-safe V2 learning observations. No organizationId / PII / free text.
+/// contributorKey = HMAC(orgId) so withdrawal can delete without storing orgId.
+model AnonymizedOutcomeObservationV2 {
+  id                   String            @id @default(cuid())
+  schemaVersion        String            @default("outcome_observation_v2")
+  purposeVersion       String            @default("somtico_models_v2")
+  contributorKey       String
+  educationSubtype     String?
+  programmeCategory    String?
+  activeEnrolmentBand  String?
+  locationCountBand    String?
+  utilizationBand      String?
+  conversionHealth     String?
+  retentionHealth      String?
+  spareCapacityState   String?
+  cashSafetyBand       String?
+  seasonOrPeriod       String?
+  diagnosedLeak        String?
+  interventionCategory String?
+  effortOrCostBand     String?
+  outcome              LifecycleOutcome
+  outcomeHorizonDays   Int?
+  verificationType     OutcomeVerificationType
+  createdAt            DateTime          @default(now())
+
+  @@index([purposeVersion, diagnosedLeak, interventionCategory, outcome])
+  @@index([contributorKey, purposeVersion])
+  @@map("anonymized_outcome_observations_v2")
+}
+
+/// Metric dictionary for future benchmarks (customer UI deferred).
+model BenchmarkMetricDefinition {
+  id                String   @id @default(cuid())
+  metricKey         String
+  definitionVersion String
+  label             String
+  unit              String
+  formulaSummary    String
+  provenance        String
+  enabled           Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  snapshots AnonymizedBenchmarkSnapshot[]
+
+  @@unique([metricKey, definitionVersion])
+  @@map("benchmark_metric_definitions")
+}
+
+/// Opt-in privacy-safe metric snapshots. No customer-facing exposure yet.
+model AnonymizedBenchmarkSnapshot {
+  id                    String   @id @default(cuid())
+  schemaVersion         String   @default("benchmark_snapshot_v1")
+  purposeVersion        String   @default("benchmark_snapshots_v1")
+  contributorKey        String
+  metricDefinitionId    String
+  metricKey             String
+  definitionVersion     String
+  value                 Float
+  educationSubtype      String?
+  activeLearnerBand     String?
+  programmeCategory     String?
+  locationCountBand     String?
+  maturityBand          String?
+  geographyLevel        String?
+  reportingPeriod       String?
+  dataQualityStatus     String
+  snapshotDate          DateTime
+  createdAt             DateTime @default(now())
+
+  metricDefinition BenchmarkMetricDefinition @relation(fields: [metricDefinitionId], references: [id], onDelete: Cascade)
+
+  @@index([metricKey, definitionVersion, reportingPeriod])
+  @@index([contributorKey, purposeVersion])
+  @@map("anonymized_benchmark_snapshots")
+}
+
+/// Reviewed source→canonical mapping knowledge. No raw source row values.
+model SourceMappingKnowledge {
+  id                 String              @id @default(cuid())
+  sourceSystemType   String
+  schemaFingerprint  String
+  sourceFieldName    String
+  sourceDataType     String?
+  proposedCanonical  String
+  transformationRule String?
+  confidence         Float               @default(0.5)
+  reviewStatus       MappingReviewStatus @default(PROPOSED)
+  successfulUses     Int                 @default(0)
+  correctionCount    Int                 @default(0)
+  version            Int                 @default(1)
+  syntheticExample   String?
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+
+  @@unique([sourceSystemType, schemaFingerprint, sourceFieldName, proposedCanonical, version])
+  @@index([sourceSystemType, schemaFingerprint])
+  @@index([reviewStatus, confidence])
+  @@map("source_mapping_knowledge")
+}
+
+/// Internal onboarding timing for moat health (no PII).
+model OnboardingTelemetry {
+  id               String    @id @default(cuid())
+  organizationId   String
+  sourceSystemType String?
+  startedAt        DateTime  @default(now())
+  firstInsightAt   DateTime?
+  mappingSteps     Int       @default(0)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@map("onboarding_telemetry")
+}
+
+/// Internal evaluation harness run results (not customer-facing).
+model MoatEvaluationRun {
+  id              String   @id @default(cuid())
+  fixtureId       String
+  provider        String
+  model           String
+  mode            String
+  scoresJson      Json
+  passed          Boolean
+  notes           String?
+  createdAt       DateTime @default(now())
+
+  @@index([fixtureId, createdAt])
+  @@map("moat_evaluation_runs")
 }
 
 model Alert {

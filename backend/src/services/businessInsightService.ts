@@ -84,6 +84,22 @@ export async function runBusinessInsights(organizationId: string) {
         },
       });
       createdRecs.push({ id: rec.id, title: rec.title });
+      const { attachDecisionOutcomeForRecommendation } = await import(
+        './moat/decisionOutcomeService'
+      );
+      await attachDecisionOutcomeForRecommendation({
+        organizationId,
+        recommendationId: rec.id,
+        title: rec.title,
+        metricKeys: params.metricKeys,
+        source: 'INSIGHT',
+        status: 'OPEN',
+        expectedImpactCents: params.recommendation.expectedImpactCents,
+        impactType: params.recommendation.impactType,
+        captureContext: true,
+      }).catch((err) =>
+        console.error('attachDecisionOutcomeForRecommendation failed', err)
+      );
     }
   }
 
