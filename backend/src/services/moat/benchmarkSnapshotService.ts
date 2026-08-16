@@ -4,7 +4,7 @@ import {
 } from '../../config/legal';
 import prisma from '../../config/prisma';
 import { enrolmentMetrics } from '../metrics/analyticsService';
-import { contributorKeyForOrganization } from './contributorKey';
+import { deriveContributorKey } from './contributorKey';
 import { hasActiveLearningConsent } from './learningConsentService';
 import {
   activeEnrolmentBand,
@@ -140,7 +140,10 @@ export async function captureBenchmarkSnapshotsForOrg(
     quality: 'ok',
   });
 
-  const contributorKey = contributorKeyForOrganization(organizationId);
+  const contributorKey = deriveContributorKey(
+    organizationId,
+    BENCHMARK_SNAPSHOTS_PURPOSE_VERSION
+  );
   const period = seasonOrPeriod();
   const snapshotDate = new Date();
   let created = 0;

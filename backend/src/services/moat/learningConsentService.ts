@@ -4,7 +4,7 @@ import {
   OUTCOME_CORPUS_PURPOSE_VERSION,
   OUTCOME_CORPUS_PURPOSE_VERSION_V2,
 } from '../../config/legal';
-import { contributorKeyForOrganization } from './contributorKey';
+import { deriveContributorKey } from './contributorKey';
 
 export async function getLearningConsent(
   organizationId: string,
@@ -57,8 +57,10 @@ export async function grantLearningConsent(params: {
 
 /**
  * Withdrawal stops future sharing.
- * Previously shared V2 / benchmark rows are deleted via contributorKey
- * (HMAC of orgId) so we never store organizationId on anonymized tables.
+ * Previously shared V2 / benchmark rows are deleted via purpose-specific
+ * contributorKey (HMAC of purposeVersion + orgId) so we never store
+ * organizationId on anonymized tables, and withdrawing one purpose cannot
+ * target another purpose's rows.
  * somtico_models_v1 anonymized_tactic_outcomes remain (no contributorKey;
  * already irreversible aggregates without org linkage — documented behaviour).
  */
@@ -84,11 +86,18 @@ export async function withdrawLearningConsent(params: {
     },
   });
 
-  const key = contributorKeyForOrganization(params.organizationId);
+  // Purpose-specific key: v2 withdrawal cannot match benchmark rows and vice versa.
+  const key = deriveContributorKey(
+    params.organizationId,
+    params.purposeVersion
+  );
 
   if (params.purposeVersion === OUTCOME_CORPUS_PURPOSE_VERSION_V2) {
     await prisma.anonymizedOutcomeObservationV2.deleteMany({
-      where: { contributorKey: key, purposeVersion: OUTCOME_CORPUS_PURPOSE_VERSION_V2 },
+      where: {
+        contributorKey: key,
+        purposeVersion: OUTCOME_CORPUS_PURPOSE_VERSION_V2,
+      },
     });
     await prisma.decisionOutcome.updateMany({
       where: {
@@ -96,7 +105,10 @@ export async function withdrawLearningConsent(params: {
         learningEligibility: 'SHARED',
         learningPurposeVersion: OUTCOME_CORPUS_PURPOSE_VERSION_V2,
       },
-      data: { learningEligibility: 'WITHDRAWN_BLOCKED', anonymizedObservationId: null },
+      data: {
+        learningEligibility: 'WITHDRAWN_BLOCKED',
+        anonymizedObservationId: null,
+      },
     });
   }
 

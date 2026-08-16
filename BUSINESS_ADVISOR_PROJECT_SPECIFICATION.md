@@ -86,7 +86,8 @@ Somtico-owned intelligence increasingly lives in canonical data, deterministic m
 - Purpose/version aware: `somtico_models_v2`, `benchmark_snapshots_v1`.
 - APIs: `GET/POST /api/app/learning/consents`, `POST /api/app/learning/consents/withdraw`.
 - A private decision/outcome is not permission to share. No V2 row without active consent.
-- Withdrawal stops future sharing and deletes previously shared V2 / benchmark rows via `contributorKey` (HMAC of org id; org id is not stored on anonymized tables).
+- Withdrawal stops future sharing and deletes previously shared V2 / benchmark rows via purpose-specific `contributorKey` values (`HMAC(LEARNING_CONTRIBUTOR_SALT, purposeVersion:organizationId)`). Organization id is never stored on anonymized tables. Withdrawing `somtico_models_v2` cannot delete `benchmark_snapshots_v1` rows (and vice versa) because each purpose gets a different pseudonym.
+- `LEARNING_CONTRIBUTOR_SALT` is a dedicated long-lived secret, required in production, must differ from `JWT_SECRET`, and must stay stable unless an intentional contributor-key migration is planned. Production startup fails if it is missing or blank. Development/test may use a documented local fallback; there is never a JWT_SECRET fallback.
 - `somtico_models_v1` rows in `anonymized_tactic_outcomes` remain unchanged (no contributorKey by design; irreversible aggregates).
 
 ### Privacy-safe outcomes V2 (`anonymized_outcome_observations_v2`, purpose `somtico_models_v2`)
@@ -127,6 +128,10 @@ Use `/signup` to create an organization (education blueprint applied automatical
 ## Env
 
 See `backend/.env.example` and `frontend/.env.example`.
+
+Notable privacy secret:
+
+- **`LEARNING_CONTRIBUTOR_SALT`** — dedicated HMAC secret for purpose-specific learning/benchmark `contributorKey` values. Required in production (startup exits if missing/blank). Must not be `JWT_SECRET`. Keep stable unless you run an intentional contributor-key migration. Development/test may omit it and use the documented local fallback in `contributorKey.ts` (never a JWT fallback).
 
 ## Database backups (Cloudflare R2)
 

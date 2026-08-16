@@ -8,7 +8,7 @@ import {
   utilizationBand,
 } from './privacyBands';
 import { schemaFingerprint } from './schemaFingerprint';
-import { contributorKeyForOrganization } from './contributorKey';
+import { deriveContributorKey } from './contributorKey';
 import {
   inferDiagnosisCode,
   inferInterventionCode,
@@ -70,13 +70,16 @@ describe('schema fingerprint', () => {
 });
 
 describe('contributor key', () => {
-  it('is stable per org and differs across orgs', () => {
+  it('is stable per org+purpose and differs across orgs and purposes', () => {
+    process.env.NODE_ENV = 'test';
     process.env.LEARNING_CONTRIBUTOR_SALT = 'test-salt';
-    const a = contributorKeyForOrganization('org_a');
-    const b = contributorKeyForOrganization('org_a');
-    const c = contributorKeyForOrganization('org_b');
+    const a = deriveContributorKey('org_a', 'somtico_models_v2');
+    const b = deriveContributorKey('org_a', 'somtico_models_v2');
+    const c = deriveContributorKey('org_b', 'somtico_models_v2');
+    const d = deriveContributorKey('org_a', 'benchmark_snapshots_v1');
     expect(a).toBe(b);
     expect(a).not.toBe(c);
+    expect(a).not.toBe(d);
     expect(a).not.toContain('org_a');
   });
 });

@@ -16,13 +16,15 @@ Multi-tenant AI business intelligence and operating advisor for independent afte
 ```bash
 npm run install:all
 # Create DB: createdb business_advisor (or equivalent)
-cp backend/.env.example backend/.env   # then set DATABASE_URL / JWT_SECRET
+cp backend/.env.example backend/.env   # then set DATABASE_URL / JWT_SECRET / LEARNING_CONTRIBUTOR_SALT
 cp frontend/.env.example frontend/.env
 cd backend && npx prisma migrate deploy
 cd .. && npm run dev
 ```
 
 Create STEM Lantern (or any centre) yourself via **Create Organization** at `/signup`. Seed does not pre-create tenants.
+
+**Production env note:** `LEARNING_CONTRIBUTOR_SALT` is required, must be a dedicated secret (not `JWT_SECRET`), and should remain stable unless you intentionally migrate contributor keys.
 
 ## Spec
 

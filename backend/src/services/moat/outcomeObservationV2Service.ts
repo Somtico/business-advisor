@@ -4,7 +4,7 @@ import {
   OUTCOME_OBSERVATION_V2_SCHEMA_VERSION,
 } from '../../config/legal';
 import prisma from '../../config/prisma';
-import { contributorKeyForOrganization } from './contributorKey';
+import { deriveContributorKey } from './contributorKey';
 import { hasActiveLearningConsent } from './learningConsentService';
 import type { DecisionContextV1 } from './decisionContextService';
 import {
@@ -109,7 +109,10 @@ export async function maybeShareDecisionOutcomeV2(
 
 export function buildV2Payload(decision: DecisionOutcome) {
   const ctx = (decision.contextJson || {}) as Partial<DecisionContextV1>;
-  const contributorKey = contributorKeyForOrganization(decision.organizationId);
+  const contributorKey = deriveContributorKey(
+    decision.organizationId,
+    OUTCOME_CORPUS_PURPOSE_VERSION_V2
+  );
 
   return {
     schemaVersion: OUTCOME_OBSERVATION_V2_SCHEMA_VERSION,

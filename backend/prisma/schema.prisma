@@ -935,7 +935,8 @@ model LearningConsent {
 }
 
 /// Privacy-safe V2 learning observations. No organizationId / PII / free text.
-/// contributorKey = HMAC(orgId) so withdrawal can delete without storing orgId.
+/// contributorKey = HMAC(purposeVersion:orgId) so withdrawal can delete without storing orgId.
+/// Keys are purpose-specific: v2 and benchmark use different pseudonyms for the same org.
 model AnonymizedOutcomeObservationV2 {
   id                   String            @id @default(cuid())
   schemaVersion        String            @default("outcome_observation_v2")
