@@ -30,6 +30,8 @@ Create STEM Lantern (or any centre) yourself via **Create Organization** at `/si
 
 See [BUSINESS_ADVISOR_PROJECT_SPECIFICATION.md](./BUSINESS_ADVISOR_PROJECT_SPECIFICATION.md).
 
+Developer note: provider-boundary PII minimization for Ask Advisor is documented in [docs/PROVIDER_PII_MINIMIZATION.md](./docs/PROVIDER_PII_MINIMIZATION.md).
+
 ## Database backups
 
 Daily Railway PostgreSQL dumps to Cloudflare R2. Follow [R2_BACKUP_SETUP_GUIDE.md](./R2_BACKUP_SETUP_GUIDE.md) to create the bucket, API token, GitHub Secrets, and verify the Actions workflow.

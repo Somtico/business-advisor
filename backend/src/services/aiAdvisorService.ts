@@ -5,6 +5,25 @@ import { organizationMemory } from './organizationMemoryService';
 import { pricingGuidance } from './pricingService';
 import { ADVICE_DISCLAIMER } from '../config/legal';
 import { writeAudit } from './auditService';
+import {
+  minimizeForProviderInference,
+  type PiiMinimizationStats,
+} from './providerPiiMinimizer';
+
+/**
+ * PROVIDER INFERENCE BOUNDARY
+ *
+ * All Anthropic/OpenAI traffic for Advisor must go through `askAdvisor` →
+ * `invokeProviderInference`. That path always runs `minimizeForProviderInference`
+ * before any provider HTTP call (including Anthropic → OpenAI fallback).
+ *
+ * Do not add new fetch() calls to api.anthropic.com or api.openai.com outside
+ * this file. Do not reconstruct prompts from raw DB records inside fallback
+ * branches — use the already-minimized `user` / `toolResults` only.
+ *
+ * Help Improve Advisor / learning consent is a separate privacy control and
+ * does not gate or replace this minimization layer.
+ */
 
 /** Deterministic tool surface: analytics plus pricing guidance. */
 const advisorTools = {
@@ -113,6 +132,10 @@ type ProviderResult = {
   privacyPolicy: string;
 };
 
+/**
+ * OpenAI client — receives already-minimized system/user strings only.
+ * Not exported; call via invokeProviderInference.
+ */
 async function callOpenAI(
   system: string,
   user: string
@@ -144,8 +167,8 @@ async function callOpenAI(
     body: JSON.stringify(body),
   });
   if (!res.ok) {
-    const errText = await res.text();
-    throw new Error(`OpenAI error: ${errText}`);
+    // Prefer status over full provider error bodies (may echo request fragments)
+    throw new Error(`OpenAI error: HTTP ${res.status}`);
   }
   const json = (await res.json()) as {
     choices?: { message?: { content?: string } }[];
@@ -167,6 +190,10 @@ async function callOpenAI(
   };
 }
 
+/**
+ * Anthropic client — receives already-minimized system/user strings only.
+ * Not exported; call via invokeProviderInference.
+ */
 async function callAnthropic(
   system: string,
   user: string
@@ -180,7 +207,6 @@ async function callAnthropic(
     max_tokens: 8192,
     system,
     messages: [{ role: 'user', content: user }],
-    // Absolute highest capability where supported (Fable 5 / Opus 5 / Sonnet 5)
     output_config: {
       effort: process.env.ANTHROPIC_EFFORT || 'max',
     },
@@ -197,6 +223,7 @@ async function callAnthropic(
   });
 
   // If effort/output_config is rejected on a model, retry without it
+  // (same minimized body — never rebuild from raw records)
   if (!res.ok) {
     const errText = await res.text();
     if (/effort|output_config|thinking/i.test(errText)) {
@@ -215,14 +242,14 @@ async function callAnthropic(
         }),
       });
       if (!retry.ok) {
-        throw new Error(`Anthropic error: ${await retry.text()}`);
+        throw new Error(`Anthropic error: HTTP ${retry.status}`);
       }
       return parseAnthropicResponse(
         (await retry.json()) as Parameters<typeof parseAnthropicResponse>[0],
         model
       );
     }
-    throw new Error(`Anthropic error: ${errText}`);
+    throw new Error(`Anthropic error: HTTP ${res.status}`);
   }
 
   return parseAnthropicResponse(
@@ -301,7 +328,8 @@ function deterministicFallbackText(toolResults: Record<string, unknown>): string
 
 /**
  * Provider order: Anthropic (Claude) → OpenAI → local fallback.
- * Only one provider is called per question.
+ * Only one external provider is called per question.
+ * Expects already-minimized system/user/toolResults — never reloads raw PII.
  */
 async function callProvider(params: {
   system: string;
@@ -312,7 +340,7 @@ async function callProvider(params: {
     const anthropic = await callAnthropic(params.system, params.user);
     if (anthropic) return anthropic;
   } catch {
-    // Fall through to OpenAI
+    // Fall through to OpenAI — same minimized params.user
   }
 
   try {
@@ -333,6 +361,76 @@ async function callProvider(params: {
   };
 }
 
+const ADVISOR_SYSTEM_PROMPT = `You are the AI-powered Advisor within Somtico Business Advisor, serving an after-school / tutoring / enrichment centre. Refer to yourself as Advisor. Do not claim a personal human name or introduce yourself as Chuk, Tico, or any other invented name.
+
+NON-NEGOTIABLE EVIDENCE RULES:
+1. Use ONLY the structured analytics evidence provided in this message. Every number, name, and date in your answer must appear in, or be arithmetic on, that evidence.
+2. NEVER guess, estimate, extrapolate, or invent figures, records, or facts that are not in the evidence. A wrong number is worse than no number.
+3. If the evidence is missing, empty, or insufficient to answer, your answer IS the request for data: state exactly what is missing and where to add it (Programmes & Students, Staffing, Expenses & Subscriptions, Targets & Forecasts, Pricing Advisor, CSV import, or the portal connector).
+4. If a tool result has status INSUFFICIENT_DATA or a missingData list, relay those items verbatim as the required next step. Do not fill the gaps yourself.
+5. Projections may only restate the scenario figures present in the evidence, labelled as scenarios, never as certainties.
+6. Do not provide legal, tax, accounting, or investment advice; frame everything as operational information the owner must verify and decide on.
+7. If pricingGuidance includes verdict ABOVE_TARGET, present it as a time-boxed price test that still clears the cost floor. Do not say the price caused low sales. Do not promise that lowering the price will fill seats. Do not use or invent household income, census, or area-affordability figures.
+8. If enrolmentGuidance is present: name the leak from that evidence. Prioritize the cheapNextSteps. Suggest paid spend only when paidTest.eligible is true, and only up to paidTest.weeklySpendCapCents when that figure is present. If askTriedAndResults is true, your answer must ask what they have already tried AND what result they got, and point them to Enrolment Advisor to record it. Use their tacticsTried outcomes when present. You may cite peerPatterns only as counts already in the evidence ("helped in X of Y reports"), never as proof a tactic will work here. Do not invent channels, student counts, or ROI.
+9. If organizationMemory is present, treat it as this centre's history. Cite specific actions and tactics already tried. Do not recommend repeating a tactic whose recorded outcome was NO_EFFECT or HURT unless the owner asks. Prefer tactics that HELPED here, then peerPatterns counts.
+10. instructorCostPerSeatHour, householdLtv, trialToPaidByProgramme, and cashSafeTestSize are calculated verdicts. Restate them. Do not recompute or invent a different figure.
+11. Evidence may use request-scoped aliases (Instructor A, Student A, etc.) instead of real personal names. Treat those aliases as stable identifiers within this message only.
+
+Speak plainly to the owner. Prefer dollars, students, capacity, and next actions.
+Canadian English spelling.`;
+
+/**
+ * Build the provider-bound user prompt from already-minimized question + tools.
+ * Exported for invariant tests that assert PII never appears in the payload.
+ */
+export function buildProviderUserPrompt(params: {
+  question: string;
+  tools: string[];
+  toolResults: Record<string, unknown>;
+}): string {
+  const evidenceBlock = Object.entries(params.toolResults)
+    .map(([name, data]) => formatToolResult(name, data))
+    .join('\n\n');
+
+  return `Question: ${params.question}\n\nAvailable tools used: ${params.tools
+    .map((t) => `${t} (${TOOL_DESCRIPTIONS[t] || t})`)
+    .join(', ')}\n\nEvidence:\n${evidenceBlock}`;
+}
+
+/**
+ * Sole Anthropic/OpenAI gateway. Minimizes once, then uses that representation
+ * for primary, fallback, and retry paths.
+ */
+export async function invokeProviderInference(params: {
+  question: string;
+  tools: ToolName[] | string[];
+  toolResults: Record<string, unknown>;
+  system?: string;
+}): Promise<ProviderResult & { minimizationStats: PiiMinimizationStats }> {
+  const minimized = minimizeForProviderInference({
+    question: params.question,
+    toolResults: params.toolResults,
+  });
+
+  const system = params.system || ADVISOR_SYSTEM_PROMPT;
+  const user = buildProviderUserPrompt({
+    question: minimized.question,
+    tools: params.tools,
+    toolResults: minimized.toolResults,
+  });
+
+  const result = await callProvider({
+    system,
+    user,
+    toolResults: minimized.toolResults,
+  });
+
+  return {
+    ...result,
+    minimizationStats: minimized.stats,
+  };
+}
+
 export async function askAdvisor(params: {
   organizationId: string;
   userId: string;
@@ -348,34 +446,9 @@ export async function askAdvisor(params: {
     );
   }
 
-  const evidenceBlock = Object.entries(toolResults)
-    .map(([name, data]) => formatToolResult(name, data))
-    .join('\n\n');
-
-  const system = `You are the AI-powered Advisor within Somtico Business Advisor, serving an after-school / tutoring / enrichment centre. Refer to yourself as Advisor. Do not claim a personal human name or introduce yourself as Chuk, Tico, or any other invented name.
-
-NON-NEGOTIABLE EVIDENCE RULES:
-1. Use ONLY the structured analytics evidence provided in this message. Every number, name, and date in your answer must appear in, or be arithmetic on, that evidence.
-2. NEVER guess, estimate, extrapolate, or invent figures, records, or facts that are not in the evidence. A wrong number is worse than no number.
-3. If the evidence is missing, empty, or insufficient to answer, your answer IS the request for data: state exactly what is missing and where to add it (Programmes & Students, Staffing, Expenses & Subscriptions, Targets & Forecasts, Pricing Advisor, CSV import, or the portal connector).
-4. If a tool result has status INSUFFICIENT_DATA or a missingData list, relay those items verbatim as the required next step. Do not fill the gaps yourself.
-5. Projections may only restate the scenario figures present in the evidence, labelled as scenarios, never as certainties.
-6. Do not provide legal, tax, accounting, or investment advice; frame everything as operational information the owner must verify and decide on.
-7. If pricingGuidance includes verdict ABOVE_TARGET, present it as a time-boxed price test that still clears the cost floor. Do not say the price caused low sales. Do not promise that lowering the price will fill seats. Do not use or invent household income, census, or area-affordability figures.
-8. If enrolmentGuidance is present: name the leak from that evidence. Prioritize the cheapNextSteps. Suggest paid spend only when paidTest.eligible is true, and only up to paidTest.weeklySpendCapCents when that figure is present. If askTriedAndResults is true, your answer must ask what they have already tried AND what result they got, and point them to Enrolment Advisor to record it. Use their tacticsTried outcomes when present. You may cite peerPatterns only as counts already in the evidence ("helped in X of Y reports"), never as proof a tactic will work here. Do not invent channels, student counts, or ROI.
-9. If organizationMemory is present, treat it as this centre's history. Cite specific actions and tactics already tried. Do not recommend repeating a tactic whose recorded outcome was NO_EFFECT or HURT unless the owner asks. Prefer tactics that HELPED here, then peerPatterns counts.
-10. instructorCostPerSeatHour, householdLtv, trialToPaidByProgramme, and cashSafeTestSize are calculated verdicts. Restate them. Do not recompute or invent a different figure.
-
-Speak plainly to the owner. Prefer dollars, students, capacity, and next actions.
-Canadian English spelling.`;
-
-  const userPrompt = `Question: ${params.question}\n\nAvailable tools used: ${tools
-    .map((t) => `${t} (${TOOL_DESCRIPTIONS[t]})`)
-    .join(', ')}\n\nEvidence:\n${evidenceBlock}`;
-
-  const result = await callProvider({
-    system,
-    user: userPrompt,
+  const result = await invokeProviderInference({
+    question: params.question,
+    tools,
     toolResults,
   });
 
@@ -391,6 +464,8 @@ Canadian English spelling.`;
     conversationId = convo.id;
   }
 
+  // Persist the owner's original question for their conversation history.
+  // Provider-bound prompts are not stored.
   await prisma.aiMessage.create({
     data: {
       conversationId,
@@ -406,6 +481,7 @@ Canadian English spelling.`;
       toolCallsJson: {
         tools,
         privacyPolicy: result.privacyPolicy,
+        piiMinimization: result.minimizationStats,
       },
     },
   });
@@ -434,6 +510,7 @@ Canadian English spelling.`;
       model: result.model,
       tools,
       privacyPolicy: result.privacyPolicy,
+      piiMinimization: result.minimizationStats,
     },
   });
 
@@ -442,5 +519,32 @@ Canadian English spelling.`;
     answer: result.text,
     toolsUsed: tools,
     disclaimer: ADVICE_DISCLAIMER,
+  };
+}
+
+/** Test helper: run minimization + prompt build without calling providers. */
+export function prepareProviderSafeRequest(params: {
+  question: string;
+  tools: string[];
+  toolResults: Record<string, unknown>;
+}): {
+  system: string;
+  user: string;
+  toolResults: Record<string, unknown>;
+  stats: PiiMinimizationStats;
+} {
+  const minimized = minimizeForProviderInference({
+    question: params.question,
+    toolResults: params.toolResults,
+  });
+  return {
+    system: ADVISOR_SYSTEM_PROMPT,
+    user: buildProviderUserPrompt({
+      question: minimized.question,
+      tools: params.tools,
+      toolResults: minimized.toolResults,
+    }),
+    toolResults: minimized.toolResults,
+    stats: minimized.stats,
   };
 }
