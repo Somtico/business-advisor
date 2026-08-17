@@ -13,6 +13,7 @@ type HelpImproveStatus = {
 /**
  * Soft 30-day re-invitation for organizations with Help Improve Advisor OFF.
  * Never shown when the setting is ON. Dismiss does not grant consent.
+ * Turn On is an explicit positive consent action (no extra modal).
  */
 export function HelpImproveInvite() {
   const { user } = useAuth();
@@ -77,10 +78,13 @@ export function HelpImproveInvite() {
         <div>
           <p className="font-semibold">Help Make Advisor Better</p>
           <p className="mt-1 text-ba-ink/80">
-            You can optionally allow privacy-safe information from your use of
-            Business Advisor to help improve Advisor, its playbooks, and
-            Somtico-owned models. No direct personal identifiers are included in
-            the cross-customer learning data.{' '}
+            You can optionally let privacy-safe information from Business Advisor
+            help improve Advisor, its playbooks, Somtico-owned models, and
+            aggregated industry intelligence. This can include privacy-safe
+            signals derived from information already in your Business Advisor
+            account and from future activity while the setting stays on. Direct
+            personal identifiers are excluded, and you can turn this off at any
+            time.{' '}
             <Link className="text-ba-accent underline" to="/privacy">
               Privacy Policy
             </Link>
@@ -98,7 +102,7 @@ export function HelpImproveInvite() {
             onClick={() => void enable()}
             className="cursor-pointer rounded-md bg-ba-accent px-4 py-2 text-base font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
           >
-            Learn More & Turn On
+            Turn On
           </button>
           <button
             type="button"

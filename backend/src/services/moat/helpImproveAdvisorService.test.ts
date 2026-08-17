@@ -132,7 +132,7 @@ describe('Help Improve Advisor single setting', () => {
     expect(status.invite.show).toBe(false);
   });
 
-  it('disable withdraws both purposes and stops invitations when re-enabled path is off', async () => {
+  it('disable withdraws both purposes and snoozes the invite for ≥30 days', async () => {
     (prisma.learningConsent.upsert as jest.Mock).mockResolvedValue({
       withdrawnAt: new Date(),
     });
@@ -149,6 +149,20 @@ describe('Help Improve Advisor single setting', () => {
     });
     (prisma.decisionOutcome.updateMany as jest.Mock).mockResolvedValue({ count: 1 });
 
+    let snoozedUntil: Date | null = null;
+    (prisma.organization.update as jest.Mock).mockImplementation(
+      async ({ data }: { data: { learningInviteSnoozedUntil?: Date } }) => {
+        if (data.learningInviteSnoozedUntil) {
+          snoozedUntil = data.learningInviteSnoozedUntil;
+          (prisma.organization.findUnique as jest.Mock).mockResolvedValue({
+            learningInviteSnoozedUntil: data.learningInviteSnoozedUntil,
+          });
+        }
+        return {};
+      }
+    );
+
+    const before = Date.now();
     const status = await disableHelpImproveAdvisor({
       organizationId: 'org1',
       actorUserId: 'user1',
@@ -156,9 +170,79 @@ describe('Help Improve Advisor single setting', () => {
 
     expect(prisma.learningConsent.upsert).toHaveBeenCalledTimes(2);
     expect(writeAudit).toHaveBeenCalledWith(
-      expect.objectContaining({ action: 'learning.help_improve_disabled' })
+      expect.objectContaining({
+        action: 'learning.help_improve_disabled',
+        metadata: expect.objectContaining({
+          learningInviteSnoozedUntil: expect.any(String),
+        }),
+      })
     );
     expect(status.enabled).toBe(false);
+    expect(status.invite.show).toBe(false);
+    expect(snoozedUntil).not.toBeNull();
+    expect((snoozedUntil as unknown as Date).getTime()).toBeGreaterThanOrEqual(
+      before + 29 * 24 * 60 * 60 * 1000
+    );
+  });
+
+  it('enable then disable hides the invite (no immediate re-invite)', async () => {
+    (prisma.learningConsent.upsert as jest.Mock).mockImplementation(
+      async ({ create, update }: { create: Record<string, unknown>; update: Record<string, unknown> }) => ({
+        ...create,
+        ...update,
+        withdrawnAt: update.withdrawnAt ?? null,
+        grantedAt: new Date(),
+        grantedByUserId: 'user1',
+      })
+    );
+    (prisma.anonymizedOutcomeObservationV2.deleteMany as jest.Mock).mockResolvedValue({
+      count: 0,
+    });
+    (prisma.anonymizedBenchmarkSnapshot.deleteMany as jest.Mock).mockResolvedValue({
+      count: 0,
+    });
+    (prisma.decisionOutcome.updateMany as jest.Mock).mockResolvedValue({ count: 0 });
+
+    (prisma.learningConsent.findUnique as jest.Mock).mockResolvedValue({
+      withdrawnAt: null,
+      grantedAt: new Date(),
+      grantedByUserId: 'user1',
+    });
+    await enableHelpImproveAdvisor({
+      organizationId: 'org1',
+      grantedByUserId: 'user1',
+    });
+
+    (prisma.learningConsent.findUnique as jest.Mock).mockResolvedValue({
+      withdrawnAt: new Date(),
+      grantedAt: new Date(),
+      grantedByUserId: 'user1',
+    });
+    let storedSnooze: Date | null = null;
+    (prisma.organization.update as jest.Mock).mockImplementation(
+      async ({ data }: { data: { learningInviteSnoozedUntil?: Date | null } }) => {
+        if (data.learningInviteSnoozedUntil instanceof Date) {
+          storedSnooze = data.learningInviteSnoozedUntil;
+          (prisma.organization.findUnique as jest.Mock).mockResolvedValue({
+            learningInviteSnoozedUntil: data.learningInviteSnoozedUntil,
+          });
+        }
+        return {};
+      }
+    );
+
+    const before = Date.now();
+    const afterDisable = await disableHelpImproveAdvisor({
+      organizationId: 'org1',
+      actorUserId: 'user1',
+    });
+
+    expect(afterDisable.enabled).toBe(false);
+    expect(afterDisable.invite.show).toBe(false);
+    expect(storedSnooze).not.toBeNull();
+    expect((storedSnooze as unknown as Date).getTime()).toBeGreaterThanOrEqual(
+      before + 29 * 24 * 60 * 60 * 1000
+    );
   });
 
   it('dismissing invite does not grant consent and snoozes ≥30 days', async () => {
@@ -180,7 +264,7 @@ describe('Help Improve Advisor single setting', () => {
     expect(snooze.getTime()).toBeGreaterThanOrEqual(before + 29 * 24 * 60 * 60 * 1000);
   });
 
-  it('hides invite while snoozed and when enabled', async () => {
+  it('hides invite while snoozed and when enabled; shows again after snooze expires', async () => {
     (prisma.learningConsent.findUnique as jest.Mock).mockResolvedValue(null);
     (prisma.organization.findUnique as jest.Mock).mockResolvedValue({
       learningInviteSnoozedUntil: new Date(Date.now() + 86400000),
@@ -199,6 +283,20 @@ describe('Help Improve Advisor single setting', () => {
     const on = await getHelpImproveAdvisorStatus('org1', { canManage: true });
     expect(on.enabled).toBe(true);
     expect(on.invite.show).toBe(false);
+
+    (prisma.learningConsent.findUnique as jest.Mock).mockResolvedValue({
+      withdrawnAt: new Date(),
+      grantedAt: new Date(),
+      grantedByUserId: 'user1',
+    });
+    (prisma.organization.findUnique as jest.Mock).mockResolvedValue({
+      learningInviteSnoozedUntil: new Date(Date.now() - 60_000),
+    });
+    const afterExpiry = await getHelpImproveAdvisorStatus('org1', {
+      canManage: true,
+    });
+    expect(afterExpiry.enabled).toBe(false);
+    expect(afterExpiry.invite.show).toBe(true);
   });
 
   it('does not show invite to non-managers', async () => {
@@ -213,5 +311,10 @@ describe('Help Improve Advisor single setting', () => {
       false
     );
     expect(await isHelpImproveAdvisorEnabled('org1')).toBe(false);
+  });
+
+  it('keeps Terms and Privacy at 2026-08-16.2 (no legal bump for this polish)', () => {
+    expect(TERMS_VERSION).toBe('2026-08-16.2');
+    expect(PRIVACY_VERSION).toBe('2026-08-16.2');
   });
 });

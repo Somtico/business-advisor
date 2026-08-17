@@ -40,9 +40,10 @@ const HELP_IMPROVE_DISCLOSURE = (
     third-party AI companies for their own model training.
     <br />
     <br />
-    This setting applies to eligible information you provide in the future while
-    it remains on. You can turn it off at any time. Accepting the Terms or
-    Privacy Policy does not turn this on.
+    While this setting is on, Somtico may derive eligible privacy-safe learning
+    signals from information already in your Business Advisor account and from
+    new activity while the setting remains on. You can turn it off at any time.
+    Accepting the Terms or Privacy Policy does not turn this on.
   </>
 );
 

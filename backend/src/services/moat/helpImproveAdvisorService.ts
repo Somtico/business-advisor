@@ -16,6 +16,18 @@ import {
 
 const INVITE_SNOOZE_MS = 30 * 24 * 60 * 60 * 1000;
 
+function snoozeUntilFromNow(now: Date = new Date()): Date {
+  return new Date(now.getTime() + INVITE_SNOOZE_MS);
+}
+
+async function setInviteSnooze(organizationId: string, snoozedUntil: Date) {
+  await prisma.organization.update({
+    where: { id: organizationId },
+    data: { learningInviteSnoozedUntil: snoozedUntil },
+  });
+  return snoozedUntil;
+}
+
 export type HelpImproveAdvisorStatus = {
   enabled: boolean;
   settingVersion: string;
@@ -127,6 +139,13 @@ export async function disableHelpImproveAdvisor(params: {
     });
   }
 
+  // Same 30-day snooze as "Not Now" so turning OFF does not immediately
+  // re-surface the soft invitation.
+  const snoozedUntil = await setInviteSnooze(
+    params.organizationId,
+    snoozeUntilFromNow()
+  );
+
   await writeAudit({
     organizationId: params.organizationId,
     actorUserId: params.actorUserId,
@@ -137,6 +156,7 @@ export async function disableHelpImproveAdvisor(params: {
       settingVersion: HELP_IMPROVE_ADVISOR_SETTING_VERSION,
       internalPurposes: [...HELP_IMPROVE_ADVISOR_INTERNAL_PURPOSES],
       withdrawnAt: new Date().toISOString(),
+      learningInviteSnoozedUntil: snoozedUntil.toISOString(),
     },
   });
 
@@ -151,11 +171,10 @@ export async function dismissHelpImproveInvite(params: {
   organizationId: string;
   actorUserId: string;
 }) {
-  const snoozedUntil = new Date(Date.now() + INVITE_SNOOZE_MS);
-  await prisma.organization.update({
-    where: { id: params.organizationId },
-    data: { learningInviteSnoozedUntil: snoozedUntil },
-  });
+  const snoozedUntil = await setInviteSnooze(
+    params.organizationId,
+    snoozeUntilFromNow()
+  );
 
   await writeAudit({
     organizationId: params.organizationId,
