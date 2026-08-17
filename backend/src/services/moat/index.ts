@@ -6,6 +6,7 @@ export * from './contributorKey';
 export * from './schemaFingerprint';
 export * from './decisionContextService';
 export * from './decisionOutcomeService';
+export * from './helpImproveAdvisorService';
 export * from './learningConsentService';
 export * from './outcomeObservationV2Service';
 export * from './contextualPlaybookService';

@@ -2,8 +2,8 @@ import type { ReactNode } from 'react';
 import { Link } from 'react-router';
 
 /** Keep in sync with backend/src/config/legal.ts */
-export const TERMS_VERSION = '2026-08-16.1';
-export const PRIVACY_VERSION = '2026-08-16.1';
+export const TERMS_VERSION = '2026-08-16.2';
+export const PRIVACY_VERSION = '2026-08-16.2';
 export const LEGAL_NOTICE_PUBLISHED_AT = '2026-08-16';
 export const LEGAL_MATERIAL_CHANGE_EFFECTIVE_AT = '2026-09-15';
 
@@ -170,29 +170,22 @@ export function TermsDocumentBody({ compact = false }: { compact?: boolean }) {
           opt-in.
         </p>
         <p>
-          <strong>C. Optional cross-customer learning.</strong> Cross-customer
-          learning from decision or outcome data is optional and requires the
-          applicable explicit opt-in. The Service currently supports two distinct
-          paths described in the Privacy Policy: (1) record-specific Enrolment
-          Advisor tactic sharing; and (2) optional business-outcome learning under
-          a separate purpose-specific organization consent. Optional learning
-          consents are not included in mandatory acceptance of these Terms or the
-          Privacy Policy. Somtico Tech will not send an opted-in privacy-safe
-          learning corpus to a third-party model provider for that provider's
-          training. Somtico may later use opted-in privacy-safe contributions to
-          improve Somtico-owned playbooks and models; a Somtico fine-tuned
-          industry model is not claimed as currently shipped.
-        </p>
-        <p>
-          <strong>D. Optional peer benchmarking.</strong> Contribution of
-          privacy-safe business metric snapshots for cross-customer peer
-          benchmarking requires a separate explicit opt-in. Somtico Tech does not
-          automatically use all Customer Data for benchmarking. Customer-facing
-          peer comparisons are not yet launched; opted-in privacy-safe snapshots
-          may be collected for future aggregated comparisons. Another customer's
-          organization will not be given your raw benchmark contribution. Minimum
-          cohort and privacy thresholds apply before any future comparison is
-          shown.
+          <strong>C. Optional Help Improve Advisor.</strong> Cross-customer
+          learning is optional and off by default. An authorized organization
+          administrator may turn on a single organization setting called Help
+          Improve Advisor (Settings → Privacy & Data Learning). While that setting
+          is on, Somtico may use privacy-safe information derived from eligible
+          future use of the Service — including structured signals from Advisor
+          activity, business metrics, recommendations, actions, and results — to
+          improve and evaluate Advisor, analytics, recommendations, playbooks,
+          Somtico-owned models, and aggregated industry intelligence. Direct
+          identifiers are excluded from the cross-customer learning corpus. Somtico
+          will not provide that corpus to a third-party model provider for that
+          provider's training. Accepting these Terms or the Privacy Policy does
+          not turn Help Improve Advisor on. Turning the setting off stops future
+          optional cross-customer contributions immediately; normal Service use
+          continues. A Somtico fine-tuned industry model is not claimed as
+          currently shipped.
         </p>
         <p>
           In Enrolment Advisor, a "leak" is the Service's diagnosis of an
@@ -254,14 +247,13 @@ export function TermsDocumentBody({ compact = false }: { compact?: boolean }) {
         <p>
           How we collect, use, and share personal information is described in our
           Privacy Policy, which is incorporated into these Terms. The Privacy
-          Policy covers AI provider processing, record-specific Enrolment Advisor
-          tactic sharing, optional business-outcome learning, optional benchmark
-          participation, consent withdrawal, cross-border processing, and access
-          and correction requests. We handle personal information in accordance
-          with applicable Canadian privacy law, including the Personal Information
+          Policy covers AI provider processing, the optional Help Improve Advisor
+          setting, consent withdrawal, cross-border processing, and access and
+          correction requests. We handle personal information in accordance with
+          applicable Canadian privacy law, including the Personal Information
           Protection and Electronic Documents Act (PIPEDA) where it applies. We do
-          not sell Customer Data. Optional learning and benchmark consents remain
-          separate from acceptance of these Terms.
+          not sell Customer Data. Help Improve Advisor remains separate from
+          acceptance of these Terms.
         </p>
       </Section>
 
@@ -405,8 +397,8 @@ export function PrivacyDocumentBody({ compact = false }: { compact?: boolean }) 
       <p className="mt-4 text-base text-ba-ink/80">
         This policy explains how we handle personal information. It is separate
         from the Terms of Service, which cover the contract for using the
-        product. Optional learning and benchmark consents described below are not
-        part of mandatory signup acceptance.
+        product. Optional Help Improve Advisor is not part of mandatory signup
+        acceptance.
       </p>
 
       <Section title="1. Who We Are and Privacy Officer">
@@ -440,8 +432,8 @@ export function PrivacyDocumentBody({ compact = false }: { compact?: boolean }) 
           sessions, staff wages, expenses, subscriptions, targets, Advisor chat
           questions and answers, enrolment tactics you log (including the result
           you describe), recommendations and outcomes, and similar operating
-          records. That data stays scoped to your organization unless you give an
-          applicable optional learning or benchmark consent described below.
+          records. That data stays scoped to your organization unless an
+          authorized administrator turns on Help Improve Advisor, described below.
         </p>
         <p>
           Technical data needed to run the service: login times, tenant slug, and
@@ -485,96 +477,71 @@ export function PrivacyDocumentBody({ compact = false }: { compact?: boolean }) 
         </p>
       </Section>
 
-      <Section title="4. Record-Specific Enrolment Tactic Sharing">
+      <Section title="4. Optional Help Improve Advisor">
         <p>
-          Enrolment Advisor diagnoses enrolment problems from your records and
-          suggests next steps. In that feature, a "leak" means the diagnosed
-          enrolment problem (for example weak trial-to-paid conversion). It is not
-          a data breach. A "tactic" is a growth step you record. An "outcome" is
-          your label for the result: helped, no clear effect, or hurt.
+          Help Improve Advisor is a single optional organization setting (Settings
+          → Privacy & Data Learning). It is off by default. Only an organization
+          owner or administrator can turn it on, and they must take an explicit
+          Turn On action. Accepting the Terms of Service or this Privacy Policy
+          does not enable it.
         </p>
         <p>
-          On Enrolment Advisor you may opt in, record by record, when you log a
-          tactic with a clear outcome and Advisor has already named a leak. The
-          opt-in is shown only then and is off by default. If you opt in, we store
-          only: tactic type, cost band (free / low / paid), outcome, the leak type
-          at that moment, a coarse education bucket (STEM, tutoring, or other
-          enrichment), and a purpose version used for that historical corpus.
+          While Help Improve Advisor is on, Somtico may use privacy-safe
+          information derived from eligible future use of Business Advisor —
+          including structured signals from Advisor activity, business metrics,
+          programme context, recommendations, owner decisions, actions, measured
+          results, and privacy-safe industry intelligence snapshots — to improve
+          and evaluate Advisor, analytics, recommendations, playbooks,
+          Somtico-owned models, and aggregated industry intelligence. The setting
+          applies prospectively while it remains on; Somtico does not ask again
+          merely because another privacy-safe signal is later derived for the same
+          disclosed purpose.
         </p>
         <p>
-          We do not copy your notes, student or family names, organization id,
-          location, or email into that shared row. Those historical rows are not
-          linked with a withdrawal key that can identify your organization. As a
-          result, if you later stop sharing new records, previously contributed
-          rows of this type generally cannot be located and deleted by
-          organization. Do not put names in the result field.
+          Cross-customer learning is not a dump of your raw tenant database. We
+          use privacy-safe extraction and normalization. We do not intentionally
+          place into the cross-customer learning corpus: student names; parent or
+          guardian names; staff identities where identity is unnecessary; email
+          addresses; telephone numbers; street addresses; authentication
+          credentials; payment-card information; or unrestricted raw
+          source-system records. Where chat activity informs learning, we prefer
+          structured privacy-safe signals rather than copying raw conversations
+          wholesale. Conversations and records kept for normal product
+          functionality inside your organization remain separate from the
+          cross-customer learning corpus.
         </p>
         <p>
-          If you opt in, Somtico may use that de-identified row for playbook
-          counts (shown after enough similar reports) and may later use it to
-          train, evaluate, or operate Somtico-owned models. We will not send that
-          corpus to Anthropic, OpenAI, or any other provider for their training. A
-          Somtico fine-tuned industry model is not claimed as currently shipped.
-          If a contribution has already been incorporated into training of a
-          Somtico-owned model in the future, withdrawal cannot retroactively
-          remove that contribution's influence from an already-trained model.
-        </p>
-      </Section>
-
-      <Section title="5. Optional Business-Outcome Learning">
-        <p>
-          Separately from record-specific Enrolment Advisor sharing, an
-          organization administrator may grant an explicit organization-level
-          consent for optional business-outcome learning. That consent is not
-          bundled into Terms acceptance. When consent is active and a
-          recommendation outcome is finalized (helped, no effect, or hurt),
-          Somtico may create a privacy-safe observation derived from that
-          lifecycle.
+          We will not provide the improvement corpus to Anthropic, OpenAI, or any
+          other third-party AI provider for their own model training. A Somtico
+          fine-tuned industry model is not claimed as currently shipped. If a
+          contribution has already been incorporated into training of a
+          Somtico-owned model in the future, turning the setting off cannot
+          retroactively remove that contribution's influence from an
+          already-trained model.
         </p>
         <p>
-          Categories that may be included: diagnosed business problem; type of
-          action or intervention; coarse education or programme category;
-          enrolment-size band; utilization or capacity band; conversion or
-          retention health; other coarse operational context relevant to when a
-          tactic works; outcome (helped, no effect, or hurt); and, where
-          applicable, verification type or outcome horizon.
-        </p>
-        <p>
-          Categories that are not included: organization name; organization id;
-          student or customer names; parent or guardian names; staff identities;
-          email addresses; telephone numbers; street addresses; arbitrary free
-          text; raw AI conversations; or raw source-system records.
-        </p>
-        <p>
-          These contributions are de-identified / pseudonymized (privacy-safe),
-          not "anonymous" in the sense of being impossible for Somtico to
-          associate for withdrawal. Organization id is not stored in the
-          cross-customer table. A purpose-specific pseudonymous contributor key
-          is retained so Somtico can manage consent and delete that organization's
-          contributed records for that purpose if consent is withdrawn. Separate
-          learning purposes use separate pseudonymous keys.
+          Turning Help Improve Advisor off takes effect immediately for future
+          optional cross-customer contributions. Normal Service operation
+          continues. Organizations that remain off may occasionally receive a
+          non-blocking invitation to reconsider (at most once every 30 days).
+          Choosing "Not now" leaves the setting off and does not grant consent.
+          Organizations with the setting on do not receive these invitations.
         </p>
       </Section>
 
-      <Section title="6. Optional Peer Benchmark Participation">
+      <Section title="5. Historical Legacy Enrolment Contributions">
         <p>
-          Contribution of privacy-safe business metric snapshots for future
-          peer benchmarking requires a separate explicit organization-level
-          opt-in. It is a different purpose from business-outcome learning.
-          Snapshots use trusted deterministic metrics and coarse cohort
-          dimensions (for example education subtype and enrolment-size band).
-          Organization id is not stored in the benchmark contribution. Somtico
-          uses a separate purpose-specific pseudonymous contributor key.
-        </p>
-        <p>
-          Customer-facing peer benchmarking is not yet launched. Another customer
-          will not receive your organization's raw benchmark record. Before any
-          future comparison is shown, minimum cohort and privacy thresholds apply;
-          sparse groups may be suppressed or broadened.
+          An earlier Enrolment Advisor mechanism allowed record-by-record sharing
+          into a de-identified table without an organization identifier or
+          withdrawal key. Those historical rows retain their original semantics:
+          Somtico generally cannot locate and delete them by organization. New
+          contributions under Help Improve Advisor use privacy-safe observations
+          with purpose-specific withdrawal links and do not extend that legacy
+          limitation to new data.
         </p>
       </Section>
 
-      <Section title="7. Sharing and Cross-Border Processing">
+      <Section title="6. Sharing and Cross-Border Processing">
         <p>
           We share personal information with processors who help us run the
           Service, including hosting and infrastructure, email delivery, payment
@@ -592,31 +559,19 @@ export function PrivacyDocumentBody({ compact = false }: { compact?: boolean }) 
         </p>
       </Section>
 
-      <Section title="8. Retention, Withdrawal, Access, and Correction">
+      <Section title="7. Retention, Withdrawal, Access, and Correction">
         <p>
           We keep Customer Data while your organization has an account, and for a
           limited period after termination so you can request an export (see the
           Terms).
         </p>
         <p>
-          For optional business-outcome learning and optional benchmark consent:
-          your organization can withdraw the applicable consent. Withdrawal stops
-          future contributions for that purpose. Currently stored privacy-safe
-          contributions for that purpose are deleted using the purpose-specific
-          contributor key. Withdrawing business-outcome learning consent does not
-          automatically withdraw benchmark consent, and withdrawing benchmark
-          consent does not automatically withdraw business-outcome learning
-          consent. Record-specific Enrolment Advisor sharing remains separate and,
-          as noted above, historical rows of that type generally cannot be deleted
-          by organization key.
-        </p>
-        <p>
-          If an opted-in contribution has already been incorporated into the
-          training of a Somtico-owned model, withdrawal cannot retroactively
-          remove that contribution's influence from an already-trained model.
-          Withdrawal stops future eligible use and removes the applicable stored
-          contribution where the system is designed to retain a withdrawal link.
-          No Somtico fine-tuned industry model is claimed as currently shipped.
+          Turning Help Improve Advisor off stops future optional cross-customer
+          contributions. Privacy-safe contributions stored under the current
+          architecture that retain a purpose-specific contributor key are deleted
+          for those purposes when the setting is turned off. Historical legacy
+          Enrolment Advisor rows without a withdrawal key generally cannot be
+          deleted by organization, as described above.
         </p>
         <p>
           Subject to applicable law, an individual may request information about
@@ -629,7 +584,7 @@ export function PrivacyDocumentBody({ compact = false }: { compact?: boolean }) 
         </p>
       </Section>
 
-      <Section title="9. Children and Student Records">
+      <Section title="8. Children and Student Records">
         <p>
           The Service is for businesses. Children do not create Somtico Business
           Advisor accounts. If your organization stores information about students
@@ -640,7 +595,7 @@ export function PrivacyDocumentBody({ compact = false }: { compact?: boolean }) 
         </p>
       </Section>
 
-      <Section title="10. Canadian Privacy Law">
+      <Section title="9. Canadian Privacy Law">
         <p>
           We handle personal information in accordance with applicable Canadian
           privacy law, including the Personal Information Protection and
@@ -649,12 +604,13 @@ export function PrivacyDocumentBody({ compact = false }: { compact?: boolean }) 
         </p>
       </Section>
 
-      <Section title="11. Changes">
+      <Section title="10. Changes">
         <p>
           We may update this policy. Material changes take effect no less than 30
           days after notice. The version identifiers above identify the text
           accepted at signup or through an explicit in-app re-acceptance. Existing
           acceptance records are not rewritten when a new version is published.
+          Updating this policy does not by itself turn Help Improve Advisor on.
         </p>
       </Section>
     </>

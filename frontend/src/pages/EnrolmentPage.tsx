@@ -83,6 +83,10 @@ interface Guidance {
   disclaimer: string;
   privacy: { anonymizedSharing: string };
   canShareAnonymized: boolean;
+  helpImproveAdvisor?: {
+    enabled: boolean;
+    statusCopy: string;
+  };
 }
 
 const OUTCOME_LABELS: Record<Outcome, string> = {
@@ -118,7 +122,6 @@ export function EnrolmentPage() {
   const [resultSummary, setResultSummary] = useState('');
   const [outcome, setOutcome] = useState<Outcome>('UNKNOWN');
   const [costBand, setCostBand] = useState<CostBand>('FREE');
-  const [shareAnonymized, setShareAnonymized] = useState(false);
 
   async function load() {
     const res = await api<{ success: boolean; data: Guidance }>(
@@ -157,15 +160,10 @@ export function EnrolmentPage() {
           resultSummary,
           outcome,
           costBand,
-          shareAnonymized:
-            Boolean(data?.canShareAnonymized) &&
-            outcome !== 'UNKNOWN' &&
-            shareAnonymized,
         }),
       });
       setResultSummary('');
       setOtherLabel('');
-      setShareAnonymized(false);
       setMessage('Recorded. Advisor will use this result the next time it advises.');
       await load();
     } catch (err) {
@@ -202,12 +200,17 @@ export function EnrolmentPage() {
   }
 
   const catalog = data.tacticCatalog;
-  const canShareThisRecord =
-    data.canShareAnonymized && outcome !== 'UNKNOWN';
   const tacticLabel = (key: TacticKey, other: string | null) =>
     key === 'OTHER' && other
       ? other
       : catalog.find((t) => t.key === key)?.label || key;
+
+  const helpImproveOn = Boolean(data.helpImproveAdvisor?.enabled);
+  const helpImproveCopy =
+    data.helpImproveAdvisor?.statusCopy ||
+    (helpImproveOn
+      ? 'Help Improve Advisor: On · Manage'
+      : 'Help Improve Advisor: Off · Manage');
 
   return (
     <div>
@@ -217,6 +220,12 @@ export function EnrolmentPage() {
         first. A paid test appears only when conversion is healthy, seats are
         open, and cash can absorb it. Record what you tried and the result you
         got; empty seats alone are not a marketing plan.
+      </p>
+      <p className="mt-3 text-base text-ba-ink/70">
+        {helpImproveCopy.split('Manage')[0]}
+        <Link className="text-ba-accent underline" to="/app/settings#privacy">
+          Manage
+        </Link>
       </p>
 
       {message && <p className="mt-3 text-base text-ba-accent">{message}</p>}
@@ -398,42 +407,14 @@ export function EnrolmentPage() {
               </select>
             </label>
           </div>
-          {canShareThisRecord ? (
-            <>
-              <label className="flex cursor-pointer items-start gap-3 text-base">
-                <input
-                  type="checkbox"
-                  checked={shareAnonymized}
-                  onChange={(e) => setShareAnonymized(e.target.checked)}
-                  className="mt-1 cursor-pointer rounded border-ba-line"
-                />
-                <span>
-                  Share a de-identified copy (tactic type, cost band, outcome,
-                  and leak type only; no notes, names, or organization id) so
-                  Advisor can improve the playbook and, later, Somtico-owned
-                  models for this industry. Off by default.
-                </span>
-              </label>
-              <p className="text-base text-ba-ink/80">
-                Important: this shared copy does not contain your organization
-                ID or a withdrawal key. After it is shared, we generally cannot
-                identify and delete that historical copy by organization. You
-                can stop sharing future records at any time.{' '}
-                <Link className="text-ba-accent underline" to="/privacy">
-                  Privacy Policy
-                </Link>
-              </p>
-              <p className="text-base text-ba-ink/70">
-                {data.privacy.anonymizedSharing}
-              </p>
-            </>
-          ) : (
-            <p className="text-base text-ba-ink/70">
-              {data.canShareAnonymized
-                ? 'Pick a clear outcome (helped, no effect, or hurt) to choose whether to share a de-identified copy. Too soon to say stays on your organization only.'
-                : 'A de-identified share is offered after Advisor can name a leak from your records.'}
-            </p>
-          )}
+          <p className="text-base text-ba-ink/70">
+            {helpImproveOn
+              ? 'When Help Improve Advisor is on, eligible privacy-safe results (tactic type, cost band, outcome, leak type) may contribute automatically. Your notes stay on your organization.'
+              : 'Results stay on your organization unless an administrator turns on Help Improve Advisor in Settings.'}{' '}
+            <Link className="text-ba-accent underline" to="/privacy">
+              Privacy Policy
+            </Link>
+          </p>
           <button
             type="submit"
             disabled={saving}
@@ -463,7 +444,7 @@ export function EnrolmentPage() {
                 <p className="mt-1 text-ba-ink/80">{t.resultSummary}</p>
                 <p className="mt-1 text-sm text-ba-ink/60">
                   {new Date(t.createdAt).toLocaleDateString('en-CA')}
-                  {t.shareAnonymized ? ' · de-identified copy shared' : ''}
+                  {t.shareAnonymized ? ' · contributed to Help Improve Advisor' : ''}
                 </p>
               </li>
             ))}

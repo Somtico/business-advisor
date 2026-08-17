@@ -10,8 +10,8 @@ import {
 
 describe('legal acceptance versions', () => {
   it('exports matching Terms and Privacy version stamps', () => {
-    expect(TERMS_VERSION).toBe('2026-08-16.1');
-    expect(PRIVACY_VERSION).toBe('2026-08-16.1');
+    expect(TERMS_VERSION).toBe('2026-08-16.2');
+    expect(PRIVACY_VERSION).toBe('2026-08-16.2');
     expect(LEGAL_NOTICE_PUBLISHED_AT).toBe('2026-08-16');
     expect(LEGAL_MATERIAL_CHANGE_EFFECTIVE_AT).toBe('2026-09-15');
   });

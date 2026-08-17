@@ -45,9 +45,9 @@ async function main() {
       role: 'OWNER',
       emailVerified: true,
       termsAcceptedAt: new Date(),
-      termsVersion: '2026-08-16.1',
+      termsVersion: '2026-08-16.2',
       privacyAcceptedAt: new Date(),
-      privacyVersion: '2026-08-16.1',
+      privacyVersion: '2026-08-16.2',
     },
   });
 

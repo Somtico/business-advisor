@@ -79,6 +79,9 @@ async function main() {
       ALTER TABLE "organizations" ADD COLUMN IF NOT EXISTS "pricingTargetMarginPercent" DOUBLE PRECISION NOT NULL DEFAULT 30;
     `);
     await prisma.$executeRawUnsafe(`
+      ALTER TABLE "organizations" ADD COLUMN IF NOT EXISTS "learningInviteSnoozedUntil" TIMESTAMP(3);
+    `);
+    await prisma.$executeRawUnsafe(`
       ALTER TABLE "users"
         ADD COLUMN IF NOT EXISTS "termsAcceptedAt" TIMESTAMP(3),
         ADD COLUMN IF NOT EXISTS "termsVersion" TEXT,

@@ -12,6 +12,13 @@ interface ConnectorRow {
   lastSyncedAt: string | null;
 }
 
+type HelpImproveStatus = {
+  enabled: boolean;
+  settingVersion: string;
+  grantedAt: string | null;
+  grantedByUserId: string | null;
+};
+
 const CONNECTOR_STATUS: Record<string, string> = {
   connected: 'Connected',
   configured: 'Ready to Sync',
@@ -19,8 +26,29 @@ const CONNECTOR_STATUS: Record<string, string> = {
   not_configured: 'Not Configured',
 };
 
+const HELP_IMPROVE_DISCLOSURE = (
+  <>
+    When this is on, Somtico may use privacy-safe information from your use of
+    Business Advisor — including structured signals from chats, business data,
+    recommendations, actions, and results — to improve and evaluate Advisor, its
+    analytics, recommendations, playbooks, Somtico-owned models, and aggregated
+    industry intelligence.
+    <br />
+    <br />
+    We remove or exclude direct identifiers from information used for
+    cross-customer learning and do not provide this improvement corpus to
+    third-party AI companies for their own model training.
+    <br />
+    <br />
+    This setting applies to eligible information you provide in the future while
+    it remains on. You can turn it off at any time. Accepting the Terms or
+    Privacy Policy does not turn this on.
+  </>
+);
+
 export function SettingsPage() {
-  const { organization } = useAuth();
+  const { organization, user } = useAuth();
+  const canManageLearning = user?.role === 'OWNER' || user?.role === 'ADMIN';
   const [billing, setBilling] = useState<{
     subscription: {
       plan: string;
@@ -33,6 +61,8 @@ export function SettingsPage() {
     } | null;
   } | null>(null);
   const [connectors, setConnectors] = useState<ConnectorRow[]>([]);
+  const [helpImprove, setHelpImprove] = useState<HelpImproveStatus | null>(null);
+  const [learningBusy, setLearningBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
   useEffect(() => {
@@ -44,6 +74,11 @@ export function SettingsPage() {
     api<{ success: boolean; data: ConnectorRow[] }>('/api/app/connectors')
       .then((r) => setConnectors(r.data))
       .catch(() => setConnectors([]));
+    api<{ success: boolean; data: HelpImproveStatus }>(
+      '/api/app/learning/help-improve'
+    )
+      .then((r) => setHelpImprove(r.data))
+      .catch(() => setHelpImprove(null));
   }, []);
 
   async function checkout() {
@@ -65,7 +100,11 @@ export function SettingsPage() {
   async function connectOnboard() {
     const res = await api<{
       success: boolean;
-      data: { onboardingUrl: string | null; simulated?: boolean; accountId: string };
+      data: {
+        onboardingUrl: string | null;
+        simulated?: boolean;
+        accountId: string;
+      };
     }>('/api/billing/connect/onboard', { method: 'POST' });
     if (res.data.onboardingUrl) {
       window.location.href = res.data.onboardingUrl;
@@ -102,12 +141,96 @@ export function SettingsPage() {
     );
   }
 
+  async function turnOnHelpImprove() {
+    if (!canManageLearning) return;
+    setLearningBusy(true);
+    try {
+      const res = await api<{ success: boolean; data: HelpImproveStatus }>(
+        '/api/app/learning/help-improve/enable',
+        { method: 'POST', body: JSON.stringify({}) }
+      );
+      setHelpImprove(res.data);
+      setMessage('Help Improve Advisor is on.');
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : 'Could not turn on');
+    } finally {
+      setLearningBusy(false);
+    }
+  }
+
+  async function turnOffHelpImprove() {
+    if (!canManageLearning) return;
+    setLearningBusy(true);
+    try {
+      const res = await api<{ success: boolean; data: HelpImproveStatus }>(
+        '/api/app/learning/help-improve/disable',
+        { method: 'POST', body: JSON.stringify({}) }
+      );
+      setHelpImprove(res.data);
+      setMessage(
+        "Off — your new activity will not be contributed to Somtico's optional cross-customer learning."
+      );
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : 'Could not turn off');
+    } finally {
+      setLearningBusy(false);
+    }
+  }
+
+  const enabled = Boolean(helpImprove?.enabled);
+
   return (
     <div>
       <h1 className="font-display text-3xl font-bold">Settings</h1>
       <p className="mt-2 text-base text-ba-ink/70">
         Organization: {organization?.name} ({organization?.slug})
       </p>
+
+      <section
+        id="privacy"
+        className="mt-8 scroll-mt-8 border border-ba-line bg-white p-5"
+      >
+        <h2 className="font-display text-2xl font-bold">Privacy & Data Learning</h2>
+        <p className="mt-2 text-base font-semibold">Help Improve Advisor</p>
+        <p className="mt-2 text-base text-ba-ink/80">{HELP_IMPROVE_DISCLOSURE}</p>
+        <p className="mt-4 text-base">
+          Status:{' '}
+          <span className="font-semibold">{enabled ? 'On' : 'Off'}</span>
+          {enabled
+            ? ' — eligible privacy-safe activity may contribute while this remains on.'
+            : " — your new activity will not be contributed to Somtico's optional cross-customer learning."}
+        </p>
+        {canManageLearning ? (
+          <div className="mt-4 flex flex-wrap gap-3">
+            {!enabled ? (
+              <button
+                type="button"
+                disabled={learningBusy}
+                onClick={() => void turnOnHelpImprove()}
+                className="cursor-pointer rounded-md bg-ba-accent px-4 py-2 text-base font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {learningBusy ? 'Saving…' : 'Turn On'}
+              </button>
+            ) : (
+              <button
+                type="button"
+                disabled={learningBusy}
+                onClick={() => void turnOffHelpImprove()}
+                className="cursor-pointer rounded-md border border-ba-line px-4 py-2 text-base disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {learningBusy ? 'Saving…' : 'Turn Off'}
+              </button>
+            )}
+            <Link className="self-center text-ba-accent underline" to="/privacy">
+              Privacy Policy
+            </Link>
+          </div>
+        ) : (
+          <p className="mt-4 text-base text-ba-ink/70">
+            Only an organization owner or administrator can change this setting.
+          </p>
+        )}
+      </section>
 
       <section className="mt-8 border border-ba-line bg-white p-5">
         <h2 className="font-display text-2xl font-bold">Billing</h2>

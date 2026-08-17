@@ -142,3 +142,61 @@ export function buildV2Payload(decision: DecisionOutcome) {
     verificationType: decision.outcomeVerificationType,
   };
 }
+
+/**
+ * Privacy-safe enrolment tactic contribution under Help Improve Advisor.
+ * Uses the V2 observation table with a purpose-specific contributorKey so
+ * withdrawal can delete new rows. Does not write legacy V1 anonymized_tactic_outcomes
+ * (those remain historical-only). Never copies resultSummary / notes / names.
+ */
+export async function maybeShareEnrolmentTacticV2(params: {
+  organizationId: string;
+  educationSubtype: string | null;
+  diagnosedLeak: string;
+  tacticKey: string;
+  costBand: 'FREE' | 'LOW' | 'PAID';
+  outcome: 'HELPED' | 'NO_EFFECT' | 'HURT';
+}): Promise<{ shared: boolean; reason?: string; observationId?: string }> {
+  const consented = await hasActiveLearningConsent(
+    params.organizationId,
+    OUTCOME_CORPUS_PURPOSE_VERSION_V2
+  );
+  if (!consented) {
+    return { shared: false, reason: 'NO_CONSENT' };
+  }
+
+  const contributorKey = deriveContributorKey(
+    params.organizationId,
+    OUTCOME_CORPUS_PURPOSE_VERSION_V2
+  );
+
+  const payload = {
+    schemaVersion: OUTCOME_OBSERVATION_V2_SCHEMA_VERSION,
+    purposeVersion: OUTCOME_CORPUS_PURPOSE_VERSION_V2,
+    contributorKey,
+    educationSubtype: params.educationSubtype,
+    programmeCategory: null as string | null,
+    activeEnrolmentBand: null as string | null,
+    locationCountBand: null as string | null,
+    utilizationBand: null as string | null,
+    conversionHealth: null as string | null,
+    retentionHealth: null as string | null,
+    spareCapacityState: null as string | null,
+    cashSafetyBand: null as string | null,
+    seasonOrPeriod: null as string | null,
+    diagnosedLeak: params.diagnosedLeak,
+    interventionCategory: params.tacticKey,
+    effortOrCostBand: effortOrCostBand(params.costBand),
+    outcome: params.outcome as LifecycleOutcome,
+    outcomeHorizonDays: null as number | null,
+    verificationType: 'USER_CONFIRMED' as const,
+  };
+
+  assertNoProhibitedFields(payload as unknown as Record<string, unknown>);
+
+  const observation = await prisma.anonymizedOutcomeObservationV2.create({
+    data: payload,
+  });
+
+  return { shared: true, observationId: observation.id };
+}

@@ -7,8 +7,8 @@
  * Corpus purposeVersion strings are immutable once shipped — never redefine
  * somtico_models_v1. Add a new version string for new learning schemas.
  */
-export const TERMS_VERSION = '2026-08-16.1';
-export const PRIVACY_VERSION = '2026-08-16.1';
+export const TERMS_VERSION = '2026-08-16.2';
+export const PRIVACY_VERSION = '2026-08-16.2';
 
 /**
  * Material legal update notice for users who already accepted an older version.
@@ -32,6 +32,17 @@ export const OUTCOME_CORPUS_PLAYBOOK_ONLY_VERSION = 'playbook_counts_v1';
 export const OUTCOME_CORPUS_PURPOSE_VERSION_V2 = 'somtico_models_v2';
 /** Opt-in privacy-safe benchmark metric snapshots (customer UI deferred). */
 export const BENCHMARK_SNAPSHOTS_PURPOSE_VERSION = 'benchmark_snapshots_v1';
+/**
+ * Customer-facing Help Improve Advisor setting version (audit / notes).
+ * Enabling the setting grants the internal purposes listed in
+ * HELP_IMPROVE_ADVISOR_INTERNAL_PURPOSES — not a separate anonymized table.
+ */
+export const HELP_IMPROVE_ADVISOR_SETTING_VERSION = 'help_improve_advisor_v1';
+/** Internal LearningConsent purposeVersions authorized by Help Improve Advisor. */
+export const HELP_IMPROVE_ADVISOR_INTERNAL_PURPOSES = [
+  OUTCOME_CORPUS_PURPOSE_VERSION_V2,
+  BENCHMARK_SNAPSHOTS_PURPOSE_VERSION,
+] as const;
 
 export const DECISION_OUTCOME_SCHEMA_VERSION = 'decision_outcome_v1';
 export const DECISION_CONTEXT_SCHEMA_VERSION = 'decision_context_v1';

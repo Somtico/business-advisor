@@ -1,6 +1,7 @@
 import { Link, NavLink, Outlet, Navigate } from 'react-router';
 import { BrandMark } from './BrandMark';
 import { LegalAcceptanceGate } from './LegalAcceptanceGate';
+import { HelpImproveInvite } from './HelpImproveInvite';
 import { useAuth } from '../context/AuthContext';
 
 const links = [
@@ -30,6 +31,7 @@ export function AppShell() {
   return (
     <div className="min-h-screen bg-ba-surface text-ba-ink">
       <LegalAcceptanceGate />
+      <HelpImproveInvite />
       <div className="flex min-h-screen">
         <aside className="sticky top-0 hidden h-screen w-64 shrink-0 border-r border-ba-line bg-white md:flex md:flex-col">
           <div className="border-b border-ba-line px-5 py-6">

@@ -4,13 +4,17 @@ import {
   TacticOutcome,
 } from '@prisma/client';
 import prisma from '../config/prisma';
-import { ADVICE_DISCLAIMER, OUTCOME_CORPUS_PURPOSE_VERSION } from '../config/legal';
+import {
+  ADVICE_DISCLAIMER,
+} from '../config/legal';
 import {
   cashOutlook,
   cashSafeTestSize,
   enrolmentMetrics,
   programmePerformance,
 } from './metrics/analyticsService';
+import { isHelpImproveAdvisorEnabled } from './moat/helpImproveAdvisorService';
+import { maybeShareEnrolmentTacticV2 } from './moat/outcomeObservationV2Service';
 
 const LOW_UTILIZATION = 0.6;
 const FULL_ROOM = 0.95;
@@ -24,13 +28,11 @@ const PAID_TEST_MONITOR_WEEKS = 6;
 const MIN_RUNWAY_WEEKS_FOR_PAID = 8;
 const PERSISTENCE_DAYS = 28;
 
-/**
- * Just-in-time explanation for the legacy V1 record-specific Enrolment Advisor
- * share (somtico_models_v1). Must stay aligned with the Privacy Policy and the
- * Enrolment Advisor checkbox disclosure. Does not apply to V2 / benchmarks.
- */
-export const ANONYMIZED_TACTIC_SHARING_EXPLANATION =
-  'Optional. Shown only when a leak is named and you pick a clear outcome. If you opt in, we store only the tactic type, cost band, outcome, leak type, and a coarse education bucket. Your notes, names, and organization id are not copied. That shared copy has no organization identifier or withdrawal key, so previously shared copies generally cannot later be located and deleted by organization. You can leave sharing off for any future record. Your local tactic notes on your organization stay under your control. Aggregates appear only after 8 similar reports. Somtico may later use those de-identified rows to improve its own playbook and models. They are never sent to train Anthropic, OpenAI, or any other third-party model.';
+/** Quiet status copy for Enrolment Advisor (full disclosure lives in Settings). */
+export const HELP_IMPROVE_STATUS_ON =
+  'Help Improve Advisor: On — eligible privacy-safe results may contribute automatically. Manage in Settings.';
+export const HELP_IMPROVE_STATUS_OFF =
+  'Help Improve Advisor: Off — your new activity is not contributed to optional cross-customer learning. Manage in Settings.';
 
 export type EnrolmentLeak =
   | 'INSUFFICIENT_DATA'
@@ -147,24 +149,47 @@ function cheapSteps(leak: EnrolmentLeak): Array<{ title: string; detail: string 
 
 export async function peerPatternsForLeak(leakType: string) {
   if (leakType === 'INSUFFICIENT_DATA' || leakType === 'STABLE') return [];
-  const rows = await prisma.anonymizedTacticOutcome.groupBy({
-    by: ['tacticKey', 'outcome'],
-    where: {
-      leakType,
-      outcome: { in: ['HELPED', 'NO_EFFECT', 'HURT'] },
-    },
-    _count: { _all: true },
-  });
+
+  const [v1Rows, v2Rows] = await Promise.all([
+    prisma.anonymizedTacticOutcome.groupBy({
+      by: ['tacticKey', 'outcome'],
+      where: {
+        leakType,
+        outcome: { in: ['HELPED', 'NO_EFFECT', 'HURT'] },
+      },
+      _count: { _all: true },
+    }),
+    prisma.anonymizedOutcomeObservationV2.groupBy({
+      by: ['interventionCategory', 'outcome'],
+      where: {
+        diagnosedLeak: leakType,
+        outcome: { in: ['HELPED', 'NO_EFFECT', 'HURT'] },
+        interventionCategory: { in: TACTIC_CATALOG.map((t) => t.key) },
+      },
+      _count: { _all: true },
+    }),
+  ]);
+
   const byTactic = new Map<
     EnrolmentTacticKey,
     { helped: number; total: number }
   >();
-  for (const row of rows) {
+
+  for (const row of v1Rows) {
     const cur = byTactic.get(row.tacticKey) ?? { helped: 0, total: 0 };
     cur.total += row._count._all;
     if (row.outcome === 'HELPED') cur.helped += row._count._all;
     byTactic.set(row.tacticKey, cur);
   }
+  for (const row of v2Rows) {
+    const key = row.interventionCategory as EnrolmentTacticKey | null;
+    if (!key || !TACTIC_CATALOG.some((t) => t.key === key)) continue;
+    const cur = byTactic.get(key) ?? { helped: 0, total: 0 };
+    cur.total += row._count._all;
+    if (row.outcome === 'HELPED') cur.helped += row._count._all;
+    byTactic.set(key, cur);
+  }
+
   const out = [];
   for (const tactic of TACTIC_CATALOG) {
     const stats = byTactic.get(tactic.key);
@@ -335,6 +360,7 @@ export async function enrolmentGuidance(organizationId: string) {
     diagnosedLeak: leak === 'INSUFFICIENT_DATA' ? 'GENERAL' : leak,
     educationSubtype: org.educationSubtype,
   }).catch(() => null);
+  const helpImproveEnabled = await isHelpImproveAdvisorEnabled(organizationId);
 
   return {
     leak,
@@ -389,8 +415,15 @@ export async function enrolmentGuidance(organizationId: string) {
     })),
     disclaimer: ADVICE_DISCLAIMER,
     generatedAt: now.toISOString(),
+    helpImproveAdvisor: {
+      enabled: helpImproveEnabled,
+      statusCopy: helpImproveEnabled
+        ? HELP_IMPROVE_STATUS_ON
+        : HELP_IMPROVE_STATUS_OFF,
+    },
     privacy: {
-      anonymizedSharing: ANONYMIZED_TACTIC_SHARING_EXPLANATION,
+      anonymizedSharing:
+        'Optional organization setting: Help Improve Advisor (Settings → Privacy & Data Learning). When on, eligible privacy-safe enrolment results may contribute automatically. Notes and names stay on your organization. Direct identifiers are excluded from cross-customer learning.',
       minPeerSample: MIN_PEER_SAMPLE,
     },
     canShareAnonymized: leak !== 'INSUFFICIENT_DATA',
@@ -406,6 +439,7 @@ export async function recordEnrolmentTactic(
     resultSummary: string;
     outcome: TacticOutcome;
     costBand: TacticCostBand;
+    /** @deprecated Ignored. Sharing is governed by Help Improve Advisor. */
     shareAnonymized?: boolean;
   }
 ) {
@@ -424,10 +458,14 @@ export async function recordEnrolmentTactic(
   const guidance = await enrolmentGuidance(organizationId);
   const leakTypeAtReport =
     guidance.leak === 'INSUFFICIENT_DATA' ? null : guidance.leak;
+
+  const helpImproveOn = await isHelpImproveAdvisorEnabled(organizationId);
+  const eligibleOutcome =
+    input.outcome === 'HELPED' ||
+    input.outcome === 'NO_EFFECT' ||
+    input.outcome === 'HURT';
   const share =
-    Boolean(input.shareAnonymized) &&
-    input.outcome !== 'UNKNOWN' &&
-    leakTypeAtReport != null;
+    helpImproveOn && eligibleOutcome && leakTypeAtReport != null;
 
   const row = await prisma.enrolmentTacticTried.create({
     data: {
@@ -442,20 +480,20 @@ export async function recordEnrolmentTactic(
     },
   });
 
-  if (share && leakTypeAtReport) {
+  // New contributions use V2 + contributorKey (withdrawable). Legacy V1
+  // anonymized_tactic_outcomes are not written for new shares.
+  if (share && leakTypeAtReport && eligibleOutcome) {
     const org = await prisma.organization.findUniqueOrThrow({
       where: { id: organizationId },
       select: { educationSubtype: true },
     });
-    await prisma.anonymizedTacticOutcome.create({
-      data: {
-        tacticKey: input.tacticKey,
-        outcome: input.outcome,
-        costBand: input.costBand,
-        leakType: leakTypeAtReport,
-        educationBucket: educationBucket(org.educationSubtype),
-        purposeVersion: OUTCOME_CORPUS_PURPOSE_VERSION,
-      },
+    await maybeShareEnrolmentTacticV2({
+      organizationId,
+      educationSubtype: org.educationSubtype,
+      diagnosedLeak: leakTypeAtReport,
+      tacticKey: input.tacticKey,
+      costBand: input.costBand,
+      outcome: input.outcome as 'HELPED' | 'NO_EFFECT' | 'HURT',
     });
   }
 

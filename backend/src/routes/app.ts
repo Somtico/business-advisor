@@ -40,17 +40,20 @@ import {
   syncDecisionFromRecommendationStatus,
 } from '../services/moat/decisionOutcomeService';
 import {
-  grantLearningConsent,
   listLearningConsents,
-  withdrawLearningConsent,
 } from '../services/moat/learningConsentService';
+import {
+  disableHelpImproveAdvisor,
+  dismissHelpImproveInvite,
+  enableHelpImproveAdvisor,
+  getHelpImproveAdvisorStatus,
+} from '../services/moat/helpImproveAdvisorService';
 import {
   BENCHMARK_SNAPSHOTS_PURPOSE_VERSION,
   OUTCOME_CORPUS_PURPOSE_VERSION_V2,
 } from '../config/legal';
 import { proposeMappings } from '../services/moat/sourceMappingService';
 import { contextualPeerPatterns } from '../services/moat/contextualPlaybookService';
-import { captureBenchmarkSnapshotsForOrg } from '../services/moat/benchmarkSnapshotService';
 import { LifecycleOutcome } from '@prisma/client';
 
 const router = Router();
@@ -1079,12 +1082,62 @@ router.get('/audit', requireRole(['OWNER', 'ADMIN']), async (req: Request, res: 
   res.json({ success: true, data: rows });
 });
 
-/** Purpose/version-aware learning consent (v2 outcomes, benchmarks). */
+/** Single customer setting: Help Improve Advisor (grants V2 + benchmark internally). */
+router.get('/learning/help-improve', async (req: Request, res: Response) => {
+  const role = req.user!.role;
+  const canManage = role === 'OWNER' || role === 'ADMIN';
+  const data = await getHelpImproveAdvisorStatus(req.user!.organizationId, {
+    canManage,
+  });
+  res.json({ success: true, data });
+});
+
+router.post(
+  '/learning/help-improve/enable',
+  requireRole(['OWNER', 'ADMIN']),
+  async (req: Request, res: Response) => {
+    const data = await enableHelpImproveAdvisor({
+      organizationId: req.user!.organizationId,
+      grantedByUserId: req.user!.id,
+    });
+    res.status(201).json({ success: true, data });
+  }
+);
+
+router.post(
+  '/learning/help-improve/disable',
+  requireRole(['OWNER', 'ADMIN']),
+  async (req: Request, res: Response) => {
+    const data = await disableHelpImproveAdvisor({
+      organizationId: req.user!.organizationId,
+      actorUserId: req.user!.id,
+    });
+    res.json({ success: true, data });
+  }
+);
+
+router.post(
+  '/learning/help-improve/dismiss-invite',
+  requireRole(['OWNER', 'ADMIN']),
+  async (req: Request, res: Response) => {
+    const data = await dismissHelpImproveInvite({
+      organizationId: req.user!.organizationId,
+      actorUserId: req.user!.id,
+    });
+    res.json({ success: true, data });
+  }
+);
+
+/** Internal/purpose-list view (engineering). Customer UI uses /learning/help-improve. */
 router.get('/learning/consents', async (req: Request, res: Response) => {
   const data = await listLearningConsents(req.user!.organizationId);
   res.json({ success: true, data });
 });
 
+/**
+ * Legacy purpose grant: enabling any allowed purpose turns on Help Improve Advisor
+ * (both internal purposes) so customers never end up with half-state.
+ */
 router.post(
   '/learning/consents',
   requireRole(['OWNER', 'ADMIN']),
@@ -1094,7 +1147,7 @@ router.post(
       OUTCOME_CORPUS_PURPOSE_VERSION_V2,
       BENCHMARK_SNAPSHOTS_PURPOSE_VERSION,
     ];
-    if (!allowed.includes(purposeVersion)) {
+    if (purposeVersion && !allowed.includes(purposeVersion)) {
       res.status(400).json({
         success: false,
         error: {
@@ -1104,16 +1157,10 @@ router.post(
       });
       return;
     }
-    const data = await grantLearningConsent({
+    const data = await enableHelpImproveAdvisor({
       organizationId: req.user!.organizationId,
-      purposeVersion,
       grantedByUserId: req.user!.id,
     });
-    if (purposeVersion === BENCHMARK_SNAPSHOTS_PURPOSE_VERSION) {
-      await captureBenchmarkSnapshotsForOrg(req.user!.organizationId).catch(
-        (err) => console.error('benchmark snapshot after consent failed', err)
-      );
-    }
     res.status(201).json({ success: true, data });
   }
 );
@@ -1122,17 +1169,9 @@ router.post(
   '/learning/consents/withdraw',
   requireRole(['OWNER', 'ADMIN']),
   async (req: Request, res: Response) => {
-    const { purposeVersion } = req.body || {};
-    if (typeof purposeVersion !== 'string' || !purposeVersion) {
-      res.status(400).json({
-        success: false,
-        error: { code: 'VALIDATION', message: 'purposeVersion required' },
-      });
-      return;
-    }
-    const data = await withdrawLearningConsent({
+    const data = await disableHelpImproveAdvisor({
       organizationId: req.user!.organizationId,
-      purposeVersion,
+      actorUserId: req.user!.id,
     });
     res.json({ success: true, data });
   }

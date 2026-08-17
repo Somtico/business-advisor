@@ -8,7 +8,7 @@ import {
   LEGAL_NOTICE_PUBLISHED_AT,
 } from '../content/legalDocuments';
 
-const NOTICE_DISMISS_KEY = 'ba_legal_notice_dismissed_2026-08-16.1';
+const NOTICE_DISMISS_KEY = 'ba_legal_notice_dismissed_2026-08-16.2';
 
 /**
  * Soft banner during the ≥30-day notice window, and a blocking modal after

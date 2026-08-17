@@ -213,6 +213,8 @@ model Organization {
   pricingTargetMarginPercent Float        @default(30)
   stripeConnectAccountId String?
   stripeConnectReady   Boolean            @default(false)
+  /// Soft “Help Improve Advisor” invite: after dismiss, hide until this timestamp.
+  learningInviteSnoozedUntil DateTime?
   primaryColour        String?
   logoUrl              String?
   createdAt            DateTime           @default(now())
