@@ -18,7 +18,7 @@ export const FAQ_SECTIONS: FaqSection[] = [
       },
       {
         q: 'Which AI model does Advisor use?',
-        a: 'Advisor prefers Claude, then OpenAI if Claude is unavailable. The model only phrases answers. Verdicts such as cost floors, enrolment leaks, and cash-safe spend caps are calculated by Somtico tools from your records.',
+        a: 'Advisor uses external language models only to phrase answers over trusted evidence. Verdicts such as cost floors, enrolment leaks, and cash-safe spend caps are calculated by Somtico tools from your records. The specific model provider is an implementation detail and is not shown in the product UI.',
       },
       {
         q: 'Does Advisor ever guess?',

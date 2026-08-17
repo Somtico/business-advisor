@@ -7,6 +7,14 @@ import {
   prepareProviderSafeRequest,
 } from './aiAdvisorService';
 
+jest.mock('./ai/aiGateway', () => ({
+  runAiInference: jest.fn(),
+  recordLocalFallback: jest.fn(),
+}));
+
+import { runAiInference } from './ai/aiGateway';
+
+
 const FIXTURE_STUDENT = 'PII_TEST_STUDENT_JANE_SMITH';
 const FIXTURE_EMAIL = 'pii-test-parent@example.com';
 const FIXTURE_PHONE = '+1 306 555 0199';
@@ -248,105 +256,88 @@ describe('provider inference boundary', () => {
     expect(JSON.stringify(prepared.stats)).not.toContain(FIXTURE_STUDENT);
   });
 
-  it('invokeProviderInference never sends fixture PII to Anthropic or OpenAI', async () => {
-    const capturedBodies: string[] = [];
-    const originalFetch = global.fetch;
+  it('invokeProviderInference never sends fixture PII to the AI gateway', async () => {
+    const captured: Array<{ system: string; user: string }> = [];
+    (runAiInference as jest.Mock).mockImplementation(async (req) => {
+      captured.push({ system: req.system, user: req.user });
+      return {
+        text: 'Minimized answer',
+        provider: 'openai',
+        model: 'gpt-5.6-terra',
+        logicalRequestId: 'lr-1',
+        usage: {
+          inputTokens: 10,
+          cachedInputTokens: 0,
+          cacheWriteTokens: 0,
+          outputTokens: 5,
+          reasoningTokens: 0,
+          reasoningBilledSeparately: false,
+          totalTokensReported: 15,
+        },
+        estimatedCostUsdMicros: 1n,
+        privacyPolicy: 'test',
+        usedFallback: true,
+        fallbackReason: 'AI_PROVIDER_UNAVAILABLE',
+        budgetWarnings: [],
+        providerCallCount: 2,
+      };
+    });
 
-    process.env.ANTHROPIC_API_KEY = 'test-anthropic-key';
-    process.env.OPENAI_API_KEY = 'test-openai-key';
+    const result = await invokeProviderInference({
+      organizationId: 'org-pii-test',
+      userId: 'user-1',
+      question: `Review ${FIXTURE_STUDENT} at ${FIXTURE_STREET}`,
+      tools: ['organizationMemory', 'pricingGuidance'],
+      toolResults: rawToolResults,
+    });
 
-    global.fetch = jest.fn(async (input: string | URL, init?: RequestInit) => {
-      const url = String(input);
-      const body = typeof init?.body === 'string' ? init.body : '';
-      capturedBodies.push(body);
-
-      if (url.includes('api.anthropic.com')) {
-        // Force fallback to OpenAI to prove both paths see minimized content
-        return {
-          ok: false,
-          status: 500,
-          text: async () => 'upstream failure',
-          json: async () => ({}),
-        } as Response;
-      }
-
-      if (url.includes('api.openai.com')) {
-        return {
-          ok: true,
-          status: 200,
-          text: async () => '',
-          json: async () => ({
-            choices: [{ message: { content: 'Minimized answer' } }],
-            usage: { prompt_tokens: 10, completion_tokens: 5 },
-          }),
-        } as Response;
-      }
-
-      throw new Error(`Unexpected fetch: ${url}`);
-    }) as typeof fetch;
-
-    try {
-      const result = await invokeProviderInference({
-        question: `Review ${FIXTURE_STUDENT} at ${FIXTURE_STREET}`,
-        tools: ['organizationMemory', 'pricingGuidance'],
-        toolResults: rawToolResults,
-      });
-
-      expect(result.provider).toBe('openai');
-      expect(capturedBodies.length).toBeGreaterThanOrEqual(2);
-
-      for (const body of capturedBodies) {
-        const leaked = findLeakedFixturePii(body, fixtures);
-        expect(leaked).toEqual([]);
-        expect(body).not.toContain('"Jane Smith"');
-        expect(body).not.toMatch(/PII_TEST_STUDENT_JANE_SMITH/);
-      }
-
-      // Anthropic attempt + OpenAI success both used minimized payloads
-      expect(capturedBodies.some((b) => b.includes('Instructor A'))).toBe(true);
-      expect(JSON.stringify(result.minimizationStats)).not.toContain(
-        FIXTURE_STUDENT
-      );
-    } finally {
-      global.fetch = originalFetch;
-      delete process.env.ANTHROPIC_API_KEY;
-      delete process.env.OPENAI_API_KEY;
-    }
+    expect(result.provider).toBe('openai');
+    expect(captured).toHaveLength(1);
+    const leaked = findLeakedFixturePii(
+      `${captured[0].system}\n${captured[0].user}`,
+      fixtures
+    );
+    expect(leaked).toEqual([]);
+    expect(captured[0].user).toContain('Instructor A');
+    expect(JSON.stringify(result.minimizationStats)).not.toContain(
+      FIXTURE_STUDENT
+    );
   });
 
   it('Anthropic success path also receives only minimized content', async () => {
-    const capturedBodies: string[] = [];
-    const originalFetch = global.fetch;
-    process.env.ANTHROPIC_API_KEY = 'test-anthropic-key';
-    delete process.env.OPENAI_API_KEY;
-
-    global.fetch = jest.fn(async (input: string | URL, init?: RequestInit) => {
-      const body = typeof init?.body === 'string' ? init.body : '';
-      capturedBodies.push(body);
-      expect(String(input)).toContain('api.anthropic.com');
+    (runAiInference as jest.Mock).mockImplementation(async (req) => {
+      expect(findLeakedFixturePii(req.user, fixtures)).toEqual([]);
+      expect(req.user).not.toContain(FIXTURE_STUDENT);
       return {
-        ok: true,
-        status: 200,
-        text: async () => '',
-        json: async () => ({
-          content: [{ type: 'text', text: 'Claude answer' }],
-          usage: { input_tokens: 12, output_tokens: 8 },
-        }),
-      } as Response;
-    }) as typeof fetch;
+        text: 'Advisor answer',
+        provider: 'anthropic',
+        model: 'claude-sonnet-5',
+        logicalRequestId: 'lr-2',
+        usage: {
+          inputTokens: 12,
+          cachedInputTokens: 0,
+          cacheWriteTokens: 0,
+          outputTokens: 8,
+          reasoningTokens: 0,
+          reasoningBilledSeparately: false,
+          totalTokensReported: 20,
+        },
+        estimatedCostUsdMicros: 1n,
+        privacyPolicy: 'test',
+        usedFallback: false,
+        fallbackReason: null,
+        budgetWarnings: [],
+        providerCallCount: 1,
+      };
+    });
 
-    try {
-      const result = await invokeProviderInference({
-        question: `Student ${FIXTURE_STUDENT}`,
-        tools: ['pricingGuidance'],
-        toolResults: rawToolResults,
-      });
-      expect(result.provider).toBe('anthropic');
-      expect(capturedBodies).toHaveLength(1);
-      expect(findLeakedFixturePii(capturedBodies[0], fixtures)).toEqual([]);
-    } finally {
-      global.fetch = originalFetch;
-      delete process.env.ANTHROPIC_API_KEY;
-    }
+    const result = await invokeProviderInference({
+      organizationId: 'org-pii-test',
+      userId: 'user-1',
+      question: `Student ${FIXTURE_STUDENT}`,
+      tools: ['pricingGuidance'],
+      toolResults: rawToolResults,
+    });
+    expect(result.provider).toBe('anthropic');
   });
 });

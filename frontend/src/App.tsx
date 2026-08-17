@@ -19,6 +19,7 @@ import { EmailVerificationPage } from './pages/EmailVerificationPage';
 import { LandingPage } from './pages/LandingPage';
 import { PrivacyPage } from './pages/PrivacyPage';
 import { EnrolmentPage } from './pages/EnrolmentPage';
+import { AiUsagePage } from './pages/AiUsagePage';
 
 export default function App() {
   return (
@@ -48,6 +49,7 @@ export default function App() {
         <Route path="pricing" element={<PricingPage />} />
         <Route path="enrolment" element={<EnrolmentPage />} />
         <Route path="advisor" element={<AdvisorPage />} />
+        <Route path="ai-usage" element={<AiUsagePage />} />
         <Route path="help" element={<HelpPage />} />
         <Route path="settings" element={<SettingsPage />} />
       </Route>

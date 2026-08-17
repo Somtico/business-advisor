@@ -23,7 +23,8 @@ import {
 } from '../services/impactVerificationService';
 import { executiveDashboard, buildForecasts } from '../services/metrics/analyticsService';
 import { runBusinessInsights } from '../services/businessInsightService';
-import { askAdvisor } from '../services/aiAdvisorService';
+import { askAdvisor, AiGatewayError } from '../services/aiAdvisorService';
+import { getOrganizationAiUsageAnalytics } from '../services/ai/aiUsageAnalyticsService';
 import { importCsv } from '../services/csvImportService';
 import { fetchAndSyncPortal, syncPortalPayload } from '../services/portalSyncService';
 import { EDUCATION_DATASETS } from '../catalog/educationBlueprint';
@@ -935,7 +936,7 @@ router.post(
 );
 
 router.post('/advisor/ask', async (req: Request, res: Response) => {
-  const { question, conversationId } = req.body || {};
+  const { question, conversationId, idempotencyKey } = req.body || {};
   if (!question) {
     res.status(400).json({
       success: false,
@@ -943,14 +944,91 @@ router.post('/advisor/ask', async (req: Request, res: Response) => {
     });
     return;
   }
-  const result = await askAdvisor({
-    organizationId: req.user!.organizationId,
-    userId: req.user!.id,
-    question,
-    conversationId,
-  });
-  res.json({ success: true, data: result });
+  try {
+    const result = await askAdvisor({
+      organizationId: req.user!.organizationId,
+      userId: req.user!.id,
+      question,
+      conversationId,
+      idempotencyKey:
+        typeof idempotencyKey === 'string' && idempotencyKey.trim()
+          ? idempotencyKey.trim()
+          : undefined,
+    });
+    res.json({ success: true, data: result });
+  } catch (err) {
+    if (err instanceof AiGatewayError) {
+      res.status(err.httpStatus).json({ success: false, error: err.toApiError() });
+      return;
+    }
+    throw err;
+  }
 });
+
+router.get(
+  '/ai-usage',
+  requireRole(['OWNER', 'ADMIN']),
+  async (req: Request, res: Response) => {
+    const data = await getOrganizationAiUsageAnalytics(
+      req.user!.organizationId
+    );
+    res.json({ success: true, data });
+  }
+);
+
+router.patch(
+  '/ai-usage/budget',
+  requireRole(['OWNER']),
+  async (req: Request, res: Response) => {
+    const monthlyUsd = Number(req.body?.monthlyBudgetUsd);
+    const dailyUsd = Number(req.body?.dailyBudgetUsd);
+    if (
+      !Number.isFinite(monthlyUsd) ||
+      monthlyUsd < 0 ||
+      !Number.isFinite(dailyUsd) ||
+      dailyUsd < 0
+    ) {
+      res.status(400).json({
+        success: false,
+        error: {
+          code: 'VALIDATION',
+          message: 'Monthly and daily budgets must be non-negative USD amounts.',
+        },
+      });
+      return;
+    }
+    const organizationId = req.user!.organizationId;
+    const existing = await prisma.aiBudgetConfig.findFirst({
+      where: { organizationId, scope: 'ORGANIZATION' },
+    });
+    const budgetData = {
+      monthlyBudgetUsdMicros: BigInt(Math.round(monthlyUsd * 1_000_000)),
+      dailyBudgetUsdMicros: BigInt(Math.round(dailyUsd * 1_000_000)),
+      isActive: true,
+    };
+    const data = existing
+      ? await prisma.aiBudgetConfig.update({
+          where: { id: existing.id },
+          data: budgetData,
+        })
+      : await prisma.aiBudgetConfig.create({
+          data: {
+            organizationId,
+            scope: 'ORGANIZATION',
+            ...budgetData,
+          },
+        });
+    res.json({
+      success: true,
+      data: {
+        ...data,
+        monthlyBudgetUsdMicros:
+          data.monthlyBudgetUsdMicros?.toString() ?? null,
+        dailyBudgetUsdMicros: data.dailyBudgetUsdMicros?.toString() ?? null,
+      },
+    });
+  }
+);
 
 router.post(
   '/advisor/track-action',

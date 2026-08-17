@@ -30,7 +30,10 @@ Create STEM Lantern (or any centre) yourself via **Create Organization** at `/si
 
 See [BUSINESS_ADVISOR_PROJECT_SPECIFICATION.md](./BUSINESS_ADVISOR_PROJECT_SPECIFICATION.md).
 
-Developer note: provider-boundary PII minimization for Ask Advisor is documented in [docs/PROVIDER_PII_MINIMIZATION.md](./docs/PROVIDER_PII_MINIMIZATION.md).
+Developer notes:
+
+- Provider-boundary PII minimization for Ask Advisor: [docs/PROVIDER_PII_MINIMIZATION.md](./docs/PROVIDER_PII_MINIMIZATION.md)
+- AI provider routing and cost controls: [docs/AI_PROVIDER_ROUTING.md](./docs/AI_PROVIDER_ROUTING.md)
 
 ## Database backups
 

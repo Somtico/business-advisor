@@ -135,6 +135,9 @@ export async function runDailyAnalysisAllOrgs() {
   const results = [];
   for (const org of orgs) {
     try {
+      // Deterministic only today (forecasts, insights, impact verification).
+      // No external LLM calls — no AI spend. Keep idempotent per org/day if
+      // generative analysis is added later (use aiLogicalRequest.idempotencyKey).
       const r = await runDailyAnalysisForOrg(org.id);
       results.push({ organizationId: org.id, slug: org.slug, ok: true, ...r });
     } catch (err) {

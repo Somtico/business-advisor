@@ -27,6 +27,14 @@ export function RequireAuth({ children }: { children: React.ReactNode }) {
 
 export function AppShell() {
   const { organization, user, logout } = useAuth();
+  const visibleLinks =
+    user?.role === 'OWNER' || user?.role === 'ADMIN'
+      ? [
+          ...links.slice(0, -2),
+          { to: '/app/ai-usage', label: 'AI Usage' },
+          ...links.slice(-2),
+        ]
+      : links;
 
   return (
     <div className="min-h-screen bg-ba-surface text-ba-ink">
@@ -41,7 +49,7 @@ export function AppShell() {
             </p>
           </div>
           <nav className="flex flex-1 flex-col gap-1 overflow-y-auto p-3">
-            {links.map((l) => (
+            {visibleLinks.map((l) => (
               <NavLink
                 key={l.to}
                 to={l.to}

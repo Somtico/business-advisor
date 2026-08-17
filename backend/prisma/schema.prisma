@@ -257,6 +257,9 @@ model Organization {
   customFieldValues CustomFieldValue[]
   dataReadinessItems DataReadinessItem[]
   aiUsageEvents  AiUsageEvent[]
+  aiLogicalRequests AiLogicalRequest[]
+  aiBudgetConfigs AiBudgetConfig[]
+  aiOrgSpendLock AiOrgSpendLock?
   aiConversations AiConversation[]
   syncRuns       SyncRun[]
   onboardingTelemetry OnboardingTelemetry[]
@@ -1195,22 +1198,121 @@ model DataReadinessItem {
   @@map("data_readiness_items")
 }
 
+enum AiBudgetScope {
+  GLOBAL
+  ORGANIZATION
+  FEATURE
+}
+
+/// One user/business operation that may contain several provider calls.
+model AiLogicalRequest {
+  id                 String    @id @default(cuid())
+  organizationId     String
+  userId             String?
+  feature            String
+  subFeature         String?
+  workloadProfile    String
+  status             String    @default("in_progress")
+  providerCallCount  Int       @default(0)
+  totalCostUsdMicros BigInt    @default(0)
+  isBackground       Boolean   @default(false)
+  idempotencyKey     String?
+  errorCategory      String?
+  /// Privacy-safe summary only; may hold idempotent replay text when keyed.
+  resultSummary      Json?
+  metadata           Json?
+  createdAt          DateTime  @default(now())
+  completedAt        DateTime?
+
+  organization Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  usageEvents  AiUsageEvent[]
+
+  @@index([organizationId, createdAt])
+  @@index([feature, createdAt])
+  @@index([organizationId, idempotencyKey])
+  @@index([status])
+  @@map("ai_logical_requests")
+}
+
+/// One billable or attempted provider call (operational metadata only — no prompts).
 model AiUsageEvent {
-  id             String   @id @default(cuid())
-  organizationId String
-  provider       String
-  model          String
-  inputTokens    Int      @default(0)
-  outputTokens   Int      @default(0)
-  estimatedCostUsdCents Int @default(0)
-  taskType       String?
-  privacyPolicy  String?
-  createdAt      DateTime @default(now())
+  id                     String   @id @default(cuid())
+  organizationId         String
+  userId                 String?
+  logicalRequestId       String?
+  provider               String
+  model                  String
+  feature                String?
+  subFeature             String?
+  workloadProfile        String?
+  status                 String   @default("success")
+  isFallback             Boolean  @default(false)
+  originalProvider       String?
+  fallbackReason         String?
+  retryNumber            Int      @default(0)
+  inputTokens            Int      @default(0)
+  cachedInputTokens      Int      @default(0)
+  cacheWriteTokens       Int      @default(0)
+  outputTokens           Int      @default(0)
+  reasoningTokens        Int      @default(0)
+  totalTokensReported    Int?
+  /// Integer USD micros (1 USD = 1_000_000). Source of truth for money.
+  estimatedCostUsdMicros BigInt   @default(0)
+  /// Legacy whole cents (floored from micros) for older readers.
+  estimatedCostUsdCents  Int      @default(0)
+  pricingVersion         String?
+  currency               String   @default("USD")
+  calculationMode        String?
+  latencyMs              Int?
+  errorCategory          String?
+  isBackground           Boolean  @default(false)
+  taskType               String?
+  privacyPolicy          String?
+  createdAt              DateTime @default(now())
+
+  organization   Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  logicalRequest AiLogicalRequest? @relation(fields: [logicalRequestId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, createdAt])
+  @@index([feature, createdAt])
+  @@index([provider, createdAt])
+  @@index([model, createdAt])
+  @@index([logicalRequestId])
+  @@index([status, createdAt])
+  @@index([isBackground, createdAt])
+  @@map("ai_usage_events")
+}
+
+/// Configurable AI spending limits (org / feature / global).
+model AiBudgetConfig {
+  id                     String        @id @default(cuid())
+  scope                  AiBudgetScope
+  organizationId         String?
+  feature                String?
+  monthlyBudgetUsdMicros BigInt?
+  dailyBudgetUsdMicros   BigInt?
+  softThresholdsPercent  Json?
+  hardBlockAtPercent     Int           @default(100)
+  allowOverride          Boolean       @default(false)
+  isActive               Boolean       @default(true)
+  createdAt              DateTime      @default(now())
+  updatedAt              DateTime      @updatedAt
+
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, scope])
+  @@index([scope, feature])
+  @@map("ai_budget_configs")
+}
+
+/// Row-level lock target for concurrent budget checks per organization.
+model AiOrgSpendLock {
+  organizationId String   @id
+  updatedAt      DateTime @updatedAt
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
-  @@index([organizationId, createdAt])
-  @@map("ai_usage_events")
+  @@map("ai_org_spend_locks")
 }
 
 model AiConversation {

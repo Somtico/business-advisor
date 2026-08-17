@@ -1,3 +1,8 @@
+/**
+ * Ask Advisor — deterministic tools + PII minimization + centralized AI gateway.
+ * Do not call Anthropic/OpenAI HTTP APIs from this file.
+ */
+
 import prisma from '../config/prisma';
 import { analyticsTools } from './metrics/analyticsService';
 import { enrolmentGuidance } from './enrolmentService';
@@ -9,21 +14,14 @@ import {
   minimizeForProviderInference,
   type PiiMinimizationStats,
 } from './providerPiiMinimizer';
-
-/**
- * PROVIDER INFERENCE BOUNDARY
- *
- * All Anthropic/OpenAI traffic for Advisor must go through `askAdvisor` →
- * `invokeProviderInference`. That path always runs `minimizeForProviderInference`
- * before any provider HTTP call (including Anthropic → OpenAI fallback).
- *
- * Do not add new fetch() calls to api.anthropic.com or api.openai.com outside
- * this file. Do not reconstruct prompts from raw DB records inside fallback
- * branches — use the already-minimized `user` / `toolResults` only.
- *
- * Help Improve Advisor / learning consent is a separate privacy control and
- * does not gate or replace this minimization layer.
- */
+import { getAiConfig } from './ai/aiConfig';
+import { AiGatewayError } from './ai/aiErrors';
+import {
+  recordLocalFallback,
+  runAiInference,
+  type AiInferenceResult,
+} from './ai/aiGateway';
+import { profileForAdvisorQuestion } from './ai/modelPolicy';
 
 /** Deterministic tool surface: analytics plus pricing guidance. */
 const advisorTools = {
@@ -50,20 +48,16 @@ const TOOL_DESCRIPTIONS: Record<string, string> = {
   enrolmentGuidance:
     'Enrolment leak diagnosis (full room, conversion, churn, velocity, spare seats), cheap next steps, whether a small paid test is on the table, what the owner already tried and the results they recorded, and aggregate de-identified peer patterns only when at least 8 similar reports exist. Asks for tried-and-results when that log is empty. Never invents a marketing plan or promised student counts.',
   organizationMemory:
-    'This centre\'s last 90 days of actions, verified impact, and enrolment tactics already tried. Cite these before suggesting a repeat. Do not recommend a tactic whose recorded outcome here was NO_EFFECT or HURT unless the owner asks.',
+    "This centre's last 90 days of actions, verified impact, and enrolment tactics already tried. Cite these before suggesting a repeat. Do not recommend a tactic whose recorded outcome here was NO_EFFECT or HURT unless the owner asks.",
   instructorCostPerSeatHour:
-    'Instructor labour cost per learner-hour from this week\'s scheduled sessions. Reports missing data instead of guessing.',
+    "Instructor labour cost per learner-hour from this week's scheduled sessions. Reports missing data instead of guessing.",
   householdLtv:
     'Average and median monthly tuition per household (or per student when no household is linked). Annualized figure is 12 × current list price, not a predicted lifetime.',
   trialToPaidByProgramme:
     'Trial-to-paid conversion per programme from recorded engagements. A conversion is a person with both a trial and a later paid enrolment on the same programme.',
   cashSafeTestSize:
-    'Largest weekly paid-test spend this centre\'s recorded cash can absorb. A spend cap, not a forecast of new students.',
+    "Largest weekly paid-test spend this centre's recorded cash can absorb. A spend cap, not a forecast of new students.",
 };
-
-/** Latest high-capability defaults; override with ANTHROPIC_MODEL / OPENAI_MODEL */
-const DEFAULT_OPENAI_MODEL = 'gpt-5.6';
-const DEFAULT_ANTHROPIC_MODEL = 'claude-opus-5';
 
 function pickTools(question: string): ToolName[] {
   const q = question.toLowerCase();
@@ -99,13 +93,21 @@ function pickTools(question: string): ToolName[] {
   ) {
     tools.push('enrolmentGuidance');
   }
-  if (/seat.?hour|learner.?hour|cost per seat|labour efficiency|labor efficiency/.test(q)) {
+  if (
+    /seat.?hour|learner.?hour|cost per seat|labour efficiency|labor efficiency/.test(
+      q
+    )
+  ) {
     tools.push('instructorCostPerSeatHour');
   }
   if (/ltv|lifetime|household|family value|per family|per household/.test(q)) {
     tools.push('householdLtv');
   }
-  if (/which programme|which program|converts|trial.to.paid|by programme|by program/.test(q)) {
+  if (
+    /which programme|which program|converts|trial.to.paid|by programme|by program/.test(
+      q
+    )
+  ) {
     tools.push('trialToPaidByProgramme');
   }
   if (/ad spend|how much can i (spend|afford)|paid test|spend cap|cash.safe/.test(q)) {
@@ -115,185 +117,45 @@ function pickTools(question: string): ToolName[] {
   if (!tools.includes('organizationMemory')) {
     tools.unshift('organizationMemory');
   }
-  return tools;
+
+  const maxTools = getAiConfig().limits.maxToolRounds;
+  return tools.slice(0, maxTools);
 }
 
+/** Compact JSON for evidence — avoid pretty-print token waste. */
 function formatToolResult(name: string, data: unknown): string {
-  return `### ${name}\n\`\`\`json\n${JSON.stringify(data, null, 2)}\n\`\`\``;
-}
-
-type ProviderResult = {
-  text: string;
-  provider: string;
-  model: string;
-  inputTokens: number;
-  outputTokens: number;
-  estimatedCostUsdCents: number;
-  privacyPolicy: string;
-};
-
-/**
- * OpenAI client — receives already-minimized system/user strings only.
- * Not exported; call via invokeProviderInference.
- */
-async function callOpenAI(
-  system: string,
-  user: string
-): Promise<ProviderResult | null> {
-  const openaiKey = process.env.OPENAI_API_KEY;
-  if (!openaiKey) return null;
-
-  const model = process.env.OPENAI_MODEL || DEFAULT_OPENAI_MODEL;
-  const body: Record<string, unknown> = {
-    model,
-    // Do not store completions for distillation/evals (also forced false under OpenAI ZDR)
-    store: false,
-    messages: [
-      { role: 'system', content: system },
-      { role: 'user', content: user },
-    ],
-  };
-  // Older chat models accept temperature; some reasoning models reject it
-  if (!/^o\d/i.test(model) && !/gpt-5/i.test(model)) {
-    body.temperature = 0.2;
-  }
-
-  const res = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${openaiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) {
-    // Prefer status over full provider error bodies (may echo request fragments)
-    throw new Error(`OpenAI error: HTTP ${res.status}`);
-  }
-  const json = (await res.json()) as {
-    choices?: { message?: { content?: string } }[];
-    usage?: { prompt_tokens?: number; completion_tokens?: number };
-  };
-  const inputTokens = json.usage?.prompt_tokens ?? 0;
-  const outputTokens = json.usage?.completion_tokens ?? 0;
-  return {
-    text: json.choices?.[0]?.message?.content || 'No response',
-    provider: 'openai',
-    model,
-    inputTokens,
-    outputTokens,
-    estimatedCostUsdCents: Math.max(
-      1,
-      Math.round((inputTokens * 2 + outputTokens * 10) / 10000)
-    ),
-    privacyPolicy: 'openai_store_false_api_no_training_default',
-  };
+  return `### ${name}\n\`\`\`json\n${JSON.stringify(data)}\n\`\`\``;
 }
 
 /**
- * Anthropic client — receives already-minimized system/user strings only.
- * Not exported; call via invokeProviderInference.
+ * Build the provider-bound user prompt from already-minimized question + tools.
  */
-async function callAnthropic(
-  system: string,
-  user: string
-): Promise<ProviderResult | null> {
-  const key = process.env.ANTHROPIC_API_KEY;
-  if (!key) return null;
+export function buildProviderUserPrompt(params: {
+  question: string;
+  tools: string[];
+  toolResults: Record<string, unknown>;
+}): string {
+  const evidenceBlock = Object.entries(params.toolResults)
+    .map(([name, data]) => formatToolResult(name, data))
+    .join('\n\n');
 
-  const model = process.env.ANTHROPIC_MODEL || DEFAULT_ANTHROPIC_MODEL;
-  const body: Record<string, unknown> = {
-    model,
-    max_tokens: 8192,
-    system,
-    messages: [{ role: 'user', content: user }],
-    output_config: {
-      effort: process.env.ANTHROPIC_EFFORT || 'max',
-    },
-  };
-
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'x-api-key': key,
-      'anthropic-version': '2023-06-01',
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(body),
-  });
-
-  // If effort/output_config is rejected on a model, retry without it
-  // (same minimized body — never rebuild from raw records)
-  if (!res.ok) {
-    const errText = await res.text();
-    if (/effort|output_config|thinking/i.test(errText)) {
-      const retry = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'x-api-key': key,
-          'anthropic-version': '2023-06-01',
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model,
-          max_tokens: 8192,
-          system,
-          messages: [{ role: 'user', content: user }],
-        }),
-      });
-      if (!retry.ok) {
-        throw new Error(`Anthropic error: HTTP ${retry.status}`);
-      }
-      return parseAnthropicResponse(
-        (await retry.json()) as Parameters<typeof parseAnthropicResponse>[0],
-        model
-      );
-    }
-    throw new Error(`Anthropic error: HTTP ${res.status}`);
-  }
-
-  return parseAnthropicResponse(
-    (await res.json()) as Parameters<typeof parseAnthropicResponse>[0],
-    model
-  );
+  return `Question: ${params.question}\n\nAvailable tools used: ${params.tools
+    .map((t) => `${t} (${TOOL_DESCRIPTIONS[t] || t})`)
+    .join(', ')}\n\nEvidence:\n${evidenceBlock}`;
 }
 
-function parseAnthropicResponse(
-  json: {
-    content?: { type?: string; text?: string }[];
-    usage?: { input_tokens?: number; output_tokens?: number };
-  },
-  model: string
-): ProviderResult {
-  const text =
-    (json.content || [])
-      .filter((b) => b.type === 'text' && b.text)
-      .map((b) => b.text || '')
-      .join('\n') || 'No response';
-  const inputTokens = json.usage?.input_tokens ?? 0;
-  const outputTokens = json.usage?.output_tokens ?? 0;
-  return {
-    text,
-    provider: 'anthropic',
-    model,
-    inputTokens,
-    outputTokens,
-    estimatedCostUsdCents: Math.max(
-      1,
-      Math.round((inputTokens * 10 + outputTokens * 50) / 10000)
-    ),
-    privacyPolicy:
-      'anthropic_api_no_training_default_prefer_zdr_eligible_models',
-  };
-}
-
-function deterministicFallbackText(toolResults: Record<string, unknown>): string {
+function deterministicFallbackText(
+  toolResults: Record<string, unknown>
+): string {
   const lines = [
-    'Advisor could not reach Claude or OpenAI. Open Command Centre, Enrolment Advisor, and Pricing Advisor for the full picture. Deterministic read of your records:',
+    'Advisor is temporarily unavailable for generative analysis. Open Command Centre, Enrolment Advisor, and Pricing Advisor for the full picture. Deterministic read of your records:',
     '',
   ];
   const memory = toolResults.organizationMemory as
-    | { verifiedImpactCents?: number; tacticsTried?: Array<{ label: string; outcome: string }> }
+    | {
+        verifiedImpactCents?: number;
+        tacticsTried?: Array<{ label: string; outcome: string }>;
+      }
     | undefined;
   if (memory) {
     lines.push(
@@ -314,7 +176,13 @@ function deterministicFallbackText(toolResults: Record<string, unknown>): string
     }
   }
   const pricing = toolResults.pricingGuidance as
-    | { programmes?: Array<{ name: string; verdict: string | null; status: string }> }
+    | {
+        programmes?: Array<{
+          name: string;
+          verdict: string | null;
+          status: string;
+        }>;
+      }
     | undefined;
   if (pricing?.programmes?.length) {
     for (const p of pricing.programmes.slice(0, 6)) {
@@ -323,45 +191,15 @@ function deterministicFallbackText(toolResults: Record<string, unknown>): string
       );
     }
   }
+  if (lines.length <= 2) {
+    lines.push(
+      'Try again in a few minutes, or continue with the deterministic advisors above.'
+    );
+  }
   return lines.join('\n');
 }
 
-/**
- * Provider order: Anthropic (Claude) → OpenAI → local fallback.
- * Only one external provider is called per question.
- * Expects already-minimized system/user/toolResults — never reloads raw PII.
- */
-async function callProvider(params: {
-  system: string;
-  user: string;
-  toolResults: Record<string, unknown>;
-}): Promise<ProviderResult> {
-  try {
-    const anthropic = await callAnthropic(params.system, params.user);
-    if (anthropic) return anthropic;
-  } catch {
-    // Fall through to OpenAI — same minimized params.user
-  }
-
-  try {
-    const openai = await callOpenAI(params.system, params.user);
-    if (openai) return openai;
-  } catch {
-    // Fall through to deterministic local summary
-  }
-
-  return {
-    text: deterministicFallbackText(params.toolResults),
-    provider: 'local',
-    model: 'deterministic-fallback',
-    inputTokens: 0,
-    outputTokens: 0,
-    estimatedCostUsdCents: 0,
-    privacyPolicy: 'local_no_external_call',
-  };
-}
-
-const ADVISOR_SYSTEM_PROMPT = `You are the AI-powered Advisor within Somtico Business Advisor, serving an after-school / tutoring / enrichment centre. Refer to yourself as Advisor. Do not claim a personal human name or introduce yourself as Chuk, Tico, or any other invented name.
+export const ADVISOR_SYSTEM_PROMPT = `You are the AI-powered Advisor within Somtico Business Advisor, serving an after-school / tutoring / enrichment centre. Refer to yourself as Advisor. Do not claim a personal human name or introduce yourself as Chuk, Tico, or any other invented name.
 
 NON-NEGOTIABLE EVIDENCE RULES:
 1. Use ONLY the structured analytics evidence provided in this message. Every number, name, and date in your answer must appear in, or be arithmetic on, that evidence.
@@ -379,33 +217,33 @@ NON-NEGOTIABLE EVIDENCE RULES:
 Speak plainly to the owner. Prefer dollars, students, capacity, and next actions.
 Canadian English spelling.`;
 
-/**
- * Build the provider-bound user prompt from already-minimized question + tools.
- * Exported for invariant tests that assert PII never appears in the payload.
- */
-export function buildProviderUserPrompt(params: {
-  question: string;
-  tools: string[];
-  toolResults: Record<string, unknown>;
-}): string {
-  const evidenceBlock = Object.entries(params.toolResults)
-    .map(([name, data]) => formatToolResult(name, data))
-    .join('\n\n');
-
-  return `Question: ${params.question}\n\nAvailable tools used: ${params.tools
-    .map((t) => `${t} (${TOOL_DESCRIPTIONS[t] || t})`)
-    .join(', ')}\n\nEvidence:\n${evidenceBlock}`;
-}
+type ProviderResult = {
+  text: string;
+  provider: string;
+  model: string;
+  inputTokens: number;
+  outputTokens: number;
+  estimatedCostUsdCents: number;
+  privacyPolicy: string;
+  logicalRequestId?: string;
+  usedFallback?: boolean;
+  fallbackReason?: string | null;
+  providerCallCount?: number;
+};
 
 /**
- * Sole Anthropic/OpenAI gateway. Minimizes once, then uses that representation
- * for primary, fallback, and retry paths.
+ * Sole Anthropic/OpenAI gateway for Ask Advisor.
+ * Minimizes once, then uses that representation for primary/fallback/retry.
  */
 export async function invokeProviderInference(params: {
+  organizationId: string;
+  userId?: string;
   question: string;
   tools: ToolName[] | string[];
   toolResults: Record<string, unknown>;
   system?: string;
+  idempotencyKey?: string;
+  isBackground?: boolean;
 }): Promise<ProviderResult & { minimizationStats: PiiMinimizationStats }> {
   const minimized = minimizeForProviderInference({
     question: params.question,
@@ -419,14 +257,64 @@ export async function invokeProviderInference(params: {
     toolResults: minimized.toolResults,
   });
 
-  const result = await callProvider({
-    system,
-    user,
-    toolResults: minimized.toolResults,
-  });
+  const workloadProfile = profileForAdvisorQuestion(params.question);
+
+  let result: AiInferenceResult;
+  try {
+    result = await runAiInference({
+      organizationId: params.organizationId,
+      userId: params.userId,
+      feature: 'ask_advisor',
+      subFeature: 'chat',
+      workloadProfile,
+      system,
+      user,
+      isBackground: !!params.isBackground,
+      idempotencyKey: params.idempotencyKey,
+      enablePromptCache: true,
+      toolRoundsUsed: 1,
+      metadata: {
+        toolCount: params.tools.length,
+        piiMinimization: minimized.stats,
+      },
+    });
+  } catch (err) {
+    if (
+      err instanceof AiGatewayError &&
+      (err.code === 'AI_BUDGET_EXCEEDED' ||
+        err.code === 'AI_REQUEST_LIMIT_REACHED' ||
+        err.code === 'AI_INVALID_REQUEST' ||
+        err.code === 'AI_CONTEXT_TOO_LARGE' ||
+        err.code === 'AI_POLICY_REJECTED' ||
+        err.code === 'AI_AUTH_FAILED')
+    ) {
+      // Auth / safety / budget / validation: do not invent an answer
+      throw err;
+    }
+    result = await recordLocalFallback({
+      organizationId: params.organizationId,
+      userId: params.userId,
+      feature: 'ask_advisor',
+      workloadProfile,
+      isBackground: !!params.isBackground,
+      text: deterministicFallbackText(minimized.toolResults),
+    });
+  }
 
   return {
-    ...result,
+    text: result.text,
+    provider: result.provider,
+    model: result.model,
+    inputTokens: result.usage.inputTokens,
+    outputTokens: result.usage.outputTokens,
+    estimatedCostUsdCents: Number(
+      result.estimatedCostUsdMicros / 10_000n
+    ),
+    privacyPolicy: result.privacyPolicy,
+    logicalRequestId: result.logicalRequestId,
+    usedFallback: result.usedFallback,
+    fallbackReason: result.fallbackReason,
+    providerCallCount: result.providerCallCount,
     minimizationStats: minimized.stats,
   };
 }
@@ -436,8 +324,28 @@ export async function askAdvisor(params: {
   userId: string;
   question: string;
   conversationId?: string;
+  idempotencyKey?: string;
 }) {
-  const tools = pickTools(params.question);
+  const cfg = getAiConfig();
+  const question = params.question.trim();
+  if (!question) {
+    throw new AiGatewayError({
+      code: 'AI_INVALID_REQUEST',
+      message: 'question required',
+      httpStatus: 400,
+      retryable: false,
+    });
+  }
+  if (question.length > cfg.limits.maxQuestionChars) {
+    throw new AiGatewayError({
+      code: 'AI_CONTEXT_TOO_LARGE',
+      message: `Question exceeds ${cfg.limits.maxQuestionChars} characters`,
+      httpStatus: 400,
+      retryable: false,
+    });
+  }
+
+  const tools = pickTools(question);
   const toolResults: Record<string, unknown> = {};
   for (const name of tools) {
     const fn = advisorTools[name];
@@ -447,9 +355,12 @@ export async function askAdvisor(params: {
   }
 
   const result = await invokeProviderInference({
-    question: params.question,
+    organizationId: params.organizationId,
+    userId: params.userId,
+    question,
     tools,
     toolResults,
+    idempotencyKey: params.idempotencyKey,
   });
 
   let conversationId = params.conversationId;
@@ -458,7 +369,7 @@ export async function askAdvisor(params: {
       data: {
         organizationId: params.organizationId,
         userId: params.userId,
-        title: params.question.slice(0, 80),
+        title: question.slice(0, 80),
       },
     });
     conversationId = convo.id;
@@ -470,7 +381,7 @@ export async function askAdvisor(params: {
     data: {
       conversationId,
       role: 'user',
-      content: params.question,
+      content: question,
     },
   });
   await prisma.aiMessage.create({
@@ -481,21 +392,11 @@ export async function askAdvisor(params: {
       toolCallsJson: {
         tools,
         privacyPolicy: result.privacyPolicy,
+        logicalRequestId: result.logicalRequestId,
+        providerCallCount: result.providerCallCount,
         piiMinimization: result.minimizationStats,
+        // Provider/model intentionally omitted from customer-facing payload
       },
-    },
-  });
-
-  await prisma.aiUsageEvent.create({
-    data: {
-      organizationId: params.organizationId,
-      provider: result.provider,
-      model: result.model,
-      inputTokens: result.inputTokens,
-      outputTokens: result.outputTokens,
-      estimatedCostUsdCents: result.estimatedCostUsdCents,
-      taskType: 'advisor_chat',
-      privacyPolicy: result.privacyPolicy,
     },
   });
 
@@ -506,10 +407,14 @@ export async function askAdvisor(params: {
     resourceType: 'AiConversation',
     resourceId: conversationId,
     metadata: {
+      // Operational audit may record provider for operators; not returned to UI
       provider: result.provider,
       model: result.model,
       tools,
       privacyPolicy: result.privacyPolicy,
+      logicalRequestId: result.logicalRequestId,
+      usedFallback: result.usedFallback,
+      fallbackReason: result.fallbackReason,
       piiMinimization: result.minimizationStats,
     },
   });
@@ -519,6 +424,7 @@ export async function askAdvisor(params: {
     answer: result.text,
     toolsUsed: tools,
     disclaimer: ADVICE_DISCLAIMER,
+    logicalRequestId: result.logicalRequestId,
   };
 }
 
@@ -548,3 +454,5 @@ export function prepareProviderSafeRequest(params: {
     stats: minimized.stats,
   };
 }
+
+export { AiGatewayError };

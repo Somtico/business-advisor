@@ -17,7 +17,8 @@ AI business intelligence and operating advisor for independent after-school, tut
 - Vite/React executive app
 - Stripe Billing ($5 CAD/month pilot) + Stripe Connect foundation
 - Deterministic analytics services; Advisor (the AI within the product) calls those tools only
-- Provider-boundary PII minimization (16 Aug 2026): every Anthropic/OpenAI Ask Advisor request is minimized locally before send (`providerPiiMinimizer` → `invokeProviderInference`). Request-scoped aliases for people; emails/phones/street addresses stripped or generalized; programme names and financial/operational metrics preserved. Independent of Help Improve Advisor consent. See `docs/PROVIDER_PII_MINIMIZATION.md`.
+- Provider-boundary PII minimization (16 Aug 2026): every Anthropic/OpenAI Ask Advisor request is minimized locally before send (`providerPiiMinimizer` → gateway). Request-scoped aliases for people; emails/phones/street addresses stripped or generalized; programme names and financial/operational metrics preserved. Independent of Help Improve Advisor consent. See `docs/PROVIDER_PII_MINIMIZATION.md`.
+- AI usage and cost controls (16 Aug 2026): centralized gateway routes Anthropic primary (`claude-sonnet-5`) → OpenAI eligible fallback (`gpt-5.6-terra`) → deterministic local fallback. Enforces org/global daily and Anthropic/OpenAI monthly application caps, records logical requests and USD-micro telemetry without prompts/responses. See `docs/AI_PROVIDER_ROUTING.md`.
 - Read-only portal connector (`GET /api/connector/v1/snapshot` on the academy portal)
 
 ## Phase status
@@ -44,7 +45,7 @@ AI business intelligence and operating advisor for independent after-school, tut
 - Help & FAQ page (14 Aug 2026): `/app/help` ("Help & FAQ" nav item) opens with a "Meet Your Advisor" introduction, then accordion FAQs across About Advisor, Pricing Advisor, Impact Ledger, Data & Privacy, Getting Started, and Accounts, Billing & Access. The same FAQ source (`frontend/src/content/faqs.tsx`) feeds a visitor subset on the public landing page.
 - Public landing page + brand (14 Aug 2026): `/` is a marketing homepage (logged-in users are sent to `/app`) with Somtico Technologies Inc. attribution, Meet Your Advisor trust points, how-it-works, capabilities, the same product screenshots used on somticoweb.com (`/images/screenshots/`), visitor FAQs, and Start Pilot / Sign In CTAs. Public chrome (`PublicShell`) wraps landing, login, signup, terms, and email verification. Footer copy is "{product} is a product of Somtico Technologies Inc." with the company name linked to somticoweb.com (no second company link in the footer nav). Product logo lives at `frontend/public/images/logo/` (`business-advisor-logo.png` full mark, `business-advisor-mark.png` for UI); favicon set is `frontend/public/favicon.ico`, `favicon-32x32.png`, and `apple-touch-icon.png`. `/login` remains the sign-in form.
 - Marketing screenshots tooling: `backend/scripts/seed-demo-screenshots.ts` seeds (and `--cleanup` deletes) a fictional local org (Northlight Learning Studio) signed in as **John Smith** (`demo@northlight.test`), with programmes, enrolments, wages, sessions, expenses, subscriptions, targets, and a verified recommendation. `backend/scripts/capture-demo-screenshots.mjs` logs in at 1440×900 and writes Command Centre, Pricing Advisor, Action Centre, Ask Advisor, and Help & FAQ PNGs (`*-v2.png`) to the gitignored `.screenshots/` folder, then those files are copied into `frontend/public/images/screenshots/` and somtico-tech.
-- Advisor (AI within the product) with usage metering (Claude preferred → OpenAI fallback; privacy-aware request flags). Local fallback restates leak/impact/pricing verdicts without dumping tool JSON into the chat. Provider-bound prompts are PII-minimized once before primary/fallback/retry; audit metadata stores minimization counts only (not identity maps).
+- Advisor (AI within the product) with usage metering and cost controls (16 Aug 2026): centralized gateway routes **Anthropic Claude primary** (`ANTHROPIC_MODEL`, default `claude-sonnet-5`) → **OpenAI fallback** (`OPENAI_MODEL`, default `gpt-5.6-terra`) only for eligible transient provider failures → deterministic/local fallback from tool evidence. Application caps: org/global daily, Anthropic/OpenAI monthly. Usage ledger records tokens/cost/routing without prompts or responses. Customer UI does not expose provider/model names. See `docs/AI_PROVIDER_ROUTING.md`.
 - Organization memory tool (15 Aug 2026): every Ask Advisor call includes this centre's last 90 days of actions, verified impact, and enrolment tactics. Advisor must not recommend repeating a tactic whose recorded outcome here was NO_EFFECT or HURT unless the owner asks.
 - Deterministic unit-economics tools (15 Aug 2026): instructor cost per seat-hour, household monthly/annualized list-price value, trial-to-paid by programme, and cash-safe weekly paid-test cap. Enrolment paid tests use that cap. Verdicts stay in services; the model only phrases them.
 - Playbook ranking (15 Aug 2026): peer patterns (8+ similar opted-in reports) sort by helped share and reorder the tactic catalogue. Fine-tune/ranker on `somtico_models_v1` stays deferred until volume is enough.
@@ -133,6 +134,14 @@ See `backend/.env.example` and `frontend/.env.example`.
 Notable privacy secret:
 
 - **`LEARNING_CONTRIBUTOR_SALT`** — dedicated HMAC secret for purpose-specific learning/benchmark `contributorKey` values. Required in production (startup exits if missing/blank). Must not be `JWT_SECRET`. Keep stable unless you run an intentional contributor-key migration. Development/test may omit it and use the documented local fallback in `contributorKey.ts` (never a JWT fallback).
+
+AI provider configuration (backend only; see `docs/AI_PROVIDER_ROUTING.md`):
+
+- **Secrets:** `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`
+- **Routing:** `AI_PRIMARY_PROVIDER=anthropic`, `AI_FALLBACK_PROVIDER=openai`, `AI_FALLBACK_ENABLED=true`
+- **Models:** `ANTHROPIC_MODEL=claude-sonnet-5`, `OPENAI_MODEL=gpt-5.6-terra`
+- **Caps:** `AI_GLOBAL_DAILY_COST_CAP_USD=5`, `AI_ORG_DAILY_COST_CAP_USD=2`, `ANTHROPIC_MONTHLY_COST_CAP_USD=80`, `OPENAI_MONTHLY_COST_CAP_USD=8`
+- **Limits:** `AI_REQUEST_TIMEOUT_MS=30000`, `AI_MAX_OUTPUT_TOKENS=4096`, `AI_MAX_TOOL_ROUNDS=6`, `AI_BUDGET_WARNING_PERCENTAGES=50,80,100`
 
 ## Database backups (Cloudflare R2)
 
