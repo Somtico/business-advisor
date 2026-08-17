@@ -41,6 +41,8 @@ These coexist with provider-dashboard spend limits. Soft warnings at `AI_BUDGET_
 
 Usage ledger (`ai_usage_events` / `ai_logical_requests`) stores operational metadata, tokens, routing, and estimated USD micros. It must not store raw prompts, responses, or PII. API keys are backend env only.
 
+**Provider-boundary PII minimization** is separate from cost controls: Ask Advisor runs `minimizeForProviderInference` in `invokeProviderInference` **before** `runAiInference`, so Anthropic/OpenAI receive provider-safe context (request-scoped aliases; emails/phones/addresses scrubbed). See [PROVIDER_PII_MINIMIZATION.md](./PROVIDER_PII_MINIMIZATION.md). Do not call `runAiInference` with raw unminimized evidence.
+
 ## Customer UI
 
 Provider and model names are not returned on Ask Advisor API success payloads and are not shown in ordinary product UI. Privacy Policy / Terms may name providers for legal transparency.

@@ -17,19 +17,31 @@ minimizeForProviderInference()   ← providerPiiMinimizer.ts
         ↓
 provider-safe question + tool JSON
         ↓
-invokeProviderInference() / callProvider()
+invokeProviderInference()       ← aiAdvisorService.ts
         ↓
-Anthropic (primary) → OpenAI (fallback) → local text
+runAiInference()                ← ai/aiGateway.ts (routing, budgets, retries)
+        ↓
+Anthropic provider → OpenAI fallback → local text
 ```
 
 Entry points:
 
 | Module | Role |
 |---|---|
-| `backend/src/services/providerPiiMinimizer.ts` | Shared minimization policy |
-| `backend/src/services/aiAdvisorService.ts` | Sole provider HTTP gateway (`invokeProviderInference`) |
+| `backend/src/services/providerPiiMinimizer.ts` | Shared minimization policy (field-aware + free-text scrub) |
+| `backend/src/services/aiAdvisorService.ts` | Ask Advisor entry; **must** minimize before calling the gateway (`invokeProviderInference`) |
+| `backend/src/services/ai/aiGateway.ts` | Central HTTP routing, cost caps, retries, fallback (receives already-minimized `system` / `user`) |
+| `backend/src/services/ai/providers/*` | Anthropic / OpenAI HTTP clients — do not call from feature code |
 
-All Anthropic/OpenAI traffic for Advisor must go through `askAdvisor` → `invokeProviderInference`. Do not add `fetch` calls to `api.anthropic.com` or `api.openai.com` elsewhere.
+Ask Advisor path:
+
+`askAdvisor` → `invokeProviderInference` (minimize once) → `runAiInference` → provider HTTP.
+
+Do **not** add `fetch` calls to `api.anthropic.com` or `api.openai.com` outside `backend/src/services/ai/providers/`. Do **not** call `runAiInference` with raw unminimized tool evidence — minimize first (prefer `invokeProviderInference` for Advisor, or `minimizeForProviderInference` then the gateway for other features).
+
+Minimization runs **once** into a provider-safe representation. Primary, retry, and OpenAI fallback all reuse that same `system` / `user` payload. Local fallback uses the minimized tool results.
+
+Provider routing and cost caps are documented separately in [AI_PROVIDER_ROUTING.md](./AI_PROVIDER_ROUTING.md).
 
 ## Different from Help Improve Advisor
 
@@ -72,16 +84,16 @@ Goal: keep analytical usefulness while reducing unnecessary identity disclosure.
 ## Adding a future provider feature
 
 1. Build your prompt/context from application data as usual.
-2. Call **`invokeProviderInference`** (or `minimizeForProviderInference` then the same `callProvider` path). Never call Anthropic/OpenAI HTTP APIs directly.
-3. Pass **tool results / structured evidence** through the minimizer before serialization into the user message.
-4. If you add provider tool/function calling later, minimize **tool results returned to the model** the same way — not only the first user message.
-5. Prefer field-aware structured minimization; use free-text scrubbing as a second layer only.
-6. Add an invariant test that fixture PII strings never appear in the mocked provider request body.
-7. If a future central AI gateway wraps provider HTTP, call `minimizeForProviderInference` **before** that gateway sends `system`/`user` (or inside the gateway as the first step). Do not bypass this module.
+2. Run **`minimizeForProviderInference`** on the question and structured tool/evidence objects **before** calling `runAiInference`. For Ask Advisor-style chat, use **`invokeProviderInference`**, which already does this.
+3. Never call Anthropic/OpenAI HTTP APIs directly; use `runAiInference` only.
+4. Pass **tool results / structured evidence** through the minimizer before serialization into the user message.
+5. If you add provider tool/function calling later, minimize **tool results returned to the model** the same way — not only the first user message.
+6. Prefer field-aware structured minimization; use free-text scrubbing as a second layer only.
+7. Add an invariant test that fixture PII strings never appear in the payload passed to `runAiInference` (and, where practical, in mocked provider HTTP bodies).
 
 ## Logging
 
-Log **minimization stats** (counts), provider, model, tokens, request/conversation ids — not raw prompts or alias lookup tables.
+Log **minimization stats** (counts), provider, model, tokens, logical request ids — not raw prompts or alias lookup tables. The usage ledger must not store provider-bound prompts or identity maps.
 
 ## How to test a new provider path
 
@@ -92,10 +104,11 @@ cd backend && npm test -- --maxWorkers=1 src/services/providerPiiMinimizer.test.
 Include:
 
 1. Unit cases on `minimizeForProviderInference` for your new fields.
-2. A gateway test that mocks `fetch` and asserts fixture values such as `PII_TEST_STUDENT_JANE_SMITH` / `pii-test-parent@example.com` are absent from the outbound body for both Anthropic and OpenAI paths.
+2. A boundary test that mocks `runAiInference` (or provider `fetch`) and asserts fixture values such as `PII_TEST_STUDENT_JANE_SMITH` / `pii-test-parent@example.com` are absent from the outbound `user` / HTTP body.
 
 ## Limitations
 
 - Free-form text that invents novel names never seen in structured fields may not be aliased (emails/phones/street patterns are still scrubbed).
 - Deterministic heuristics can miss unusual formats or over-generalize edge cases.
 - This layer does not replace authorization, tenant isolation, or learning-consent controls.
+- The AI gateway trusts callers to supply already-minimized `system` / `user` for Ask Advisor; structured minimization happens in `invokeProviderInference`, not inside every gateway retry.

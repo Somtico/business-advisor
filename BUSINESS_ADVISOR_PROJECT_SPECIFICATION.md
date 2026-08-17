@@ -17,7 +17,7 @@ AI business intelligence and operating advisor for independent after-school, tut
 - Vite/React executive app
 - Stripe Billing ($5 CAD/month pilot) + Stripe Connect foundation
 - Deterministic analytics services; Advisor (the AI within the product) calls those tools only
-- Provider-boundary PII minimization (16 Aug 2026): every Anthropic/OpenAI Ask Advisor request is minimized locally before send (`providerPiiMinimizer` → gateway). Request-scoped aliases for people; emails/phones/street addresses stripped or generalized; programme names and financial/operational metrics preserved. Independent of Help Improve Advisor consent. See `docs/PROVIDER_PII_MINIMIZATION.md`.
+- Provider-boundary PII minimization (16 Aug 2026): every Anthropic/OpenAI Ask Advisor request is minimized locally before send (`providerPiiMinimizer` via `invokeProviderInference` → `runAiInference` gateway). Request-scoped aliases for people; emails/phones/street addresses stripped or generalized; programme names and financial/operational metrics preserved. Independent of Help Improve Advisor consent. See `docs/PROVIDER_PII_MINIMIZATION.md`.
 - AI usage and cost controls (16 Aug 2026): centralized gateway routes Anthropic primary (`claude-sonnet-5`) → OpenAI eligible fallback (`gpt-5.6-terra`) → deterministic local fallback. Enforces org/global daily and Anthropic/OpenAI monthly application caps, records logical requests and USD-micro telemetry without prompts/responses. See `docs/AI_PROVIDER_ROUTING.md`.
 - Read-only portal connector (`GET /api/connector/v1/snapshot` on the academy portal)
 
