@@ -410,14 +410,20 @@ export function EnrolmentPage() {
                 <span>
                   Share a de-identified copy (tactic type, cost band, outcome,
                   and leak type only; no notes, names, or organization id) so
-                  Advisor can improve the playbook and, later,
-                  Somtico-owned models for this industry. Off by default.{' '}
-                  <Link className="text-ba-accent underline" to="/privacy">
-                    Privacy Policy
-                  </Link>
+                  Advisor can improve the playbook and, later, Somtico-owned
+                  models for this industry. Off by default.
                 </span>
               </label>
-              <p className="text-sm text-ba-ink/60">
+              <p className="text-base text-ba-ink/80">
+                Important: this shared copy does not contain your organization
+                ID or a withdrawal key. After it is shared, we generally cannot
+                identify and delete that historical copy by organization. You
+                can stop sharing future records at any time.{' '}
+                <Link className="text-ba-accent underline" to="/privacy">
+                  Privacy Policy
+                </Link>
+              </p>
+              <p className="text-base text-ba-ink/70">
                 {data.privacy.anonymizedSharing}
               </p>
             </>

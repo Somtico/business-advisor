@@ -24,6 +24,14 @@ const PAID_TEST_MONITOR_WEEKS = 6;
 const MIN_RUNWAY_WEEKS_FOR_PAID = 8;
 const PERSISTENCE_DAYS = 28;
 
+/**
+ * Just-in-time explanation for the legacy V1 record-specific Enrolment Advisor
+ * share (somtico_models_v1). Must stay aligned with the Privacy Policy and the
+ * Enrolment Advisor checkbox disclosure. Does not apply to V2 / benchmarks.
+ */
+export const ANONYMIZED_TACTIC_SHARING_EXPLANATION =
+  'Optional. Shown only when a leak is named and you pick a clear outcome. If you opt in, we store only the tactic type, cost band, outcome, leak type, and a coarse education bucket. Your notes, names, and organization id are not copied. That shared copy has no organization identifier or withdrawal key, so previously shared copies generally cannot later be located and deleted by organization. You can leave sharing off for any future record. Your local tactic notes on your organization stay under your control. Aggregates appear only after 8 similar reports. Somtico may later use those de-identified rows to improve its own playbook and models. They are never sent to train Anthropic, OpenAI, or any other third-party model.';
+
 export type EnrolmentLeak =
   | 'INSUFFICIENT_DATA'
   | 'FULL_ROOM'
@@ -382,8 +390,7 @@ export async function enrolmentGuidance(organizationId: string) {
     disclaimer: ADVICE_DISCLAIMER,
     generatedAt: now.toISOString(),
     privacy: {
-      anonymizedSharing:
-        'Optional. Shown only when a leak is named and you pick a clear outcome. If you opt in, we store only the tactic type, cost band, outcome, leak type, and a coarse education bucket. Your notes, names, and organization id are not copied. Aggregates appear only after 8 similar reports. Somtico may later use those de-identified rows to improve its own playbook and models. They are never sent to train Anthropic, OpenAI, or any other third-party model.',
+      anonymizedSharing: ANONYMIZED_TACTIC_SHARING_EXPLANATION,
       minPeerSample: MIN_PEER_SAMPLE,
     },
     canShareAnonymized: leak !== 'INSUFFICIENT_DATA',
