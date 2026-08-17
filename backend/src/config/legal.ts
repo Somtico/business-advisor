@@ -7,8 +7,8 @@
  * Corpus purposeVersion strings are immutable once shipped — never redefine
  * somtico_models_v1. Add a new version string for new learning schemas.
  */
-export const TERMS_VERSION = '2026-08-14.4';
-export const PRIVACY_VERSION = '2026-08-15.2';
+export const TERMS_VERSION = '2026-08-16.1';
+export const PRIVACY_VERSION = '2026-08-16.1';
 
 /** De-identified tactic rows written under this purpose may later train Somtico-owned models. */
 export const OUTCOME_CORPUS_PURPOSE_VERSION = 'somtico_models_v1';
@@ -31,7 +31,7 @@ export const BENCHMARK_SNAPSHOT_SCHEMA_VERSION = 'benchmark_snapshot_v1';
 export const DEFAULT_MIN_PEER_CONTEXT_SAMPLE = 8;
 
 export const ADVICE_DISCLAIMER =
-  'AI Business Advisor provides analytics and suggestions for information purposes only. ' +
+  'Somtico Business Advisor provides analytics and suggestions for information purposes only. ' +
   'It is not financial, legal, tax, accounting, or investment advice. All figures are ' +
   'derived from the data you provide; verify them before acting. Decisions and their ' +
   'outcomes remain solely your responsibility.';

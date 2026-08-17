@@ -313,9 +313,9 @@ export function PricingPage() {
       });
       setSessionFormId(null);
       setRecalculating(true);
-      setMessage('Session recorded. Chuk is recalculating from your data…');
+      setMessage('Session recorded. Advisor is recalculating from your data…');
       await load();
-      setMessage('Session recorded. Chuk recalculated the guidance from your data.');
+      setMessage('Session recorded. Advisor recalculated the guidance from your data.');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not add session');
     } finally {
@@ -330,7 +330,7 @@ export function PricingPage() {
       <div>
         <h1 className="font-display text-3xl font-bold">Pricing Advisor</h1>
         <p className="mt-2 max-w-3xl text-base text-ba-ink/70">
-          Chuk is analysing your data. Every figure comes from your records —
+          Advisor is analysing your data. Every figure comes from your records —
           nothing is guessed.
         </p>
         <div className="mt-8 space-y-4">
@@ -348,8 +348,8 @@ export function PricingPage() {
       <p className="mt-2 max-w-3xl text-base text-ba-ink/70">
         For each programme: the cheapest you can afford to charge (the cost
         floor) and what you should charge at your {data.targetMarginPercent}%
-        target margin. Chuk calculates every figure from your recorded wages,
-        sessions, enrolments, and expenses — when data is missing, Chuk asks
+        target margin. Advisor calculates every figure from your recorded wages,
+        sessions, enrolments, and expenses — when data is missing, Advisor asks
         for it instead of guessing. A lower price is suggested only as a
         time-boxed test, and only when your own operating data supports it.
       </p>
@@ -474,7 +474,7 @@ export function PricingPage() {
             {p.status === 'INSUFFICIENT_DATA' && (
               <div className="mt-4">
                 <p className="text-base font-semibold">
-                  To advise on this programme, Chuk needs:
+                  To advise on this programme, Advisor needs:
                 </p>
                 <ul className="mt-2 space-y-2">
                   {p.missingData.map((m) => (

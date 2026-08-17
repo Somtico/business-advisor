@@ -110,7 +110,7 @@ export function ActionsPage() {
       });
       if (status === 'COMPLETED') {
         setInsightsMsg(
-          'Action completed. Confirm what it saved or earned below, or leave it and Chuk will measure or ask you in 30 days.'
+          'Action completed. Confirm what it saved or earned below, or leave it and Advisor will measure or ask you in 30 days.'
         );
       }
       await load();
@@ -166,7 +166,7 @@ export function ActionsPage() {
           onClick={() => void runInsights()}
           className="cursor-pointer rounded-md bg-ba-accent px-4 py-2 text-base font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {runningInsights ? 'Chuk Is Analysing…' : 'Run Insights'}
+          {runningInsights ? 'Advisor Is Analysing…' : 'Run Insights'}
         </button>
       </div>
 
@@ -256,7 +256,7 @@ export function ActionsPage() {
                   )}
                   {r.source === 'ADVISOR_CHAT' && (
                     <p className="mt-2 text-base text-ba-ink/60">
-                      Tracked from a Chuk conversation
+                      Tracked from an Advisor conversation
                     </p>
                   )}
                 </div>
@@ -282,7 +282,7 @@ export function ActionsPage() {
               {awaitingConfirmation && confirmingId !== r.id && (
                 <div className="mt-4 border-t border-ba-line pt-4">
                   <p className="text-base text-ba-ink/70">
-                    What did this action save or earn? Chuk will also try to
+                    What did this action save or earn? Advisor will also try to
                     measure it from your data after the verification window.
                   </p>
                   <button

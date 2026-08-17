@@ -70,7 +70,7 @@ export async function listConnectors(
       label: 'Manual Entry',
       status: 'available',
       detail:
-        'Type programmes, enrolments, wages, sessions, and expenses in the app. Data Readiness lists every dataset Chuk needs.',
+        'Type programmes, enrolments, wages, sessions, and expenses in the app. Data Readiness lists every dataset Advisor needs.',
       href: '/app/readiness',
       lastSyncedAt: null,
     },

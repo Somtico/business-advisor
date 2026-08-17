@@ -1,19 +1,20 @@
-export const PRODUCT_NAME = 'AI Business Advisor';
-export const AI_NAME = 'Chuk';
-/** First-mention gloss so Chuk is not read as a person. */
-export const AI_NAME_INTRO = 'Chuk, the AI advisor';
+export const PRODUCT_NAME = 'Somtico Business Advisor';
+/** Shorter product reference after the full name is established. */
+export const PRODUCT_NAME_SHORT = 'Business Advisor';
+/** AI functionality within the product; not a character name. */
+export const AI_NAME = 'Advisor';
 export const COMPANY_NAME = 'Somtico Technologies Inc.';
 export const COMPANY_SHORT = 'Somtico Tech';
 export const COMPANY_SITE = 'https://somticoweb.com';
 export const PILOT_PRICE = '$5 CAD / month';
-export const LOGO_SRC = '/images/logo/chuk-ai-mark.png';
-export const LOGO_FULL_SRC = '/images/logo/chuk-ai-logo.png';
+export const LOGO_SRC = '/images/logo/business-advisor-mark.png';
+export const LOGO_FULL_SRC = '/images/logo/business-advisor-logo.png';
 
 export const advisorTrustPoints = [
   {
     title: 'Never Guesses',
     description:
-      'Chuk only uses figures calculated from your records. When data is missing, it asks for exactly what it needs instead of estimating.',
+      'Advisor only uses figures calculated from your records. When data is missing, it asks for exactly what it needs instead of estimating.',
   },
   {
     title: 'Shows Its Work',
@@ -39,7 +40,7 @@ export const advisorHowItWorks = [
       'Add programmes, enrolments, wages, sessions, and expenses by hand, CSV import, or a portal connector.',
   },
   {
-    title: 'Chuk Analyzes',
+    title: 'Advisor Analyses',
     description:
       'Deterministic analytics read your records and surface pricing gaps, staffing waste, and cash risks.',
   },
@@ -57,10 +58,10 @@ export const advisorHowItWorks = [
 
 export const advisorCapabilities = [
   'Pricing guidance: your true cost floor and what you should charge',
-  "Verified impact ledger: proof of what the advice saved or earned",
-  "Command Centre this-week loop: named leak, what you tried, open actions, and verified impact",
+  'Verified impact ledger: proof of what the advice saved or earned',
+  'Command Centre this-week loop: named leak, what you tried, open actions, and verified impact',
   'Action Centre that turns insights into tracked, measurable steps',
-  'Ask Chuk anything about your numbers in plain language',
+  'Ask Advisor anything about your numbers in plain language',
   'Enrolment Advisor: name the leak, cheap next steps, then a paid test only when the data supports it',
   'Targets and forecasts across conservative to growth scenarios',
   'Staffing versus demand analysis to catch overscheduled weeks',
@@ -71,8 +72,8 @@ export const advisorCapabilities = [
 export const advisorScreenshots = [
   {
     src: '/images/screenshots/command-centre-v2.png',
-    alt: "AI Business Advisor command centre showing Chuk's verified impact, active students, expenses, and cash outlook",
-    caption: "Command Centre: your key numbers and Chuk's verified impact at a glance",
+    alt: "Somtico Business Advisor command centre showing Advisor's verified impact, active students, expenses, and cash outlook",
+    caption: "Command Centre: your key numbers and Advisor's verified impact at a glance",
   },
   {
     src: '/images/screenshots/pricing-advisor-v2.png',
@@ -85,13 +86,13 @@ export const advisorScreenshots = [
     caption: 'Action Centre: advice becomes tracked actions with verified dollar impact',
   },
   {
-    src: '/images/screenshots/ask-chuk-v2.png',
-    alt: 'Ask Chuk chat page where owners ask questions about their business data',
-    caption: 'Ask Chuk: plain-language answers grounded in your own records',
+    src: '/images/screenshots/ask-advisor-v2.png',
+    alt: 'Ask Advisor chat page where owners ask questions about their business data',
+    caption: 'Ask Advisor: plain-language answers grounded in your own records',
   },
   {
     src: '/images/screenshots/help-faq-v2.png',
-    alt: 'Help and FAQ page introducing Chuk and its no-guessing rules',
-    caption: 'Meet Chuk: the rules it follows, in plain language',
+    alt: 'Help and FAQ page introducing Advisor and its no-guessing rules',
+    caption: 'Meet Your Advisor: the rules it follows, in plain language',
   },
 ] as const;

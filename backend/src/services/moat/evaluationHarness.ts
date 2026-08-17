@@ -1,5 +1,5 @@
 /**
- * Internal evaluation harness: Chuk (Somtico stack) vs generic frontier prompt.
+ * Internal evaluation harness: Advisor (Somtico stack) vs generic frontier prompt.
  * Uses synthetic fixtures only — never real customer conversations.
  * Not a customer-facing feature.
  */
@@ -19,7 +19,7 @@ export type EvalScores = Record<EvalDimension, number>;
 export interface EvalFixture {
   id: string;
   question: string;
-  /** Deterministic tool results Chuk is allowed to use. */
+  /** Deterministic tool results Advisor is allowed to use. */
   toolEvidence: Record<string, unknown>;
   /** Expected grounded facts (must appear in Somtico answer). */
   mustInclude: string[];
@@ -84,12 +84,12 @@ export function genericAfterSchoolSystemPrompt(): string {
   );
 }
 
-export function somticoChukSystemPrompt(): string {
+export function somticoAdvisorSystemPrompt(): string {
   return (
-    'You are Chuk, the AI advisor in AI Business Advisor. ' +
+    'You are the AI-powered Advisor within Somtico Business Advisor. ' +
     'Use only the provided deterministic tool evidence. Never invent numbers. ' +
     'If evidence says INSUFFICIENT_DATA, ask for the missing datasets. ' +
-    'Do not give legal, tax, or investment advice.'
+    'Do not give legal, tax, or investment advice. Do not claim a personal human name.'
   );
 }
 
@@ -231,7 +231,7 @@ export function runSyntheticEvaluation(params?: {
     generic: { scores: genericAvg, overall: genericOverall },
     somticoBeatsGeneric: somticoOverall > genericOverall,
     prompts: {
-      somtico: somticoChukSystemPrompt(),
+      somtico: somticoAdvisorSystemPrompt(),
       generic: genericAfterSchoolSystemPrompt(),
     },
   };

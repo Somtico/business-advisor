@@ -586,7 +586,7 @@ export async function pricingGuidance(
 /**
  * HTTP response for Pricing Advisor. Drops per-instructor hourly rates and
  * burden percents so a Network-tab copy cannot replay the wage formula.
- * Chuk still receives the full `pricingGuidance` tool result server-side.
+ * Advisor still receives the full `pricingGuidance` tool result server-side.
  */
 export function sanitizePricingGuidanceForClient(
   data: PricingGuidanceResult

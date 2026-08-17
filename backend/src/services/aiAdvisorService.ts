@@ -262,7 +262,7 @@ function parseAnthropicResponse(
 
 function deterministicFallbackText(toolResults: Record<string, unknown>): string {
   const lines = [
-    'Chuk could not reach Claude or OpenAI. Open Command Centre, Enrolment Advisor, and Pricing Advisor for the full picture. Deterministic read of your records:',
+    'Advisor could not reach Claude or OpenAI. Open Command Centre, Enrolment Advisor, and Pricing Advisor for the full picture. Deterministic read of your records:',
     '',
   ];
   const memory = toolResults.organizationMemory as
@@ -352,7 +352,7 @@ export async function askAdvisor(params: {
     .map(([name, data]) => formatToolResult(name, data))
     .join('\n\n');
 
-  const system = `You are Chuk, the advisor inside the AI Business Advisor platform, serving an after-school / tutoring / enrichment centre. Refer to yourself as Chuk when the owner addresses you by name.
+  const system = `You are the AI-powered Advisor within Somtico Business Advisor, serving an after-school / tutoring / enrichment centre. Refer to yourself as Advisor. Do not claim a personal human name or introduce yourself as Chuk, Tico, or any other invented name.
 
 NON-NEGOTIABLE EVIDENCE RULES:
 1. Use ONLY the structured analytics evidence provided in this message. Every number, name, and date in your answer must appear in, or be arithmetic on, that evidence.

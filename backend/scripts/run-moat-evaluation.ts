@@ -1,5 +1,5 @@
 /**
- * Internal: run Chuk-vs-generic synthetic evaluation harness.
+ * Internal: run Advisor-vs-generic synthetic evaluation harness.
  * Usage: npx ts-node scripts/run-moat-evaluation.ts
  */
 import { runSyntheticEvaluation } from '../src/services/moat/evaluationHarness';

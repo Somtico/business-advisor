@@ -829,7 +829,7 @@ router.post(
       const code = err instanceof Error ? err.message : 'VALIDATION';
       const message =
         code === 'RESULT_REQUIRED'
-          ? 'Say what result you got. Chuk uses that, not a guess.'
+          ? 'Say what result you got. Advisor uses that, not a guess.'
           : code === 'RESULT_TOO_LONG'
             ? 'Keep the result under 2,000 characters. Do not include student or family names.'
             : 'Could not save that tactic.';
@@ -1013,7 +1013,7 @@ router.post(
         description: description.trim().slice(0, 2000),
         expectedImpactCents: expectedImpactCents ?? undefined,
         expectedImpactNote: expectedImpactCents
-          ? 'Owner estimate from a Chuk conversation'
+          ? 'Owner estimate from an Advisor conversation'
           : undefined,
         impactType: impactType ?? undefined,
         status: 'ACCEPTED',

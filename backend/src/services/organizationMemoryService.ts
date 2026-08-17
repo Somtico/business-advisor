@@ -11,7 +11,7 @@ function tacticLabel(key: string, otherLabel: string | null): string {
 
 /**
  * This centre's last 90 days: actions, verified impact, and enrolment tactics.
- * Sent to Chuk so answers remember what already happened here.
+ * Sent to Advisor so answers remember what already happened here.
  * No wage rates, household names, or formula internals.
  */
 export async function organizationMemory(organizationId: string) {

@@ -46,8 +46,8 @@ export function LandingPage() {
             </h1>
             <p className="mt-4 max-w-xl text-lg text-ba-ink/80">
               Run your after-school, tutoring, or enrichment centre on real
-              numbers. Chuk, the AI advisor inside, tells you the cheapest you
-              can afford to charge, what you should charge, where money is
+              numbers. Your AI-powered business advisor tells you the cheapest
+              you can afford to charge, what you should charge, where money is
               leaking, and then proves what its advice saved you.
             </p>
             <div className="mt-6 flex flex-wrap gap-3">
@@ -77,7 +77,7 @@ export function LandingPage() {
           >
             <img
               src="/images/screenshots/command-centre-v2.png"
-              alt="AI Business Advisor command centre with verified impact, students, expenses, and cash outlook"
+              alt="Somtico Business Advisor command centre with verified impact, students, expenses, and cash outlook"
               width={1440}
               height={900}
               className="h-auto w-full object-cover object-left-top"
@@ -90,13 +90,13 @@ export function LandingPage() {
         <div className="grid gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
           <div>
             <p className="text-base font-semibold uppercase tracking-wide text-ba-accent">
-              Meet Chuk
+              Meet Your Advisor
             </p>
             <h2 className="mt-2 font-display text-3xl font-bold">
               An Advisor That Never Guesses
             </h2>
             <p className="mt-3 text-base text-ba-ink/80">
-              Chuk reads the numbers you record (enrolments, sessions, wages,
+              Advisor reads the numbers you record (enrolments, sessions, wages,
               expenses, and targets) and turns them into plain-language advice
               you can act on.
             </p>
@@ -167,7 +167,7 @@ export function LandingPage() {
             Real Screens From the Product
           </h2>
           <p className="mt-3 max-w-3xl text-base text-ba-ink/80">
-            These are actual screenshots from AI Business Advisor, not mockups.
+            These are actual screenshots from Somtico Business Advisor, not mockups.
             Click any image to view it full size.
           </p>
           <ScreenshotGallery screenshots={advisorScreenshots} />
@@ -182,7 +182,7 @@ export function LandingPage() {
           Frequently Asked Questions
         </h2>
         <p className="mt-3 max-w-3xl text-base text-ba-ink/80">
-          The same answers you will find inside the product, covering Chuk,
+          The same answers you will find inside the product, covering Advisor,
           pricing, privacy, and the pilot plan.
         </p>
         <div className="mt-10">
@@ -194,7 +194,7 @@ export function LandingPage() {
         <div className="mx-auto max-w-6xl px-4 py-16 md:px-8">
           <h2 className="font-display text-3xl font-bold">Start Your Pilot</h2>
           <p className="mt-3 max-w-2xl text-base text-white/80">
-            Create an organization, connect your numbers, and let Chuk work
+            Create an organization, connect your numbers, and let Advisor work
             from your records. Pilot plan {PILOT_PRICE}, billed through Stripe.
             Cancel any time.
           </p>
@@ -213,7 +213,7 @@ export function LandingPage() {
             </Link>
           </div>
           <p className="mt-6 max-w-2xl text-sm text-white/60">
-            AI Business Advisor provides informational analysis to support your
+            Somtico Business Advisor provides informational analysis to support your
             decisions; it is not financial, legal, tax, or accounting advice.
           </p>
         </div>

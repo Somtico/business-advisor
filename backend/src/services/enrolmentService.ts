@@ -123,7 +123,7 @@ function cheapSteps(leak: EnrolmentLeak): Array<{ title: string; detail: string 
         {
           title: 'Record What Is Working',
           detail:
-            'Keep doing the cheap channels that already produce starts. Log the tactic and the result so Chuk can avoid suggesting a paid test you do not need.',
+            'Keep doing the cheap channels that already produce starts. Log the tactic and the result so Advisor can avoid suggesting a paid test you do not need.',
         },
       ];
     default:
@@ -131,7 +131,7 @@ function cheapSteps(leak: EnrolmentLeak): Array<{ title: string; detail: string 
         {
           title: 'Add Enrolment Records',
           detail:
-            'Chuk needs programmes with capacity, paid enrolments, and (when you have them) trials or enquiries before it can name the leak.',
+            'Advisor needs programmes with capacity, paid enrolments, and (when you have them) trials or enquiries before it can name the leak.',
         },
       ];
   }
@@ -256,7 +256,7 @@ export async function enrolmentGuidance(organizationId: string) {
     missing.push('Add at least one active programme with a capacity.');
   } else if (totalActive === 0) {
     leak = 'INSUFFICIENT_DATA';
-    missing.push('Record paid enrolments so Chuk can see fill and velocity.');
+    missing.push('Record paid enrolments so Advisor can see fill and velocity.');
   } else if (utilization != null && utilization >= FULL_ROOM) {
     leak = 'FULL_ROOM';
   } else if (conversionWeak) {
@@ -273,7 +273,7 @@ export async function enrolmentGuidance(organizationId: string) {
 
   if (tactics.length === 0 && leak !== 'INSUFFICIENT_DATA') {
     missing.push(
-      'Record what you have already tried to grow enrolments, and what result you got. Empty seats have many causes; Chuk will not invent a marketing plan.'
+      'Record what you have already tried to grow enrolments, and what result you got. Empty seats have many causes; Advisor will not invent a marketing plan.'
     );
   }
   if (
@@ -283,7 +283,7 @@ export async function enrolmentGuidance(organizationId: string) {
     enrolment.trialCount < MIN_TRIALS
   ) {
     missing.push(
-      'Record trials or enquiries so conversion can be measured. Without that, Chuk cannot tell a follow-up leak from a demand leak.'
+      'Record trials or enquiries so conversion can be measured. Without that, Advisor cannot tell a follow-up leak from a demand leak.'
     );
   }
 
@@ -301,7 +301,7 @@ export async function enrolmentGuidance(organizationId: string) {
   const diagnosisNote = (() => {
     switch (leak) {
       case 'INSUFFICIENT_DATA':
-        return 'Chuk cannot name an enrolment leak until the missing records are on file. That ask is the advice.';
+        return 'Advisor cannot name an enrolment leak until the missing records are on file. That ask is the advice.';
       case 'FULL_ROOM':
         return `Seats are ${utilization != null ? `${(utilization * 100).toFixed(0)}%` : ''} full. The constraint is capacity, not marketing. A waitlist beats paid ads until you can seat the next student.`;
       case 'CONVERSION_LEAK':
@@ -315,7 +315,7 @@ export async function enrolmentGuidance(organizationId: string) {
           ? `The room is ${utilization != null ? `${(utilization * 100).toFixed(0)}%` : ''} full with ${spareSeats} open seat(s), and conversion is already healthy. Cheap fills first; a small time-boxed paid test is on the table only after those, and only if cash can absorb it.`
           : `The room is ${utilization != null ? `${(utilization * 100).toFixed(0)}%` : ''} full with ${spareSeats} open seat(s). Filling seats you already pay for beats buying traffic until conversion is measured as healthy and cash can take a test.`;
       default:
-        return 'Enrolment looks stable at the current fill. Record what is working so Chuk does not suggest a paid test you do not need.';
+        return 'Enrolment looks stable at the current fill. Record what is working so Advisor does not suggest a paid test you do not need.';
     }
   })();
 

@@ -8,7 +8,7 @@ const DASHBOARD_ANALYSIS_STEPS = [
   'Checking staffing versus demand',
   'Rolling up expenses and subscriptions',
   'Calculating cash outlook and targets',
-  "Tallying Chuk's verified impact",
+  "Tallying Advisor's verified impact",
 ];
 
 interface Dashboard {
@@ -108,7 +108,7 @@ export function DashboardPage() {
       <div>
         <h1 className="font-display text-3xl font-bold">Command Centre</h1>
         <p className="mt-2 max-w-2xl text-base text-ba-ink/70">
-          Chuk is analysing your centre from your recorded numbers.
+          Advisor is analysing your centre from your recorded numbers.
         </p>
         <div className="mt-8 space-y-4">
           <AnalysisProgress steps={DASHBOARD_ANALYSIS_STEPS} />
@@ -153,7 +153,7 @@ export function DashboardPage() {
             </p>
           ) : data.operatingLoop.askTriedAndResults ? (
             <p className="mt-3 text-base text-ba-ink/80">
-              Record what you tried and the result you got so Chuk does not
+              Record what you tried and the result you got so Advisor does not
               invent a plan.{' '}
               <Link className="text-ba-accent underline" to="/app/enrolment">
                 Log a Tactic
@@ -188,7 +188,7 @@ export function DashboardPage() {
             </Link>
             {' · '}
             <Link className="text-ba-accent underline" to="/app/advisor">
-              Ask Chuk
+              Ask Advisor
             </Link>
           </p>
           <p className="mt-2 text-sm text-ba-ink/60">
@@ -200,7 +200,7 @@ export function DashboardPage() {
       <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {[
           {
-            label: "Chuk's Impact",
+            label: "Advisor's Impact",
             value: money(data.advisorImpact.verified.totalCents),
             note:
               data.advisorImpact.verified.totalCents > 0

@@ -3,11 +3,11 @@ import { Link } from 'react-router';
 import { api } from '../lib/api';
 import { AnalysisProgress } from '../components/AnalysisProgress';
 
-const CHUK_ANALYSIS_STEPS = [
+const ADVISOR_ANALYSIS_STEPS = [
   'Reading your question',
   'Selecting the right analytics tools',
   'Gathering evidence from your records',
-  'Chuk is reasoning over the evidence',
+  'Advisor is reasoning over the evidence',
   'Writing a grounded answer',
 ];
 
@@ -104,13 +104,13 @@ export function AdvisorPage() {
 
   return (
     <div>
-      <h1 className="font-display text-3xl font-bold">Ask Chuk</h1>
+      <h1 className="font-display text-3xl font-bold">Ask Advisor</h1>
       <p className="mt-2 max-w-2xl text-base text-ba-ink/70">
         Every answer is grounded in trusted
         analytics tools reading your own records — never free-form database
-        access, never guesses. When data is missing, Chuk asks for it.{' '}
+        access, never guesses. When data is missing, Advisor asks for it.{' '}
         <Link className="text-ba-accent underline" to="/app/help">
-          Meet Chuk
+          Meet Your Advisor
         </Link>
       </p>
       <form onSubmit={onSubmit} className="mt-8">
@@ -126,14 +126,14 @@ export function AdvisorPage() {
           disabled={loading}
           className="mt-3 cursor-pointer rounded-md bg-ba-accent px-4 py-3 text-base font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {loading ? 'Chuk Is Thinking…' : 'Ask Chuk'}
+          {loading ? 'Advisor Is Thinking…' : 'Ask Advisor'}
         </button>
       </form>
       {error && !loading && <p className="mt-4 text-base text-ba-warm">{error}</p>}
       {loading && (
         <div className="mt-4">
-          <p className="mb-3 text-base font-semibold">Chuk is analysing your records…</p>
-          <AnalysisProgress steps={CHUK_ANALYSIS_STEPS} stepMs={900} />
+          <p className="mb-3 text-base font-semibold">Advisor is analysing your records…</p>
+          <AnalysisProgress steps={ADVISOR_ANALYSIS_STEPS} stepMs={900} />
         </div>
       )}
       {meta && !loading && <p className="mt-4 text-base text-ba-ink/60">{meta}</p>}

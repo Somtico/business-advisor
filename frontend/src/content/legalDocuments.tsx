@@ -1,8 +1,8 @@
 import type { ReactNode } from 'react';
 import { Link } from 'react-router';
 
-export const TERMS_VERSION = '2026-08-14.4';
-export const PRIVACY_VERSION = '2026-08-15.2';
+export const TERMS_VERSION = '2026-08-16.1';
+export const PRIVACY_VERSION = '2026-08-16.1';
 
 export function LegalSection({
   title,
@@ -29,10 +29,10 @@ export function TermsDocumentBody({ compact = false }: { compact?: boolean }) {
         Terms of Service
       </h1>
       <p className="mt-2 text-base text-ba-ink/70">
-        AI Business Advisor — operated by Somtico Technologies Inc.
+        Somtico Business Advisor — operated by Somtico Technologies Inc.
       </p>
       <p className="mt-1 text-base text-ba-ink/70">
-        Version {TERMS_VERSION} · Effective 14 August 2026
+        Version {TERMS_VERSION} · Effective 16 August 2026
       </p>
 
       <Section title="1. Agreement to These Terms">
@@ -40,7 +40,7 @@ export function TermsDocumentBody({ compact = false }: { compact?: boolean }) {
           These Terms of Service (the "Terms") are a binding agreement between
           Somtico Technologies Inc. ("Somtico Tech", "we", "us", "our") and the
           organization on whose behalf you create an account (the "Customer",
-          "you", "your") governing your access to and use of the AI Business
+          "you", "your") governing your access to and use of the Somtico Business
           Advisor software-as-a-service platform, including its web application,
           APIs, connectors, email reports, AI features, and related services
           (collectively, the "Service").
@@ -89,7 +89,7 @@ export function TermsDocumentBody({ compact = false }: { compact?: boolean }) {
         </p>
         <p>
           Parts of the Service use artificial-intelligence models, including an
-          AI advisor feature named Chuk ("Chuk"). Chuk is software, not a person.
+          AI advisor feature referred to as Advisor ("Advisor"). Advisor is software, not a person.
           AI-generated content can be incomplete, out of date, or incorrect, and
           may not reflect your actual circumstances even when presented
           confidently. The Service is designed to decline to answer and request
@@ -333,7 +333,7 @@ export function TermsDocumentBody({ compact = false }: { compact?: boolean }) {
       </Section>
 
       <p className="mt-10 text-sm text-ba-ink/60">
-        Summary for convenience (the sections above control): AI Business Advisor
+        Summary for convenience (the sections above control): Somtico Business Advisor
         gives you information calculated from your own data. It is not
         professional advice, your decisions remain your own, and Somtico Tech's
         liability is limited to the fees you paid in the last 12 months.
@@ -350,10 +350,10 @@ export function PrivacyDocumentBody({ compact = false }: { compact?: boolean }) 
         Privacy Policy
       </h1>
       <p className="mt-2 text-base text-ba-ink/70">
-        AI Business Advisor, operated by Somtico Technologies Inc. (Somtico Tech)
+        Somtico Business Advisor, operated by Somtico Technologies Inc. (Somtico Tech)
       </p>
       <p className="mt-1 text-base text-ba-ink/70">
-        Version {PRIVACY_VERSION} · Effective 15 August 2026
+        Version {PRIVACY_VERSION} · Effective 16 August 2026
       </p>
       <p className="mt-4 text-base text-ba-ink/80">
         This policy explains how we handle personal information. It is separate
@@ -407,7 +407,7 @@ export function PrivacyDocumentBody({ compact = false }: { compact?: boolean }) 
         <p>
           We do not use your student, family, or staff records, chat notes, or
           other identifiable Customer Data to train third-party AI models
-          (Anthropic, OpenAI, or others). When Chuk (the AI advisor feature in
+          (Anthropic, OpenAI, or others). When Advisor (the AI advisor feature in
           the Service; software, not a person) calls an AI provider, it prefers
           Anthropic (Claude) and falls back to OpenAI. It sends aggregated
           evidence from our analytics tools for that question, with provider
@@ -427,7 +427,7 @@ export function PrivacyDocumentBody({ compact = false }: { compact?: boolean }) 
         </p>
         <p>
           On Enrolment Advisor you may opt in, record by record, when you log a
-          tactic with a clear outcome (helped, no effect, or hurt) and Chuk has
+          tactic with a clear outcome (helped, no effect, or hurt) and Advisor has
           already named a leak. The opt-in is shown only then. If you opt in, we
           store only: tactic type (for example, family referral), cost band (free
           / low / paid), outcome, the leak type at that moment, and a coarse
@@ -443,7 +443,7 @@ export function PrivacyDocumentBody({ compact = false }: { compact?: boolean }) 
           to show playbook counts (aggregate "helped in X of Y reports" tallies
           shown in the Service after at least eight similar reports) and to train,
           evaluate, and operate models and ranking algorithms that Somtico owns,
-          so Chuk can get better at this industry from real results. Those
+          so Advisor can get better at this industry from real results. Those
           Somtico-owned models and the de-identified corpus are Somtico
           intellectual property. We will not send that corpus to Anthropic,
           OpenAI, or any other provider for their training. Opt-in is

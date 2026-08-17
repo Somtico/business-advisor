@@ -1,4 +1,4 @@
-# 📚 Complete R2 Backup Setup Guide for AI Business Advisor
+# 📚 Complete R2 Backup Setup Guide for Somtico Business Advisor
 
 This comprehensive guide will walk you through setting up **automated daily backups** from your Railway PostgreSQL database to Cloudflare R2 using GitHub Actions.
 
@@ -807,7 +807,7 @@ If you get stuck:
 
 ## 🎉 You're Done!
 
-Your AI Business Advisor database will now automatically backup to Cloudflare R2 every day at 2:00 AM UTC. Your data is safe! 🛡️
+Your Somtico Business Advisor database will now automatically backup to Cloudflare R2 every day at 2:00 AM UTC. Your data is safe! 🛡️
 
 **What happens next:**
 - ✅ Backups run automatically every day
@@ -866,7 +866,7 @@ aws s3 cp s3://business-advisor-database-backups/backups/2025/01/backup-2025-01-
 ---
 
 **Last Updated**: August 2026  
-**Project**: AI Business Advisor (business-advisor)  
+**Project**: Somtico Business Advisor (business-advisor)  
 **Database**: PostgreSQL on Railway  
 **Backup Storage**: Cloudflare R2
 

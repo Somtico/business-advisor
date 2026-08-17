@@ -131,7 +131,7 @@ export async function computeMoatHealthMetrics() {
     onboardingTelemetryRows: telemetry._count._all,
     organizationCount: orgs,
     verifiedRoiCents,
-    chukVersusGenericEvaluation: {
+    advisorVersusGenericEvaluation: {
       somticoOverall: evaluation.somtico.overall,
       genericOverall: evaluation.generic.overall,
       somticoBeatsGeneric: evaluation.somticoBeatsGeneric,

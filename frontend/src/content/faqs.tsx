@@ -6,33 +6,33 @@ export type FaqSection = { title: string; items: FaqItem[] };
 
 export const FAQ_SECTIONS: FaqSection[] = [
   {
-    title: 'About Chuk',
+    title: 'About Advisor',
     items: [
       {
-        q: 'Who is Chuk?',
-        a: 'Chuk is the AI advisor inside AI Business Advisor. It is software, not a person. Chuk reads your own records — enrolments, sessions, wages, expenses, subscriptions, and targets — and turns them into plain-language advice: where money is leaking, what to charge, which actions to take next, and what those actions saved or earned once you complete them.',
+        q: 'What is Advisor?',
+        a: 'Advisor is the AI-powered advisor inside Somtico Business Advisor. It is software, not a person. Advisor reads your own records — enrolments, sessions, wages, expenses, subscriptions, and targets — and turns them into plain-language advice: where money is leaking, what to charge, which actions to take next, and what those actions saved or earned once you complete them.',
       },
       {
-        q: "Where do Chuk's numbers come from?",
-        a: "Every figure comes from a fixed set of analytics tools reading your organization's data — including this centre's last 90 days of actions and tactics. Chuk has no free-form database access and cannot see other organizations' identifiable data. If a number is not in your records, Chuk does not have it.",
+        q: "Where do Advisor's numbers come from?",
+        a: "Every figure comes from a fixed set of analytics tools reading your organization's data — including this centre's last 90 days of actions and tactics. Advisor has no free-form database access and cannot see other organizations' identifiable data. If a number is not in your records, Advisor does not have it.",
       },
       {
-        q: 'Which AI model does Chuk use?',
-        a: 'Chuk prefers Claude, then OpenAI if Claude is unavailable. The model only phrases answers. Verdicts such as cost floors, enrolment leaks, and cash-safe spend caps are calculated by Somtico tools from your records.',
+        q: 'Which AI model does Advisor use?',
+        a: 'Advisor prefers Claude, then OpenAI if Claude is unavailable. The model only phrases answers. Verdicts such as cost floors, enrolment leaks, and cash-safe spend caps are calculated by Somtico tools from your records.',
       },
       {
-        q: 'Does Chuk ever guess?',
-        a: 'No. Chuk operates under strict evidence rules: it only uses figures returned by its analytics tools, it never invents or extrapolates numbers, and when the data needed to answer is missing, the answer is a request for that data — not an estimate. The Pricing Advisor applies the same gate: no calculation runs until every required input is on record.',
+        q: 'Does Advisor ever guess?',
+        a: 'No. Advisor operates under strict evidence rules: it only uses figures returned by its analytics tools, it never invents or extrapolates numbers, and when the data needed to answer is missing, the answer is a request for that data — not an estimate. The Pricing Advisor applies the same gate: no calculation runs until every required input is on record.',
       },
       {
         q: 'What happens when data is missing?',
-        a: 'Chuk tells you exactly what is missing and where to add it. For example, if a programme has no scheduled sessions or an instructor has no wage profile, the Pricing Advisor lists those items with links or inline forms so you can fill the gap and recalculate immediately.',
+        a: 'Advisor tells you exactly what is missing and where to add it. For example, if a programme has no scheduled sessions or an instructor has no wage profile, the Pricing Advisor lists those items with links or inline forms so you can fill the gap and recalculate immediately.',
       },
       {
-        q: "Is Chuk's advice professional advice?",
+        q: "Is Advisor's advice professional advice?",
         a: (
           <>
-            No. Chuk provides informational analysis based on the data you
+            No. Advisor provides informational analysis based on the data you
             supply. It is not financial, legal, tax, accounting, or investment
             advice, and decisions remain yours. See the{' '}
             <Link className="text-ba-accent underline" to="/terms">
@@ -48,8 +48,8 @@ export const FAQ_SECTIONS: FaqSection[] = [
     title: 'Pricing Advisor',
     items: [
       {
-        q: 'How does Chuk calculate the cheapest I can charge?',
-        a: "Chuk builds a cost floor per student per month: direct instructor labour for the programme's scheduled sessions (from recorded wage profiles), plus a share of your monthly overhead (recorded expenses and subscriptions) allocated across enrolled students. It shows two floors — one at your current enrolment and one at full capacity — so you can see how filling seats lowers the floor.",
+        q: 'How does Advisor calculate the cheapest I can charge?',
+        a: "Advisor builds a cost floor per student per month: direct instructor labour for the programme's scheduled sessions (from recorded wage profiles), plus a share of your monthly overhead (recorded expenses and subscriptions) allocated across enrolled students. It shows two floors — one at your current enrolment and one at full capacity — so you can see how filling seats lowers the floor.",
       },
       {
         q: 'How is the recommended price set?',
@@ -57,19 +57,19 @@ export const FAQ_SECTIONS: FaqSection[] = [
       },
       {
         q: 'Why does a programme show "needs more data"?',
-        a: 'The pricing gate found a required input missing — for example, no scheduled sessions this week, an instructor without a wage profile, or no recorded overhead. Chuk lists each missing item. Once you add it, guidance is calculated on the spot.',
+        a: 'The pricing gate found a required input missing — for example, no scheduled sessions this week, an instructor without a wage profile, or no recorded overhead. Advisor lists each missing item. Once you add it, guidance is calculated on the spot.',
       },
       {
         q: 'Can I change the target margin?',
         a: 'Yes. The target margin is an organization setting. Adjusting it recalculates the recommended price for every programme; the cost floors are unaffected because they reflect real costs.',
       },
       {
-        q: 'Will Chuk tell me I am charging too much?',
-        a: 'Not from empty seats, and never from area household income. Cost-plus tells you the floor, not the market. If the price sits clearly above the recommended (cost + target margin) price, utilization has been low for at least four weeks, spare seats exist, and a recorded demand signal is weak (trial-to-paid conversion, enquiry-to-enrol, or enrolment velocity vs the prior period), Chuk offers an Above Target: Price Test. That is a time-boxed test at a price that still clears the cost floor, plus a window to watch enrolments and conversion. It is not a claim that price caused fewer sales, and it does not promise that a cut will fill the room.',
+        q: 'Will Advisor tell me I am charging too much?',
+        a: 'Not from empty seats, and never from area household income. Cost-plus tells you the floor, not the market. If the price sits clearly above the recommended (cost + target margin) price, utilization has been low for at least four weeks, spare seats exist, and a recorded demand signal is weak (trial-to-paid conversion, enquiry-to-enrol, or enrolment velocity vs the prior period), Advisor offers an Above Target: Price Test. That is a time-boxed test at a price that still clears the cost floor, plus a window to watch enrolments and conversion. It is not a claim that price caused fewer sales, and it does not promise that a cut will fill the room.',
       },
       {
-        q: 'Why does Chuk sometimes say filling seats beats a price change?',
-        a: 'When the price already meets the target margin but the room is under 60% full, and the price-test gate does not fire, Chuk keeps the On Track verdict. Marketing, schedule, instructor, location, and reputation all produce the same empty room. A cut that does not fill seats is a permanent margin loss.',
+        q: 'Why does Advisor sometimes say filling seats beats a price change?',
+        a: 'When the price already meets the target margin but the room is under 60% full, and the price-test gate does not fire, Advisor keeps the On Track verdict. Marketing, schedule, instructor, location, and reputation all produce the same empty room. A cut that does not fill seats is a permanent margin loss.',
       },
     ],
   },
@@ -77,12 +77,12 @@ export const FAQ_SECTIONS: FaqSection[] = [
     title: 'Enrolment Advisor',
     items: [
       {
-        q: 'Can Chuk tell me how to get more students?',
-        a: 'Chuk names the leak from your records (full room, weak trial conversion, slipping starts, or churn), then suggests cheap next steps first: follow-up, referrals, waitlists, or a flyer where you already are. A small paid test appears only when conversion is healthy, seats are open, and cash can absorb it. Chuk will not invent a marketing plan or promised student counts.',
+        q: 'Can Advisor tell me how to get more students?',
+        a: 'Advisor names the leak from your records (full room, weak trial conversion, slipping starts, or churn), then suggests cheap next steps first: follow-up, referrals, waitlists, or a flyer where you already are. A small paid test appears only when conversion is healthy, seats are open, and cash can absorb it. Advisor will not invent a marketing plan or promised student counts.',
       },
       {
-        q: 'Why does Chuk ask what I tried and what result I got?',
-        a: 'Empty seats have many causes. What you already tried, and whether it helped, is evidence. Record both on Enrolment Advisor so Chuk can avoid repeating a paid channel that did nothing, and can lean on a cheap tactic that already produced starts.',
+        q: 'Why does Advisor ask what I tried and what result I got?',
+        a: 'Empty seats have many causes. What you already tried, and whether it helped, is evidence. Record both on Enrolment Advisor so Advisor can avoid repeating a paid channel that did nothing, and can lean on a cheap tactic that already produced starts.',
       },
       {
         q: 'Do you use my enrolment notes to train AI?',
@@ -109,11 +109,11 @@ export const FAQ_SECTIONS: FaqSection[] = [
     items: [
       {
         q: 'What is the impact ledger?',
-        a: "A running record of the money Chuk's advice saved or earned you. Every recommendation carries an expected impact. When you complete an action, its result moves through three buckets: pipeline (open actions), estimated pending (completed, awaiting verification), and verified (measured from your data or confirmed by you).",
+        a: "A running record of the money Advisor's advice saved or earned you. Every recommendation carries an expected impact. When you complete an action, its result moves through three buckets: pipeline (open actions), estimated pending (completed, awaiting verification), and verified (measured from your data or confirmed by you).",
       },
       {
         q: 'How is impact verified?',
-        a: 'When you complete an action, Chuk snapshots a baseline of the relevant records. After the verification window (30 days), it measures what actually changed — for example, lower recorded wage costs or a cancelled subscription. If the change is measurable, the impact is marked "Verified from Your Data". If it is not measurable, Chuk asks you to confirm the result, and it is marked "Confirmed by You".',
+        a: 'When you complete an action, Advisor snapshots a baseline of the relevant records. After the verification window (30 days), it measures what actually changed — for example, lower recorded wage costs or a cancelled subscription. If the change is measurable, the impact is marked "Verified from Your Data". If it is not measurable, Advisor asks you to confirm the result, and it is marked "Confirmed by You".',
       },
       {
         q: 'Can verified impact be overstated?',
@@ -121,7 +121,7 @@ export const FAQ_SECTIONS: FaqSection[] = [
       },
       {
         q: 'How do I track advice from a chat as an action?',
-        a: 'After Chuk answers a question, use "Track This as an Action". It creates a recommendation in the Action Centre linked to the conversation, with your own estimate of the expected impact. It then flows through the same verification as any other action.',
+        a: 'After Advisor answers a question, use "Track This as an Action". It creates a recommendation in the Action Centre linked to the conversation, with your own estimate of the expected impact. It then flows through the same verification as any other action.',
       },
     ],
   },
@@ -132,7 +132,7 @@ export const FAQ_SECTIONS: FaqSection[] = [
         q: 'Is my data private?',
         a: (
           <>
-            Yes. Your data is scoped to your organization. Chuk's tools only
+            Yes. Your data is scoped to your organization. Advisor's tools only
             read your organization's records, and AI providers receive only the
             aggregated evidence needed to answer your question, never your raw
             database. The{' '}
@@ -145,15 +145,15 @@ export const FAQ_SECTIONS: FaqSection[] = [
       },
       {
         q: 'What data should I enter for the best advice?',
-        a: "Programmes with prices and capacity, student enrolments, weekly session schedules, staff wage profiles, expenses, subscriptions, and monthly targets. The more complete the records, the more of Chuk's analysis unlocks — and the app tells you exactly what is missing when something is blocked.",
+        a: "Programmes with prices and capacity, student enrolments, weekly session schedules, staff wage profiles, expenses, subscriptions, and monthly targets. The more complete the records, the more of Advisor's analysis unlocks — and the app tells you exactly what is missing when something is blocked.",
       },
       {
         q: 'What are the weekly briefs?',
-        a: "A Monday email of the same operating loop you see first on Command Centre: the named enrolment leak, the cheap next step, what you already tried, open actions, and Chuk's verified impact, plus the week's numbers. The same advice disclaimer applies.",
+        a: "A Monday email of the same operating loop you see first on Command Centre: the named enrolment leak, the cheap next step, what you already tried, open actions, and Advisor's verified impact, plus the week's numbers. The same advice disclaimer applies.",
       },
       {
-        q: 'Can Chuk change my data or act on my behalf?',
-        a: 'No. Chuk reads and advises. All changes to your records — completing actions, confirming impact, adding sessions or wages — are done by you.',
+        q: 'Can Advisor change my data or act on my behalf?',
+        a: 'No. Advisor reads and advises. All changes to your records — completing actions, confirming impact, adding sessions or wages — are done by you.',
       },
     ],
   },
@@ -162,27 +162,27 @@ export const FAQ_SECTIONS: FaqSection[] = [
     items: [
       {
         q: 'What should I do first after signing up?',
-        a: "Add your programmes with list prices and capacity, enrol your current students, add staff with wage profiles, schedule this week's class sessions, and record expenses or subscriptions. Then open Command Centre for this week's loop, Pricing Advisor, and Enrolment Advisor. Ask Chuk explains the same numbers. The Data Readiness page lists every dataset and why it matters.",
+        a: "Add your programmes with list prices and capacity, enrol your current students, add staff with wage profiles, schedule this week's class sessions, and record expenses or subscriptions. Then open Command Centre for this week's loop, Pricing Advisor, and Enrolment Advisor. Ask Advisor explains the same numbers. The Data Readiness page lists every dataset and why it matters.",
       },
       {
         q: 'Do I have to enter everything by hand?',
-        a: 'No. You can type records in, import students, expenses, subscriptions, and revenue by CSV, or connect an academy registration portal from Settings. Chuk uses whatever you have; missing datasets produce a request for data rather than a guessed number.',
+        a: 'No. You can type records in, import students, expenses, subscriptions, and revenue by CSV, or connect an academy registration portal from Settings. Advisor uses whatever you have; missing datasets produce a request for data rather than a guessed number.',
       },
       {
-        q: 'How do I ask Chuk a question?',
+        q: 'How do I ask Advisor a question?',
         a: (
           <>
             Open{' '}
             <Link className="text-ba-accent underline" to="/app/advisor">
-              Ask Chuk
+              Ask Advisor
             </Link>
-            , type a question in plain language (for example, "where can we save labour this week?"), and submit. While Chuk works you will see the analysis steps. The answer is grounded only in your records, and you can track it as an action.
+            , type a question in plain language (for example, "where can we save labour this week?"), and submit. While Advisor works you will see the analysis steps. The answer is grounded only in your records, and you can track it as an action.
           </>
         ),
       },
       {
-        q: 'What is the difference between Run Insights and Ask Chuk?',
-        a: 'Run Insights (Action Centre) generates a batch of structured recommendations from deterministic rules — staffing, pricing, cash, conversion. Ask Chuk answers a specific question in conversation. Both use the same analytics tools and the same no-guessing rules.',
+        q: 'What is the difference between Run Insights and Ask Advisor?',
+        a: 'Run Insights (Action Centre) generates a batch of structured recommendations from deterministic rules — staffing, pricing, cash, conversion. Ask Advisor answers a specific question in conversation. Both use the same analytics tools and the same no-guessing rules.',
       },
     ],
   },
@@ -191,7 +191,7 @@ export const FAQ_SECTIONS: FaqSection[] = [
     items: [
       {
         q: 'Who can see our data?',
-        a: "Only users in your organization, scoped by role. Owners and admins can manage billing and connectors. Operations and finance can complete actions and record impact. Viewers can read dashboards. Chuk never sees another organization's records.",
+        a: "Only users in your organization, scoped by role. Owners and admins can manage billing and connectors. Operations and finance can complete actions and record impact. Viewers can read dashboards. Advisor never sees another organization's records.",
       },
       {
         q: 'How does the pilot subscription work?',
@@ -234,7 +234,7 @@ export function landingFaqSections(): FaqSection[] {
     {
       title: 'Enrolment Advisor',
       items: itemsNamed('Enrolment Advisor', [
-        'Can Chuk tell me how to get more students?',
+        'Can Advisor tell me how to get more students?',
         'Do you use my enrolment notes to train AI?',
       ]),
     },
@@ -249,7 +249,7 @@ export function landingFaqSections(): FaqSection[] {
       title: 'Data & Privacy',
       items: itemsNamed('Data & Privacy', [
         'Is my data private?',
-        'Can Chuk change my data or act on my behalf?',
+        'Can Advisor change my data or act on my behalf?',
       ]),
     },
     {
@@ -259,8 +259,8 @@ export function landingFaqSections(): FaqSection[] {
           'Do I have to enter everything by hand?',
         ]),
         {
-          q: 'How do I ask Chuk a question?',
-          a: 'After you sign in, open Ask Chuk, type a question in plain language (for example, "where can we save labour this week?"), and submit. The answer is grounded only in your records.',
+          q: 'How do I ask Advisor a question?',
+          a: 'After you sign in, open Ask Advisor, type a question in plain language (for example, "where can we save labour this week?"), and submit. The answer is grounded only in your records.',
         },
       ],
     },

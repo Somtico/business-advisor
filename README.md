@@ -1,4 +1,4 @@
-# AI Business Advisor
+# Somtico Business Advisor
 
 Multi-tenant AI business intelligence and operating advisor for independent after-school, tutoring, and enrichment education centres.
 

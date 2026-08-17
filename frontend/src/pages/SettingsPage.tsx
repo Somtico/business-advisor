@@ -146,7 +146,7 @@ export function SettingsPage() {
         <h2 className="font-display text-2xl font-bold">Data Sources</h2>
         <p className="mt-2 text-base text-ba-ink/70">
           Connect the registration portal, import CSV, or type records in.
-          Chuk uses whatever is on file and asks for the rest.
+          Advisor uses whatever is on file and asks for the rest.
         </p>
         <ul className="mt-4 space-y-3">
           {connectors.map((c) => (

@@ -14,8 +14,8 @@ const PAGES = [
   { path: '/app', file: 'command-centre-v2.png', ready: 'Active Students' },
   { path: '/app/pricing', file: 'pricing-advisor-v2.png', ready: 'Robotics Club' },
   { path: '/app/actions', file: 'action-centre-v2.png', ready: 'Verified Saved' },
-  { path: '/app/advisor', file: 'ask-chuk-v2.png', ready: 'Ask Chuk' },
-  { path: '/app/help', file: 'help-faq-v2.png', ready: 'Meet Chuk' },
+  { path: '/app/advisor', file: 'ask-advisor-v2.png', ready: 'Ask Advisor' },
+  { path: '/app/help', file: 'help-faq-v2.png', ready: 'Meet Your Advisor' },
 ];
 
 const browser = await chromium.launch({ headless: true });
