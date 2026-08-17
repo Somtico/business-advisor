@@ -89,12 +89,18 @@ export const FAQ_SECTIONS: FaqSection[] = [
         a: (
           <>
             Your notes stay on your organization and are never used to train
-            Claude, OpenAI, or any other third-party model. If you
-            opt in on a record, we store only a de-identified row (tactic
-            type, cost band, outcome, leak type, coarse education bucket),
-            with no names or organization id. Those rows improve the playbook
-            after at least eight similar reports, and Somtico may later use
-            them to train its own industry models. See the{' '}
+            Claude, OpenAI, or any other third-party model. Advisor may send
+            structured analytics evidence to AI providers for inference (for
+            example programme names, instructor names used in scheduling
+            evidence, or tactic notes when those tools return them). That is
+            temporary processing to answer your question, not provider model
+            training. If you opt in on an Enrolment Advisor record, we store only
+            a de-identified row (tactic type, cost band, outcome, leak type,
+            coarse education bucket), with no names or organization id. Those
+            rows improve the playbook after at least eight similar reports, and
+            Somtico may later use them to train its own industry models. Optional
+            organization-level learning and benchmark consents are separate from
+            the Terms. See the{' '}
             <Link className="text-ba-accent underline" to="/privacy">
               Privacy Policy
             </Link>
@@ -133,9 +139,11 @@ export const FAQ_SECTIONS: FaqSection[] = [
         a: (
           <>
             Yes. Your data is scoped to your organization. Advisor's tools only
-            read your organization's records, and AI providers receive only the
-            aggregated evidence needed to answer your question, never your raw
-            database. The{' '}
+            read your organization's records. AI providers receive structured
+            evidence needed to answer your question — not unrestricted database
+            access — and we do not opt your Customer Data into provider model
+            training. Cross-customer learning and peer benchmarks require
+            separate explicit opt-ins. The{' '}
             <Link className="text-ba-accent underline" to="/privacy">
               Privacy Policy
             </Link>{' '}

@@ -29,7 +29,7 @@ export const advisorTrustPoints = [
   {
     title: 'Keeps Your Data Yours',
     description:
-      'Your records stay scoped to your organization. The AI reads aggregated evidence through fixed analytics tools, never your raw database.',
+      'Your records stay scoped to your organization. Advisor reads structured analytics evidence through fixed tools, not your raw database. Cross-customer learning requires a separate opt-in.',
   },
 ] as const;
 

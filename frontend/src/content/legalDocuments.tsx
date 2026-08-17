@@ -1,8 +1,17 @@
 import type { ReactNode } from 'react';
 import { Link } from 'react-router';
 
+/** Keep in sync with backend/src/config/legal.ts */
 export const TERMS_VERSION = '2026-08-16.1';
 export const PRIVACY_VERSION = '2026-08-16.1';
+export const LEGAL_NOTICE_PUBLISHED_AT = '2026-08-16';
+export const LEGAL_MATERIAL_CHANGE_EFFECTIVE_AT = '2026-09-15';
+
+export const PRIVACY_OFFICER_NAME = 'Somto Ufondu';
+export const PRIVACY_OFFICER_TITLE = 'Privacy Officer';
+export const PRIVACY_OFFICER_EMAIL = 'somto@somticoweb.com';
+export const COMPANY_MAILING_ADDRESS =
+  '202B Meadows Blvd., Saskatoon, SK S7V 0E4, Canada';
 
 export function LegalSection({
   title,
@@ -32,7 +41,9 @@ export function TermsDocumentBody({ compact = false }: { compact?: boolean }) {
         Somtico Business Advisor — operated by Somtico Technologies Inc.
       </p>
       <p className="mt-1 text-base text-ba-ink/70">
-        Version {TERMS_VERSION} · Effective 16 August 2026
+        Version {TERMS_VERSION} · Effective 16 August 2026 for new accounts ·
+        Material updates for existing accounts take effect {LEGAL_MATERIAL_CHANGE_EFFECTIVE_AT}{' '}
+        (notice published {LEGAL_NOTICE_PUBLISHED_AT})
       </p>
 
       <Section title="1. Agreement to These Terms">
@@ -138,34 +149,59 @@ export function TermsDocumentBody({ compact = false }: { compact?: boolean }) {
         </p>
       </Section>
 
-      <Section title="7. Your Data and Our Licence">
+      <Section title="7. Customer Data, Telemetry, and Optional Learning">
         <p>
-          As between you and Somtico Tech, you own the business data you submit to
+          <strong>A. Customer Data used to provide the Service.</strong> As
+          between you and Somtico Tech, you own the business data you submit to
           the Service ("Customer Data"). You grant Somtico Tech a worldwide,
-          non-exclusive licence to host, process, transmit, display, and create
-          derivative analytical results from Customer Data solely to provide,
-          secure, support, and improve the Service. Identifiable Customer Data
-          (including student, family, and staff records, chat notes, and free-text
-          results) is not used to train third-party AI models.
+          non-exclusive licence to host, process, transmit, display, secure,
+          support, calculate analytics from, and otherwise use Customer Data as
+          reasonably necessary to provide the Service. Somtico Tech does not claim
+          ownership of Customer Data. Identifiable Customer Data is not used to
+          train third-party AI models (for example Anthropic or OpenAI).
         </p>
         <p>
-          We may use aggregated or de-identified data that does not identify you
-          or any person for analytics, benchmarking, and product improvement. If
-          you opt in on a specific enrolment-tactic record (a log of a growth
-          step you tried and the result you got, as described in the Privacy
-          Policy), you also grant Somtico Tech a perpetual licence to use that
-          de-identified row (tactic type, cost band, outcome, leak type, coarse
-          education bucket, and purpose version only) to improve the Service,
-          including training, evaluating, and operating models and ranking
-          algorithms that Somtico owns. In this context, a "leak" is the Service's
-          diagnosis of an enrolment problem from your records (for example weak
-          trial conversion or spare seats), not a security incident. "Playbooks"
-          means operational guidance the Service surfaces from those records and
-          from de-identified outcome counts. Somtico owns those models,
-          playbooks, and the de-identified corpus. We will not send that corpus to
-          a third-party model provider for their training. You represent that you
-          have all rights and consents needed (including from parents, guardians,
-          students, and staff, where applicable) to submit Customer Data.
+          <strong>B. Ordinary internal service telemetry.</strong> Somtico Tech
+          may use privacy-safe aggregate operational and technical telemetry for
+          security, reliability, product operation, debugging, measuring product
+          usage, and improving the Service. That telemetry is not a substitute for
+          the optional cross-customer learning described below and is not used as
+          a back door for cross-tenant model training without the applicable
+          opt-in.
+        </p>
+        <p>
+          <strong>C. Optional cross-customer learning.</strong> Cross-customer
+          learning from decision or outcome data is optional and requires the
+          applicable explicit opt-in. The Service currently supports two distinct
+          paths described in the Privacy Policy: (1) record-specific Enrolment
+          Advisor tactic sharing; and (2) optional business-outcome learning under
+          a separate purpose-specific organization consent. Optional learning
+          consents are not included in mandatory acceptance of these Terms or the
+          Privacy Policy. Somtico Tech will not send an opted-in privacy-safe
+          learning corpus to a third-party model provider for that provider's
+          training. Somtico may later use opted-in privacy-safe contributions to
+          improve Somtico-owned playbooks and models; a Somtico fine-tuned
+          industry model is not claimed as currently shipped.
+        </p>
+        <p>
+          <strong>D. Optional peer benchmarking.</strong> Contribution of
+          privacy-safe business metric snapshots for cross-customer peer
+          benchmarking requires a separate explicit opt-in. Somtico Tech does not
+          automatically use all Customer Data for benchmarking. Customer-facing
+          peer comparisons are not yet launched; opted-in privacy-safe snapshots
+          may be collected for future aggregated comparisons. Another customer's
+          organization will not be given your raw benchmark contribution. Minimum
+          cohort and privacy thresholds apply before any future comparison is
+          shown.
+        </p>
+        <p>
+          In Enrolment Advisor, a "leak" is the Service's diagnosis of an
+          enrolment problem from your records (for example weak trial conversion
+          or spare seats), not a security incident. "Playbooks" means operational
+          guidance the Service surfaces from your records and from privacy-safe
+          outcome counts. You represent that you have all rights and consents
+          needed (including from parents, guardians, students, and staff, where
+          applicable) to submit Customer Data.
         </p>
       </Section>
 
@@ -197,7 +233,7 @@ export function TermsDocumentBody({ compact = false }: { compact?: boolean }) {
         <p>
           Somtico Tech and its licensors own the Service, including all software,
           models (including any Somtico-owned models trained or evaluated on
-          de-identified opted-in outcomes), playbooks, designs, blueprints,
+          privacy-safe opted-in outcomes), playbooks, designs, blueprints,
           documentation, and trademarks. No rights are granted except the limited
           right to use the Service under these Terms. Feedback you provide may be
           used by Somtico Tech without restriction or obligation.
@@ -217,15 +253,15 @@ export function TermsDocumentBody({ compact = false }: { compact?: boolean }) {
       <Section title="11. Privacy">
         <p>
           How we collect, use, and share personal information is described in our
-          Privacy Policy, which is incorporated into these Terms. We handle
-          personal information in accordance with applicable Canadian privacy law,
-          including the Personal Information Protection and Electronic Documents
-          Act (PIPEDA) where it applies. We do not sell Customer Data. AI
-          requests are configured to opt out of provider training where the
-          provider offers that control. Optional de-identified enrolment-tactic
-          outcomes (no names, notes, or organization id) are described in the
-          Privacy Policy, are off unless you opt in, and may be used to improve
-          Somtico-owned playbooks and models.
+          Privacy Policy, which is incorporated into these Terms. The Privacy
+          Policy covers AI provider processing, record-specific Enrolment Advisor
+          tactic sharing, optional business-outcome learning, optional benchmark
+          participation, consent withdrawal, cross-border processing, and access
+          and correction requests. We handle personal information in accordance
+          with applicable Canadian privacy law, including the Personal Information
+          Protection and Electronic Documents Act (PIPEDA) where it applies. We do
+          not sell Customer Data. Optional learning and benchmark consents remain
+          separate from acceptance of these Terms.
         </p>
       </Section>
 
@@ -320,15 +356,22 @@ export function TermsDocumentBody({ compact = false }: { compact?: boolean }) {
           referenced policies, are the entire agreement and supersede prior
           discussions. Changes: we may update these Terms; material changes take
           effect no less than 30 days after notice, and continued use after the
-          effective date constitutes acceptance of the updated Terms.
+          effective date constitutes acceptance of the updated Terms unless the
+          Service requires an explicit re-acceptance for your account.
         </p>
       </Section>
 
       <Section title="19. Contact">
         <p>
-          Somtico Technologies Inc., Saskatoon, Saskatchewan, Canada. Questions
-          about these Terms can be sent through your account's support channel or
-          the contact address listed on our website.
+          Somtico Technologies Inc.
+          <br />
+          {COMPANY_MAILING_ADDRESS}
+          <br />
+          Privacy and legal questions:{' '}
+          <a className="text-ba-accent underline" href={`mailto:${PRIVACY_OFFICER_EMAIL}`}>
+            {PRIVACY_OFFICER_EMAIL}
+          </a>{' '}
+          ({PRIVACY_OFFICER_TITLE}: {PRIVACY_OFFICER_NAME}).
         </p>
       </Section>
 
@@ -350,45 +393,55 @@ export function PrivacyDocumentBody({ compact = false }: { compact?: boolean }) 
         Privacy Policy
       </h1>
       <p className="mt-2 text-base text-ba-ink/70">
-        Somtico Business Advisor, operated by Somtico Technologies Inc. (Somtico Tech)
+        Somtico Business Advisor, operated by Somtico Technologies Inc. (Somtico
+        Tech)
       </p>
       <p className="mt-1 text-base text-ba-ink/70">
-        Version {PRIVACY_VERSION} · Effective 16 August 2026
+        Version {PRIVACY_VERSION} · Effective 16 August 2026 for new accounts ·
+        Material updates for existing accounts take effect{' '}
+        {LEGAL_MATERIAL_CHANGE_EFFECTIVE_AT} (notice published{' '}
+        {LEGAL_NOTICE_PUBLISHED_AT})
       </p>
       <p className="mt-4 text-base text-ba-ink/80">
         This policy explains how we handle personal information. It is separate
         from the Terms of Service, which cover the contract for using the
-        product.
+        product. Optional learning and benchmark consents described below are not
+        part of mandatory signup acceptance.
       </p>
 
-      <Section title="1. Who We Are">
+      <Section title="1. Who We Are and Privacy Officer">
         <p>
-          Somtico Technologies Inc., Saskatoon, Saskatchewan, Canada, provides AI
-          Business Advisor. Questions about privacy can be sent through your
-          account support channel or the contact address on{' '}
-          <a
-            className="text-ba-accent underline"
-            href="https://somticoweb.com"
-            target="_blank"
-            rel="noreferrer"
-          >
-            somticoweb.com
+          Somtico Technologies Inc. provides Somtico Business Advisor. The Privacy
+          Officer is {PRIVACY_OFFICER_NAME} ({PRIVACY_OFFICER_TITLE}).
+        </p>
+        <p>
+          Mailing address: {COMPANY_MAILING_ADDRESS}
+          <br />
+          Privacy inquiries, access, correction, deletion, and complaint requests:{' '}
+          <a className="text-ba-accent underline" href={`mailto:${PRIVACY_OFFICER_EMAIL}`}>
+            {PRIVACY_OFFICER_EMAIL}
           </a>
-          .
+        </p>
+        <p>
+          We will receive and investigate privacy complaints and respond
+          appropriately. Where applicable, you may also contact the Office of the
+          Privacy Commissioner of Canada.
         </p>
       </Section>
 
       <Section title="2. What We Collect">
         <p>
           Account data: name, email, password hash, organization name and slug,
-          role, and your acceptance of the Terms and this policy.
+          role, and your acceptance of the Terms and this policy (including
+          version stamps).
         </p>
         <p>
           Customer Data you enter or connect: students, families, enrolments,
-          sessions, staff wages, expenses, subscriptions, targets, chat
-          questions, enrolment tactics you log (including the result you
-          describe), and similar operating records. That data stays scoped to
-          your organization.
+          sessions, staff wages, expenses, subscriptions, targets, Advisor chat
+          questions and answers, enrolment tactics you log (including the result
+          you describe), recommendations and outcomes, and similar operating
+          records. That data stays scoped to your organization unless you give an
+          applicable optional learning or benchmark consent described below.
         </p>
         <p>
           Technical data needed to run the service: login times, tenant slug, and
@@ -397,89 +450,197 @@ export function PrivacyDocumentBody({ compact = false }: { compact?: boolean }) 
         </p>
       </Section>
 
-      <Section title="3. How We Use It">
+      <Section title="3. How We Use It and AI Providers">
         <p>
           We use personal information to provide the Service: sign-in, analytics,
           pricing and enrolment guidance, Action Centre, email verification,
-          billing, weekly briefs, and support. We use it to keep the product
-          secure and to meet legal obligations.
+          billing, weekly briefs, support, security, and legal obligations.
         </p>
         <p>
-          We do not use your student, family, or staff records, chat notes, or
-          other identifiable Customer Data to train third-party AI models
-          (Anthropic, OpenAI, or others). When Advisor (the AI advisor feature in
-          the Service; software, not a person) calls an AI provider, it prefers
-          Anthropic (Claude) and falls back to OpenAI. It sends aggregated
-          evidence from our analytics tools for that question, with provider
-          training and storage opted out where the provider offers that control.
+          Advisor (the AI advisor feature in the Service; software, not a person)
+          prefers Anthropic (Claude) and falls back to OpenAI when Claude is
+          unavailable. Advisor does not have unrestricted database access. It is
+          designed to send the minimum information reasonably needed for the
+          request, generally structured or derived business evidence produced by
+          approved analytics tools. Depending on the question, that evidence may
+          include business-specific labels already in your records (for example
+          programme names, instructor names used in scheduling evidence, or
+          tactic notes you logged). We do not use your student, family, or staff
+          records, chat content, or other identifiable Customer Data to train
+          third-party AI models.
+        </p>
+        <p>
+          <strong>Model training.</strong> Customer API content is not
+          intentionally opted in for Anthropic or OpenAI model training. The
+          Service uses commercial/API arrangements under which provider
+          inputs/outputs are not used for provider model training by default.
+        </p>
+        <p>
+          <strong>Temporary provider retention.</strong> AI providers may retain
+          API inputs and outputs for a limited period under their applicable
+          commercial or API terms for matters such as abuse prevention, security,
+          or legal compliance, unless a stronger approved zero-retention
+          configuration applies to our account. We do not promise zero retention
+          at the provider solely by using the Service.
         </p>
       </Section>
 
-      <Section title="4. Optional De-Identified Tactic Outcomes">
+      <Section title="4. Record-Specific Enrolment Tactic Sharing">
         <p>
-          Enrolment Advisor is a feature that diagnoses enrolment problems from
-          your records and suggests next steps. In that feature, a "leak" means
-          the diagnosed enrolment problem (for example weak trial-to-paid
-          conversion, retention churn, slipping starts, or spare seats). It is
-          not a data breach or security incident. A "tactic" is a growth step you
-          record (for example following up with trial families). An "outcome" is
+          Enrolment Advisor diagnoses enrolment problems from your records and
+          suggests next steps. In that feature, a "leak" means the diagnosed
+          enrolment problem (for example weak trial-to-paid conversion). It is not
+          a data breach. A "tactic" is a growth step you record. An "outcome" is
           your label for the result: helped, no clear effect, or hurt.
         </p>
         <p>
           On Enrolment Advisor you may opt in, record by record, when you log a
-          tactic with a clear outcome (helped, no effect, or hurt) and Advisor has
-          already named a leak. The opt-in is shown only then. If you opt in, we
-          store only: tactic type (for example, family referral), cost band (free
-          / low / paid), outcome, the leak type at that moment, and a coarse
-          education bucket (STEM, tutoring, or other enrichment).
+          tactic with a clear outcome and Advisor has already named a leak. The
+          opt-in is shown only then and is off by default. If you opt in, we store
+          only: tactic type, cost band (free / low / paid), outcome, the leak type
+          at that moment, a coarse education bucket (STEM, tutoring, or other
+          enrichment), and a purpose version used for that historical corpus.
         </p>
         <p>
           We do not copy your notes, student or family names, organization id,
-          location, or email. Those rows are not tied back to your account. Do
-          not put names in the result field.
+          location, or email into that shared row. Those historical rows are not
+          linked with a withdrawal key that can identify your organization. As a
+          result, if you later stop sharing new records, previously contributed
+          rows of this type generally cannot be located and deleted by
+          organization. Do not put names in the result field.
         </p>
         <p>
-          If you opt in, Somtico Technologies Inc. may use that de-identified row
-          to show playbook counts (aggregate "helped in X of Y reports" tallies
-          shown in the Service after at least eight similar reports) and to train,
-          evaluate, and operate models and ranking algorithms that Somtico owns,
-          so Advisor can get better at this industry from real results. Those
-          Somtico-owned models and the de-identified corpus are Somtico
-          intellectual property. We will not send that corpus to Anthropic,
-          OpenAI, or any other provider for their training. Opt-in is
-          off by default. A contributed row cannot be pulled out of a trained
-          model.
+          If you opt in, Somtico may use that de-identified row for playbook
+          counts (shown after enough similar reports) and may later use it to
+          train, evaluate, or operate Somtico-owned models. We will not send that
+          corpus to Anthropic, OpenAI, or any other provider for their training. A
+          Somtico fine-tuned industry model is not claimed as currently shipped.
+          If a contribution has already been incorporated into training of a
+          Somtico-owned model in the future, withdrawal cannot retroactively
+          remove that contribution's influence from an already-trained model.
         </p>
       </Section>
 
-      <Section title="5. Sharing">
+      <Section title="5. Optional Business-Outcome Learning">
+        <p>
+          Separately from record-specific Enrolment Advisor sharing, an
+          organization administrator may grant an explicit organization-level
+          consent for optional business-outcome learning. That consent is not
+          bundled into Terms acceptance. When consent is active and a
+          recommendation outcome is finalized (helped, no effect, or hurt),
+          Somtico may create a privacy-safe observation derived from that
+          lifecycle.
+        </p>
+        <p>
+          Categories that may be included: diagnosed business problem; type of
+          action or intervention; coarse education or programme category;
+          enrolment-size band; utilization or capacity band; conversion or
+          retention health; other coarse operational context relevant to when a
+          tactic works; outcome (helped, no effect, or hurt); and, where
+          applicable, verification type or outcome horizon.
+        </p>
+        <p>
+          Categories that are not included: organization name; organization id;
+          student or customer names; parent or guardian names; staff identities;
+          email addresses; telephone numbers; street addresses; arbitrary free
+          text; raw AI conversations; or raw source-system records.
+        </p>
+        <p>
+          These contributions are de-identified / pseudonymized (privacy-safe),
+          not "anonymous" in the sense of being impossible for Somtico to
+          associate for withdrawal. Organization id is not stored in the
+          cross-customer table. A purpose-specific pseudonymous contributor key
+          is retained so Somtico can manage consent and delete that organization's
+          contributed records for that purpose if consent is withdrawn. Separate
+          learning purposes use separate pseudonymous keys.
+        </p>
+      </Section>
+
+      <Section title="6. Optional Peer Benchmark Participation">
+        <p>
+          Contribution of privacy-safe business metric snapshots for future
+          peer benchmarking requires a separate explicit organization-level
+          opt-in. It is a different purpose from business-outcome learning.
+          Snapshots use trusted deterministic metrics and coarse cohort
+          dimensions (for example education subtype and enrolment-size band).
+          Organization id is not stored in the benchmark contribution. Somtico
+          uses a separate purpose-specific pseudonymous contributor key.
+        </p>
+        <p>
+          Customer-facing peer benchmarking is not yet launched. Another customer
+          will not receive your organization's raw benchmark record. Before any
+          future comparison is shown, minimum cohort and privacy thresholds apply;
+          sparse groups may be suppressed or broadened.
+        </p>
+      </Section>
+
+      <Section title="7. Sharing and Cross-Border Processing">
         <p>
           We share personal information with processors who help us run the
-          Service (hosting, email, payments, AI inference), under contracts that
-          limit their use. We may disclose information if required by law or to
-          protect the Service, our users, or the public.
+          Service, including hosting and infrastructure, email delivery, payment
+          processing, and AI inference, under contracts that limit their use. We
+          may disclose information if required by law or to protect the Service,
+          our users, or the public.
+        </p>
+        <p>
+          Some service providers may process or store personal information outside
+          Canada. Information processed outside Canada may be subject to the laws
+          and lawful access requirements of the jurisdiction where it is
+          processed. Somtico remains responsible for personal information under
+          its control and uses contractual, technical, and organizational
+          safeguards appropriate to the service and information involved.
         </p>
       </Section>
 
-      <Section title="6. Retention and Your Choices">
+      <Section title="8. Retention, Withdrawal, Access, and Correction">
         <p>
           We keep Customer Data while your organization has an account, and for a
           limited period after termination so you can request an export (see the
-          Terms). You may correct account details in the app, delete tactic notes
-          you logged, and ask us to export or delete personal information we hold,
-          subject to legal holds.
+          Terms).
         </p>
-      </Section>
-
-      <Section title="7. Children">
         <p>
-          The Service is for businesses, not for children to use directly. If you
-          store information about students who are minors, you are responsible for
-          having the authority to do so and for the accuracy of that data.
+          For optional business-outcome learning and optional benchmark consent:
+          your organization can withdraw the applicable consent. Withdrawal stops
+          future contributions for that purpose. Currently stored privacy-safe
+          contributions for that purpose are deleted using the purpose-specific
+          contributor key. Withdrawing business-outcome learning consent does not
+          automatically withdraw benchmark consent, and withdrawing benchmark
+          consent does not automatically withdraw business-outcome learning
+          consent. Record-specific Enrolment Advisor sharing remains separate and,
+          as noted above, historical rows of that type generally cannot be deleted
+          by organization key.
+        </p>
+        <p>
+          If an opted-in contribution has already been incorporated into the
+          training of a Somtico-owned model, withdrawal cannot retroactively
+          remove that contribution's influence from an already-trained model.
+          Withdrawal stops future eligible use and removes the applicable stored
+          contribution where the system is designed to retain a withdrawal link.
+          No Somtico fine-tuned industry model is claimed as currently shipped.
+        </p>
+        <p>
+          Subject to applicable law, an individual may request information about
+          the personal information Somtico holds about them, access to that
+          information, correction of inaccurate information, deletion where
+          applicable, and information about relevant uses or disclosures where
+          required. Send requests to the Privacy Officer contact above. We may
+          decline or limit a request where a legal or technical exception applies,
+          and we will explain when we do.
         </p>
       </Section>
 
-      <Section title="8. Canadian Privacy Law">
+      <Section title="9. Children and Student Records">
+        <p>
+          The Service is for businesses. Children do not create Somtico Business
+          Advisor accounts. If your organization stores information about students
+          who are minors, you are responsible for ensuring you have lawful
+          authority to upload and process that data, including appropriate
+          parent or guardian authority where required, and for the accuracy of
+          that data.
+        </p>
+      </Section>
+
+      <Section title="10. Canadian Privacy Law">
         <p>
           We handle personal information in accordance with applicable Canadian
           privacy law, including the Personal Information Protection and
@@ -488,11 +649,12 @@ export function PrivacyDocumentBody({ compact = false }: { compact?: boolean }) 
         </p>
       </Section>
 
-      <Section title="9. Changes">
+      <Section title="11. Changes">
         <p>
           We may update this policy. Material changes take effect no less than 30
-          days after notice. The version date above identifies the text you
-          accepted at signup.
+          days after notice. The version identifiers above identify the text
+          accepted at signup or through an explicit in-app re-acceptance. Existing
+          acceptance records are not rewritten when a new version is published.
         </p>
       </Section>
     </>

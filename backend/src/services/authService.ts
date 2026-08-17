@@ -13,7 +13,11 @@ import {
 import { signAccessToken, signRefreshToken } from '../utils/jwt';
 import { writeAudit } from './auditService';
 import { PILOT_AMOUNT_CENTS } from '../config/stripe';
-import { PRIVACY_VERSION, TERMS_VERSION } from '../config/legal';
+import {
+  legalAcceptanceStatus,
+  PRIVACY_VERSION,
+  TERMS_VERSION,
+} from '../config/legal';
 import { sendVerificationEmail } from './emailService';
 
 async function seedDataReadiness(organizationId: string) {
@@ -280,6 +284,12 @@ export async function loginUser(input: {
       lastName: user.lastName,
       role: user.role,
       organizationId: user.organizationId,
+      termsVersion: user.termsVersion,
+      privacyVersion: user.privacyVersion,
+      legal: legalAcceptanceStatus({
+        termsVersion: user.termsVersion,
+        privacyVersion: user.privacyVersion,
+      }),
     },
     organization: {
       id: user.organization.id,
@@ -293,6 +303,57 @@ export async function loginUser(input: {
     },
     entitlements: user.organization.entitlement,
     subscription: user.organization.subscription,
+  };
+}
+
+/**
+ * Record a new Terms + Privacy acceptance for the signed-in user.
+ * Creates a fresh acceptance stamp; does not rewrite historical audit
+ * metadata from earlier acceptances.
+ */
+export async function acceptCurrentLegalVersions(userId: string) {
+  const existing = await prisma.user.findUnique({ where: { id: userId } });
+  if (!existing || !existing.isActive) {
+    throw Object.assign(new Error('User not found or inactive'), {
+      status: 401,
+      code: 'UNAUTHORIZED',
+    });
+  }
+
+  const now = new Date();
+  const updated = await prisma.user.update({
+    where: { id: userId },
+    data: {
+      termsAcceptedAt: now,
+      termsVersion: TERMS_VERSION,
+      privacyAcceptedAt: now,
+      privacyVersion: PRIVACY_VERSION,
+    },
+  });
+
+  await writeAudit({
+    organizationId: updated.organizationId,
+    actorUserId: updated.id,
+    action: 'user.legal_accepted',
+    resourceType: 'User',
+    resourceId: updated.id,
+    metadata: {
+      termsVersion: TERMS_VERSION,
+      privacyVersion: PRIVACY_VERSION,
+      termsAcceptedAt: now.toISOString(),
+      privacyAcceptedAt: now.toISOString(),
+      previousTermsVersion: existing.termsVersion,
+      previousPrivacyVersion: existing.privacyVersion,
+    },
+  });
+
+  return {
+    termsVersion: updated.termsVersion,
+    privacyVersion: updated.privacyVersion,
+    legal: legalAcceptanceStatus({
+      termsVersion: updated.termsVersion,
+      privacyVersion: updated.privacyVersion,
+    }),
   };
 }
 

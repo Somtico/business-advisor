@@ -10,6 +10,17 @@
 export const TERMS_VERSION = '2026-08-16.1';
 export const PRIVACY_VERSION = '2026-08-16.1';
 
+/**
+ * Material legal update notice for users who already accepted an older version.
+ * Published 16 August 2026; effective date respects the Terms promise that
+ * material changes take effect no less than 30 days after notice.
+ * New signups accept TERMS_VERSION / PRIVACY_VERSION immediately.
+ * Existing users are not rewritten to the new version; after the effective
+ * date they must explicitly re-accept before continuing in the app.
+ */
+export const LEGAL_NOTICE_PUBLISHED_AT = '2026-08-16';
+export const LEGAL_MATERIAL_CHANGE_EFFECTIVE_AT = '2026-09-15';
+
 /** De-identified tactic rows written under this purpose may later train Somtico-owned models. */
 export const OUTCOME_CORPUS_PURPOSE_VERSION = 'somtico_models_v1';
 /** Legacy opted-in rows collected for playbook counts only; do not put them in a training corpus. */
@@ -35,3 +46,51 @@ export const ADVICE_DISCLAIMER =
   'It is not financial, legal, tax, accounting, or investment advice. All figures are ' +
   'derived from the data you provide; verify them before acting. Decisions and their ' +
   'outcomes remain solely your responsibility.';
+
+export function materialLegalChangeIsInForce(now: Date = new Date()): boolean {
+  const effective = new Date(`${LEGAL_MATERIAL_CHANGE_EFFECTIVE_AT}T00:00:00.000Z`);
+  return now.getTime() >= effective.getTime();
+}
+
+/**
+ * Whether a stored acceptance is current.
+ * Before the material-change effective date, older acceptances remain valid
+ * for continued use (notice period). After that date, versions must match.
+ */
+export function needsLegalReacceptance(params: {
+  termsVersion: string | null | undefined;
+  privacyVersion: string | null | undefined;
+  now?: Date;
+}): boolean {
+  const termsOk = params.termsVersion === TERMS_VERSION;
+  const privacyOk = params.privacyVersion === PRIVACY_VERSION;
+  if (termsOk && privacyOk) return false;
+  if (!materialLegalChangeIsInForce(params.now)) return false;
+  return true;
+}
+
+/** Client-facing legal acceptance status derived from stored version stamps. */
+export function legalAcceptanceStatus(params: {
+  termsVersion: string | null | undefined;
+  privacyVersion: string | null | undefined;
+  now?: Date;
+}) {
+  const current =
+    params.termsVersion === TERMS_VERSION &&
+    params.privacyVersion === PRIVACY_VERSION;
+  const pendingNotice = !current && !materialLegalChangeIsInForce(params.now);
+  return {
+    termsVersion: TERMS_VERSION,
+    privacyVersion: PRIVACY_VERSION,
+    acceptedTermsVersion: params.termsVersion ?? null,
+    acceptedPrivacyVersion: params.privacyVersion ?? null,
+    noticePublishedAt: LEGAL_NOTICE_PUBLISHED_AT,
+    materialChangeEffectiveAt: LEGAL_MATERIAL_CHANGE_EFFECTIVE_AT,
+    materialChangeInForce: materialLegalChangeIsInForce(params.now),
+    current,
+    /** Soft notice during the ≥30-day window; acceptance not yet required. */
+    pendingNotice,
+    /** Hard gate after the effective date when versions are stale. */
+    requiresReacceptance: needsLegalReacceptance(params),
+  };
+}

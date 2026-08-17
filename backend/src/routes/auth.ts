@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { EducationSubtype } from '@prisma/client';
 import {
+  acceptCurrentLegalVersions,
   loginUser,
   registerOrganization,
   resendVerificationEmail,
@@ -14,6 +15,7 @@ import {
   EDUCATION_LABELS,
   subtypeLabel,
 } from '../catalog/educationBlueprint';
+import { legalAcceptanceStatus } from '../config/legal';
 
 const router = Router();
 
@@ -183,14 +185,36 @@ router.post('/resend-verification', async (req: Request, res: Response) => {
 });
 
 router.get('/me', authenticateToken, async (req: Request, res: Response) => {
-  const org = await prisma.organization.findUnique({
-    where: { id: req.user!.organizationId },
-    include: { entitlement: true, subscription: true },
+  const [org, dbUser] = await Promise.all([
+    prisma.organization.findUnique({
+      where: { id: req.user!.organizationId },
+      include: { entitlement: true, subscription: true },
+    }),
+    prisma.user.findUnique({
+      where: { id: req.user!.id },
+      select: {
+        termsVersion: true,
+        privacyVersion: true,
+        termsAcceptedAt: true,
+        privacyAcceptedAt: true,
+      },
+    }),
+  ]);
+  const legal = legalAcceptanceStatus({
+    termsVersion: dbUser?.termsVersion,
+    privacyVersion: dbUser?.privacyVersion,
   });
   res.json({
     success: true,
     data: {
-      user: req.user,
+      user: {
+        ...req.user,
+        termsVersion: dbUser?.termsVersion ?? null,
+        privacyVersion: dbUser?.privacyVersion ?? null,
+        termsAcceptedAt: dbUser?.termsAcceptedAt ?? null,
+        privacyAcceptedAt: dbUser?.privacyAcceptedAt ?? null,
+        legal,
+      },
       organization: org,
       labels: EDUCATION_LABELS,
       educationSubtypeLabel: org
@@ -198,6 +222,34 @@ router.get('/me', authenticateToken, async (req: Request, res: Response) => {
         : undefined,
     },
   });
+});
+
+router.post('/accept-legal', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const { termsAccepted, privacyAccepted } = req.body || {};
+    if (termsAccepted !== true || privacyAccepted !== true) {
+      res.status(400).json({
+        success: false,
+        error: {
+          code: 'TERMS_REQUIRED',
+          message:
+            'You must agree to the Terms of Service and the Privacy Policy to continue.',
+        },
+      });
+      return;
+    }
+    const result = await acceptCurrentLegalVersions(req.user!.id);
+    res.json({ success: true, data: result });
+  } catch (err) {
+    const e = err as { status?: number; code?: string; message?: string };
+    res.status(e.status || 500).json({
+      success: false,
+      error: {
+        code: e.code || 'ACCEPT_LEGAL_FAILED',
+        message: e.message || 'Could not record legal acceptance',
+      },
+    });
+  }
 });
 
 router.get('/blueprint', requireTenant, (_req: Request, res: Response) => {
