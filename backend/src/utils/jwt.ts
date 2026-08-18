@@ -3,9 +3,11 @@ import { UserRole } from '@prisma/client';
 
 export interface AccessTokenPayload {
   userId: string;
-  organizationId: string;
   email: string;
-  role: UserRole;
+  /** Active workspace. Omitted until the person selects one. */
+  organizationId?: string;
+  membershipId?: string;
+  role?: UserRole;
 }
 
 function secret(): string {

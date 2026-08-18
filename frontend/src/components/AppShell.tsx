@@ -3,6 +3,7 @@ import { BrandMark } from './BrandMark';
 import { LegalAcceptanceGate } from './LegalAcceptanceGate';
 import { HelpImproveInvite } from './HelpImproveInvite';
 import { useAuth } from '../context/AuthContext';
+import { api } from '../lib/api';
 
 const links = [
   { to: '/app', label: 'Command Centre', end: true },
@@ -20,13 +21,17 @@ const links = [
 ];
 
 export function RequireAuth({ children }: { children: React.ReactNode }) {
-  const { accessToken } = useAuth();
+  const { accessToken, organization, needsWorkspaceSelection, noWorkspace } =
+    useAuth();
   if (!accessToken) return <Navigate to="/login" replace />;
+  if (needsWorkspaceSelection || noWorkspace || !organization) {
+    return <Navigate to="/choose-workspace" replace />;
+  }
   return children;
 }
 
 export function AppShell() {
-  const { organization, user, logout } = useAuth();
+  const { organization, user, workspaces, setSession, logout } = useAuth();
   const visibleLinks =
     user?.role === 'OWNER' || user?.role === 'ADMIN'
       ? [
@@ -70,6 +75,47 @@ export function AppShell() {
             <p className="text-base">
               {user?.firstName} {user?.lastName}
             </p>
+            {workspaces.length > 1 && (
+              <label className="mt-3 block text-base font-semibold">
+                Switch Workspace
+                <select
+                  className="mt-1 w-full cursor-pointer rounded-md border-ba-line text-base"
+                  value={organization?.id || ''}
+                  onChange={(e) => {
+                    const id = e.target.value;
+                    void (async () => {
+                      const res = await api<{
+                        success: boolean;
+                        data: {
+                          accessToken: string;
+                          user: NonNullable<typeof user>;
+                          organization: NonNullable<typeof organization>;
+                          workspaces?: typeof workspaces;
+                        };
+                      }>('/api/auth/select-workspace', {
+                        method: 'POST',
+                        body: JSON.stringify({ organizationId: id }),
+                      });
+                      setSession({
+                        accessToken: res.data.accessToken,
+                        user: res.data.user,
+                        organization: res.data.organization,
+                        workspaces: res.data.workspaces || workspaces,
+                        needsWorkspaceSelection: false,
+                        noWorkspace: false,
+                      });
+                      window.location.assign('/app');
+                    })();
+                  }}
+                >
+                  {workspaces.map((ws) => (
+                    <option key={ws.id} value={ws.id}>
+                      {ws.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
             <button
               type="button"
               onClick={logout}

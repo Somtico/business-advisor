@@ -4,7 +4,7 @@
 **Customer #1:** STEM Lantern Education Inc. (operating name STEM Lantern)  
 **Portal data source (during rebrand):** Skill Samurai Saskatoon Registration Portal  
 **Ports:** frontend 3007 · backend 5007  
-**Revision:** Phase 0 + Phase 1 beachhead + advice impact ledger + pricing advisor + enrolment advisor + privacy policy + terms of service + Advisor branding (Somtico Business Advisor) + signup UX / email verification + public landing page + Cloudflare R2 daily DB backups + Claude-first advisor + operating-loop moat + proprietary intelligence flywheel foundation (decision/outcome lifecycle, context snapshots, somtico_models_v2, benchmark-ready snapshots, mapping knowledge, evaluation harness, moat health) + provider-boundary PII minimization + branded transactional email template — 17 August 2026  
+**Revision:** Phase 0 + Phase 1 beachhead + advice impact ledger + pricing advisor + enrolment advisor + privacy policy + terms of service + Advisor branding (Somtico Business Advisor) + signup UX / email verification + public landing page + Cloudflare R2 daily DB backups + Claude-first advisor + operating-loop moat + proprietary intelligence flywheel foundation (decision/outcome lifecycle, context snapshots, somtico_models_v2, benchmark-ready snapshots, mapping knowledge, evaluation harness, moat health) + provider-boundary PII minimization + branded transactional email template + multi-organization accounts (email/password identity, membership authorization) — 18 August 2026  
 **Vision doc sync:** `AI_Business_Intelligence_SaaS_Product_Vision_and_Roadmap_Beachhead_Strategy.docx` updated 16 August 2026 so sections 38–40 and the header identity match this shipped behaviour (long-term roadmap sections remain intentional future scope).
 
 ## Positioning
@@ -13,7 +13,7 @@ AI business intelligence and operating advisor for independent after-school, tut
 
 ## Architecture
 
-- Multi-tenant SaaS (Express + Prisma + PostgreSQL + JWT)
+- Multi-tenant SaaS (Express + Prisma + PostgreSQL + JWT). A **User** is a global identity (unique email). An **Organization** is a workspace/tenant. An **OrganizationMembership** is the authorization relationship (role per organization). `Organization.slug` is a routing identifier (subdomain, URLs, tenant lookup), not a sign-in credential.
 - Vite/React executive app
 - Stripe Billing ($5 CAD/month pilot) + Stripe Connect foundation
 - Deterministic analytics services; Advisor (the AI within the product) calls those tools only
@@ -21,11 +21,65 @@ AI business intelligence and operating advisor for independent after-school, tut
 - AI usage and cost controls (16 Aug 2026): centralized gateway routes Anthropic primary (`claude-sonnet-5`) → OpenAI eligible fallback (`gpt-5.6-terra`) → deterministic local fallback. Enforces org/global daily and Anthropic/OpenAI monthly application caps, records logical requests and USD-micro telemetry without prompts/responses. See `docs/AI_PROVIDER_ROUTING.md`.
 - Read-only portal connector (`GET /api/connector/v1/snapshot` on the academy portal)
 
+## Authentication and tenancy (18 August 2026)
+
+Identity and workspace access are separate.
+
+```
+User                  = who this person is (email + password, globally unique email)
+Organization          = tenant / workspace (name, slug, billing, data)
+OrganizationMembership = authorization (userId, organizationId, role, isActive)
+Organization.slug     = routing identifier, not an authentication credential
+```
+
+JWT access tokens carry `userId` and `email`. After a workspace is selected they also carry `organizationId`, `membershipId`, and `role`. Role and organization on the token are re-checked against an active membership on every tenant-scoped request; the client cannot grant access by sending another organization's id, slug, or role.
+
+### Shared-domain login (`businessadvisor.app/login`)
+
+Sign in with email and password only. The organization slug is not a field on this page.
+
+1. Normalize email, find the global user, verify password.
+2. Unknown email and wrong password both return the same `INVALID_CREDENTIALS` error.
+3. Load active memberships:
+   - **1 workspace** — issue a workspace JWT and enter that organization.
+   - **2+ workspaces** — issue an identity-only JWT and show **Choose A Workspace**.
+   - **0 workspaces** — identity-only JWT and a no-workspace screen (create an organization or accept an invitation).
+4. `POST /api/auth/select-workspace` accepts only an organization the authenticated user has an active membership in.
+
+### Tenant-subdomain login (`acme.businessadvisor.app/login`)
+
+The form is still email and password. The intended workspace comes from the Host subdomain, not from a typed slug.
+
+After authentication, membership in that organization is required. Members enter that workspace directly (no chooser). Non-members receive `WORKSPACE_FORBIDDEN`. The subdomain itself does not grant access.
+
+### Workspace switching
+
+Accounts with more than one membership see **Switch Workspace** in the signed-in sidebar. Switching calls `POST /api/auth/select-workspace` and replaces the JWT from server-side membership records.
+
+### Tenant headers
+
+`X-Tenant-Slug` (when `ALLOW_TENANT_HEADER=true`) and `?slug=` may hint a tenant for local development. They never authorize a request. `/api/app` and `/api/billing` use `authenticateToken` then `requireWorkspace`: organization context comes from the validated membership. A header or host slug that does not match the token organization returns `TENANT_MISMATCH`. Ask Advisor, organization memory, analytics, and AI usage all take `req.user.organizationId` from that membership.
+
+### Signup and invitations
+
+Signup creates a global user (409 `ACCOUNT_EXISTS` if the email is taken — it does not add a membership to someone else's account), then the organization, then an OWNER membership. Signed-in users can create another organization from Settings (`POST /api/auth/organizations`).
+
+Invitations are organization-specific. Accepting creates (or reactivates) a membership for the invited email. An existing global user is linked; a new email creates the account first. Tokens are hashed; OWNER cannot be granted by invitation.
+
+### Legacy email merge (`20260818120000_multi_org_memberships`)
+
+Older rows used `@@unique([organizationId, email])`, so the same email could exist in more than one organization. The migration keeps the oldest user as the canonical identity, points every organization that email belonged to at that user via memberships, remaps staff / recommendations / conversations / audit / AI usage FKs, then deletes duplicate user rows. If those rows had different password hashes, `passwordResetRequired` is set and login is refused until **Forgot Password** completes. Production/Railway data is not written by hand; schema changes ship only through this committed migration (plus `ensure-db-schema.ts` repairs if `migrate deploy` is skipped).
+
+### Transitional login payload
+
+Older clients that still POST `slug` with email and password continue to authenticate on email and password. Body `slug` is ignored. Workspace selection uses memberships, or the Host subdomain when present.
+
 ## Phase status
 
 ### Shipped (Phase 0 + Phase 1)
 
-- Organizations, RBAC, audit events, education blueprint auto-provision on signup
+- Organizations, RBAC via `OrganizationMembership`, audit events, education blueprint auto-provision on signup
+- Multi-organization accounts (18 Aug 2026): globally unique `User.email`; sign in with email and password only; one vs many memberships; workspace chooser; subdomain membership check; invitations; password reset; `X-Tenant-Slug` cannot switch tenants without a matching membership. Migration `20260818120000_multi_org_memberships`.
 - Empty database by default — onboard STEM Lantern (or any centre) through `/signup`
 - Manual CRUD: locations, programmes, students, enrolments, staff/wages, shifts, expenses, subscriptions, loans, targets
 - CSV import (students, expenses, subscriptions, revenue)
@@ -38,8 +92,8 @@ AI business intelligence and operating advisor for independent after-school, tut
 - Terms of Service (16 Aug 2026, version `2026-08-16.2`): `/terms` — includes Help Improve Advisor as the single optional organization learning setting (off by default; Terms acceptance does not enable it). Contact: Privacy Officer Somto Ufondu, somto@somticoweb.com, 202B Meadows Blvd., Saskatoon, SK S7V 0E4. Material notice published `2026-08-16`, effective `2026-09-15` for existing accounts; `POST /api/auth/accept-legal` re-acceptance after the effective date.
 - Privacy Policy (16 Aug 2026, version `2026-08-16.2`): single customer-facing **Help Improve Advisor** setting (Settings → Privacy & Data Learning). Off by default; OWNER/ADMIN explicit Turn On. Covers eligible future privacy-safe Business Advisor activity while on (structured signals, not raw DB dumps / not third-party training). Turn Off stops future optional contribution. 30-day soft re-invite for OFF orgs. Historical legacy V1 enrolment shares without withdrawal keys remain accurately disclosed. Internal purposes (`somtico_models_v2`, `benchmark_snapshots_v1`) stay separate in storage.
 - Enrolment advisor (14 Aug 2026): `/app/enrolment` diagnoses the leak from records (Needs Data, Full Room, Conversion Leak, Retention Leak, Enrolment Velocity Down, Spare Seats, On Track). Cheap next steps first; a time-boxed paid test only when conversion is healthy, spare seats exist, and cash/runway can absorb it. Owner logs what they tried and the result they got (`enrolment_tactics_tried`; notes stay org-private). The de-identified share checkbox appears only when `canShareAnonymized` is true (a leak is named) and the outcome is not `UNKNOWN`. Opt-in writes a de-identified row to `anonymized_tactic_outcomes` (no org id, no free text) with `purposeVersion` `somtico_models_v1`. Surfaces: `GET /api/app/enrolment/guidance`, tactic POST/DELETE, `enrolmentGuidance` AI tool, insight-run recommendations. Ask Advisor must ask for tried-and-results when that log is empty and must not invent student counts or ROI.
-- Signup UX + email verification (14 Aug 2026): required-field asterisks; label **Business / Organization Name**; organization **slug** helper copy (subdomain + sign-in identifier) with auto-fill from the name (still editable); confirm password + shared eye/slash password reveal on signup and login; education subtype **STEM Academy** (was STEM / Coding Academy; coding is under STEM) plus **Other** with required free-text (`educationSubtypeOther`); signup shows Terms of Service and Privacy Policy in a scrollable mini panel (`LegalAcceptScroll`); the accept checkbox stays disabled until the owner scrolls to the end (Skill Samurai waiver pattern); Brevo verification link flow (`POST /api/auth/verify-email`, `POST /api/auth/resend-verification`, `/verify-email` page) mirroring SFNWA — login blocked until verified when `BREVO_API_KEY` is set; without Brevo, local/dev auto-verifies and dry-runs the email. Verification and weekly-brief HTML use the branded shell below (17 Aug 2026).
-- Branded transactional email template (17 Aug 2026): shared table-based HTML shell (`backend/src/lib/emailLayout.ts`) matching product colours (navy ink `#0f2744`, teal accent `#0d6e6e`, mist surfaces). Header shows the Business Advisor mark (`/images/logo/business-advisor-mark.png`) on a white plate plus the product wordmark, then a teal title banner, a Gmail-safe primary CTA, and a Somtico Technologies Inc. footer. Logo URL prefers `BREVO_EMAIL_LOGO_URL`, then a public `FRONTEND_URL`, then `https://businessadvisor.app` (localhost is ignored so mail clients can fetch the image). Used by signup verification (`sendVerificationEmail`) and the weekly executive brief.
+- Signup UX + email verification (14 Aug 2026): required-field asterisks; label **Business / Organization Name**; **Workspace Address** (organization slug) helper copy for the subdomain URL only — it is not a sign-in field — with auto-fill from the name (still editable); confirm password + shared eye/slash password reveal on signup and login; education subtype **STEM Academy** (was STEM / Coding Academy; coding is under STEM) plus **Other** with required free-text (`educationSubtypeOther`); signup shows Terms of Service and Privacy Policy in a scrollable mini panel (`LegalAcceptScroll`); the accept checkbox stays disabled until the owner scrolls to the end (Skill Samurai waiver pattern); Brevo verification link flow (`POST /api/auth/verify-email`, `POST /api/auth/resend-verification`, `/verify-email` page) mirroring SFNWA — login blocked until verified when `BREVO_API_KEY` is set; without Brevo, local/dev auto-verifies and dry-runs the email. Verification, password-reset, invitation, and weekly-brief HTML use the branded shell below (17–18 Aug 2026).
+- Branded transactional email template (17 Aug 2026): shared table-based HTML shell (`backend/src/lib/emailLayout.ts`) matching product colours (navy ink `#0f2744`, teal accent `#0d6e6e`, mist surfaces). Header shows the Business Advisor mark (`/images/logo/business-advisor-mark.png`) on a white plate plus the product wordmark, then a teal title banner, a Gmail-safe primary CTA, and a Somtico Technologies Inc. footer. Logo URL prefers `BREVO_EMAIL_LOGO_URL`, then a public `FRONTEND_URL`, then `https://businessadvisor.app` (localhost is ignored so mail clients can fetch the image). Used by signup verification (`sendVerificationEmail`), password reset, organization invitations, and the weekly executive brief.
 - Advisor branding (16 Aug 2026): the product is **Somtico Business Advisor** (shorter: **Business Advisor**). The AI has no character name and is referred to as **Advisor** in user-facing copy — nav ("Ask Advisor"), chat page, Pricing Advisor, Action Centre messages, Command Centre "Advisor's Impact" card, weekly brief, and the system prompt (the model refers to itself as Advisor and must not claim a personal name such as Chuk or Tico). The signed-in sidebar shows the organization name only. Company attribution remains Somtico Technologies Inc. Logos: `frontend/public/images/logo/` (`business-advisor-logo.png`, `business-advisor-mark.png`).
 - Analysis loading states (14 Aug 2026): `AnalysisProgress` component (staged step list with spinner/checkmarks, cosmetic pacing, unmounts when real results land) + `SkeletonCard` pulse placeholders. Pricing Advisor shows the six datasets being checked plus skeleton cards (and again when recalculating after a session is added); Ask Advisor shows a five-step reasoning progression and hides the previous answer until the new one lands; Command Centre and Action Centre "Run Insights" use the same staged progress instead of a blank wait.
 - Cloudflare R2 database backups (15 Aug 2026): `.github/workflows/database-backup.yml` dumps Railway PostgreSQL daily at 2:00 AM UTC (gzip → `backups/YYYY/MM/`), with setup steps in `R2_BACKUP_SETUP_GUIDE.md`. Requires the six GitHub Secrets listed under **Database backups (Cloudflare R2)** below.

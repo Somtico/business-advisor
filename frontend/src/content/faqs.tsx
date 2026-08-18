@@ -193,6 +193,14 @@ export const FAQ_SECTIONS: FaqSection[] = [
     title: 'Accounts, Billing & Access',
     items: [
       {
+        q: 'How do I sign in?',
+        a: 'Open Sign In and enter your email and password. You do not enter an organization address on the shared sign-in page. If you belong to one organization, you go straight in. If you belong to more than one, you choose a workspace after signing in. Visiting your-centre.businessadvisor.app still opens that workspace when you are a member.',
+      },
+      {
+        q: 'Can one person belong to more than one organization?',
+        a: 'Yes. One email is one account. Owners can invite that account into another organization, or you can create another organization from Settings after you sign in. Roles stay specific to each organization: being an owner in one centre does not grant owner access in another.',
+      },
+      {
         q: 'Who can see our data?',
         a: "Only users in your organization, scoped by role. Owners and admins can manage billing and connectors. Operations and finance can complete actions and record impact. Viewers can read dashboards. Advisor never sees another organization's records.",
       },

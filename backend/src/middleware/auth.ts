@@ -9,10 +9,11 @@ declare global {
       user?: {
         id: string;
         email: string;
-        role: UserRole;
-        organizationId: string;
         firstName: string;
         lastName: string;
+        organizationId: string;
+        membershipId?: string;
+        role?: UserRole;
       };
     }
   }
@@ -37,11 +38,7 @@ export async function authenticateToken(
     const payload = verifyAccessToken(token);
 
     const user = await prisma.user.findFirst({
-      where: {
-        id: payload.userId,
-        organizationId: payload.organizationId,
-        isActive: true,
-      },
+      where: { id: payload.userId, isActive: true },
     });
 
     if (!user) {
@@ -52,24 +49,68 @@ export async function authenticateToken(
       return;
     }
 
-    if (req.organization && req.organization.id !== user.organizationId) {
-      res.status(403).json({
-        success: false,
-        error: {
-          code: 'TENANT_MISMATCH',
-          message: 'Token organization does not match request tenant',
+    const organizationId = payload.organizationId || undefined;
+    let membershipId = payload.membershipId;
+    let role = payload.role;
+
+    if (organizationId) {
+      const membership = await prisma.organizationMembership.findFirst({
+        where: {
+          userId: user.id,
+          organizationId,
+          isActive: true,
         },
       });
-      return;
+      if (!membership) {
+        res.status(403).json({
+          success: false,
+          error: {
+            code: 'WORKSPACE_FORBIDDEN',
+            message: 'You do not have access to this organization.',
+          },
+        });
+        return;
+      }
+      membershipId = membership.id;
+      role = membership.role;
+
+      if (req.organization && req.organization.id !== organizationId) {
+        res.status(403).json({
+          success: false,
+          error: {
+            code: 'TENANT_MISMATCH',
+            message: 'Token organization does not match request tenant',
+          },
+        });
+        return;
+      }
+
+      if (req.tenantSlug && req.tenantSlug !== req.organization?.slug) {
+        const hinted = await prisma.organization.findUnique({
+          where: { slug: req.tenantSlug },
+          select: { id: true, slug: true },
+        });
+        if (!hinted || hinted.id !== organizationId) {
+          res.status(403).json({
+            success: false,
+            error: {
+              code: 'TENANT_MISMATCH',
+              message: 'Token organization does not match request tenant',
+            },
+          });
+          return;
+        }
+      }
     }
 
     req.user = {
       id: user.id,
       email: user.email,
-      role: user.role,
-      organizationId: user.organizationId,
       firstName: user.firstName,
       lastName: user.lastName,
+      organizationId: organizationId || '',
+      membershipId,
+      role,
     };
     next();
   } catch {
@@ -82,7 +123,7 @@ export async function authenticateToken(
 
 export function requireRole(roles: UserRole[]) {
   return (req: Request, res: Response, next: NextFunction): void => {
-    if (!req.user || !roles.includes(req.user.role)) {
+    if (!req.user?.role || !roles.includes(req.user.role)) {
       res.status(403).json({
         success: false,
         error: { code: 'FORBIDDEN', message: 'Insufficient permissions' },
@@ -91,4 +132,52 @@ export function requireRole(roles: UserRole[]) {
     }
     next();
   };
+}
+
+/**
+ * Tenant-scoped routes: workspace comes from the authenticated membership,
+ * never from X-Tenant-Slug / host alone. A header slug, if present, must match.
+ */
+export async function requireWorkspace(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  const organizationId = req.user?.organizationId;
+  if (!organizationId || !req.user?.membershipId || !req.user.role) {
+    res.status(403).json({
+      success: false,
+      error: {
+        code: 'WORKSPACE_REQUIRED',
+        message: 'Choose a workspace to continue.',
+      },
+    });
+    return;
+  }
+
+  const organization = await prisma.organization.findUnique({
+    where: { id: organizationId },
+    include: { entitlement: true },
+  });
+  if (!organization) {
+    res.status(401).json({
+      success: false,
+      error: { code: 'UNAUTHORIZED', message: 'Organization not found' },
+    });
+    return;
+  }
+
+  if (req.tenantSlug && req.tenantSlug !== organization.slug) {
+    res.status(403).json({
+      success: false,
+      error: {
+        code: 'TENANT_MISMATCH',
+        message: 'Token organization does not match request tenant',
+      },
+    });
+    return;
+  }
+
+  req.organization = organization;
+  next();
 }

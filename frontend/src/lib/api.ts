@@ -1,13 +1,15 @@
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
 
 export function getTenantSlug(): string | null {
-  const params = new URLSearchParams(window.location.search);
-  if (params.get('slug')) return params.get('slug');
   return localStorage.getItem('ba_tenant_slug');
 }
 
 export function setTenantSlug(slug: string) {
   localStorage.setItem('ba_tenant_slug', slug);
+}
+
+export function clearTenantSlug() {
+  localStorage.removeItem('ba_tenant_slug');
 }
 
 export class ApiError extends Error {

@@ -1,7 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { Prisma } from '@prisma/client';
-import { authenticateToken, requireRole } from '../middleware/auth';
-import { requireTenant } from '../middleware/tenant';
+import { authenticateToken, requireRole, requireWorkspace } from '../middleware/auth';
 import prisma from '../config/prisma';
 import { impactSummary } from '../services/impactService';
 import {
@@ -55,10 +54,24 @@ import {
 } from '../config/legal';
 import { proposeMappings } from '../services/moat/sourceMappingService';
 import { contextualPeerPatterns } from '../services/moat/contextualPlaybookService';
-import { LifecycleOutcome } from '@prisma/client';
+import {
+  createInvitation,
+  listInvitations,
+  listMembers,
+  revokeInvitation,
+} from '../services/invitationService';
+import { LifecycleOutcome, UserRole } from '@prisma/client';
+
+const INVITABLE_ROLES: UserRole[] = [
+  'ADMIN',
+  'FINANCE',
+  'OPERATIONS',
+  'ANALYST',
+  'VIEWER',
+];
 
 const router = Router();
-router.use(requireTenant, authenticateToken);
+router.use(authenticateToken, requireWorkspace);
 
 router.get('/dashboard', async (req: Request, res: Response) => {
   const organizationId = req.user!.organizationId;
@@ -1297,6 +1310,78 @@ router.post(
       })),
     });
     res.json({ success: true, data });
+  }
+);
+
+router.get('/members', requireRole(['OWNER', 'ADMIN']), async (req: Request, res: Response) => {
+  const data = await listMembers(req.user!.organizationId);
+  res.json({ success: true, data });
+});
+
+router.get(
+  '/invitations',
+  requireRole(['OWNER', 'ADMIN']),
+  async (req: Request, res: Response) => {
+    const data = await listInvitations(req.user!.organizationId);
+    res.json({ success: true, data });
+  }
+);
+
+router.post(
+  '/invitations',
+  requireRole(['OWNER', 'ADMIN']),
+  async (req: Request, res: Response) => {
+    try {
+      const email = String(req.body?.email || '');
+      const role = req.body?.role as UserRole;
+      if (!email || !role || !INVITABLE_ROLES.includes(role)) {
+        res.status(400).json({
+          success: false,
+          error: { code: 'VALIDATION', message: 'Email and role are required' },
+        });
+        return;
+      }
+      const data = await createInvitation({
+        organizationId: req.user!.organizationId,
+        invitedByUserId: req.user!.id,
+        email,
+        role,
+      });
+      res.status(201).json({ success: true, data });
+    } catch (err) {
+      const e = err as { status?: number; code?: string; message?: string };
+      res.status(e.status || 500).json({
+        success: false,
+        error: {
+          code: e.code || 'INVITE_FAILED',
+          message: e.message || 'Could not send invitation',
+        },
+      });
+    }
+  }
+);
+
+router.delete(
+  '/invitations/:id',
+  requireRole(['OWNER', 'ADMIN']),
+  async (req: Request, res: Response) => {
+    try {
+      await revokeInvitation({
+        organizationId: req.user!.organizationId,
+        invitationId: req.params.id,
+        actorUserId: req.user!.id,
+      });
+      res.json({ success: true });
+    } catch (err) {
+      const e = err as { status?: number; code?: string; message?: string };
+      res.status(e.status || 500).json({
+        success: false,
+        error: {
+          code: e.code || 'INVITE_REVOKE_FAILED',
+          message: e.message || 'Could not revoke invitation',
+        },
+      });
+    }
   }
 );
 

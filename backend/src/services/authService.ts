@@ -4,6 +4,7 @@ import {
   EducationSubtype,
   OrganizationStatus,
   PlanTier,
+  UserRole,
 } from '@prisma/client';
 import prisma from '../config/prisma';
 import {
@@ -18,7 +19,28 @@ import {
   PRIVACY_VERSION,
   TERMS_VERSION,
 } from '../config/legal';
-import { sendVerificationEmail } from './emailService';
+import {
+  sendPasswordResetEmail,
+  sendVerificationEmail,
+} from './emailService';
+
+/** Precomputed bcrypt hash so unknown-email login spends similar time to a real compare. */
+const TIMING_PAD_HASH =
+  '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy';
+
+const INVALID_CREDENTIALS = Object.assign(new Error('Invalid credentials'), {
+  status: 401,
+  code: 'INVALID_CREDENTIALS',
+});
+
+export type WorkspaceSummary = {
+  id: string;
+  name: string;
+  slug: string;
+  role: UserRole;
+  status: OrganizationStatus;
+  onboardingCompleted: boolean;
+};
 
 async function seedDataReadiness(organizationId: string) {
   for (const ds of EDUCATION_DATASETS) {
@@ -58,20 +80,156 @@ function createVerificationToken(): { token: string; expires: Date } {
   return { token, expires };
 }
 
-/** When Brevo is not configured, auto-verify so local signup is not blocked. */
 function shouldAutoVerifyEmail(): boolean {
   return !process.env.BREVO_API_KEY;
 }
 
-export async function registerOrganization(input: {
+function invalidCredentials(): never {
+  throw INVALID_CREDENTIALS;
+}
+
+export async function listActiveWorkspaces(
+  userId: string
+): Promise<WorkspaceSummary[]> {
+  const memberships = await prisma.organizationMembership.findMany({
+    where: { userId, isActive: true },
+    include: { organization: true },
+    orderBy: { createdAt: 'asc' },
+  });
+  return memberships.map((m) => ({
+    id: m.organization.id,
+    name: m.organization.displayName || m.organization.name,
+    slug: m.organization.slug,
+    role: m.role,
+    status: m.organization.status,
+    onboardingCompleted: m.organization.onboardingCompleted,
+  }));
+}
+
+async function loadMembership(userId: string, organizationId: string) {
+  return prisma.organizationMembership.findFirst({
+    where: { userId, organizationId, isActive: true },
+    include: { organization: { include: { entitlement: true, subscription: true } } },
+  });
+}
+
+function sessionFor(
+  user: {
+    id: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+    termsVersion: string | null;
+    privacyVersion: string | null;
+  },
+  membership: {
+    id: string;
+    role: UserRole;
+    organization: {
+      id: string;
+      name: string;
+      slug: string;
+      status: OrganizationStatus;
+      industryBlueprintKey: string;
+      educationSubtype: EducationSubtype;
+      educationSubtypeOther: string | null;
+      onboardingCompleted: boolean;
+      entitlement: unknown;
+      subscription: unknown;
+    };
+  },
+  workspaces: WorkspaceSummary[]
+) {
+  const payload = {
+    userId: user.id,
+    email: user.email,
+    organizationId: membership.organization.id,
+    membershipId: membership.id,
+    role: membership.role,
+  };
+  return {
+    accessToken: signAccessToken(payload),
+    refreshToken: signRefreshToken(payload),
+    needsWorkspaceSelection: false,
+    noWorkspace: false,
+    workspaces,
+    user: {
+      id: user.id,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      role: membership.role,
+      organizationId: membership.organization.id,
+      membershipId: membership.id,
+      termsVersion: user.termsVersion,
+      privacyVersion: user.privacyVersion,
+      legal: legalAcceptanceStatus({
+        termsVersion: user.termsVersion,
+        privacyVersion: user.privacyVersion,
+      }),
+    },
+    organization: {
+      id: membership.organization.id,
+      name: membership.organization.name,
+      slug: membership.organization.slug,
+      status: membership.organization.status,
+      industryBlueprintKey: membership.organization.industryBlueprintKey,
+      educationSubtype: membership.organization.educationSubtype,
+      educationSubtypeOther: membership.organization.educationSubtypeOther,
+      onboardingCompleted: membership.organization.onboardingCompleted,
+    },
+    entitlements: membership.organization.entitlement,
+    subscription: membership.organization.subscription,
+  };
+}
+
+function identitySession(
+  user: {
+    id: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+    termsVersion: string | null;
+    privacyVersion: string | null;
+  },
+  workspaces: WorkspaceSummary[],
+  needsWorkspaceSelection: boolean
+) {
+  const payload = { userId: user.id, email: user.email };
+  return {
+    accessToken: signAccessToken(payload),
+    refreshToken: signRefreshToken(payload),
+    needsWorkspaceSelection,
+    noWorkspace: workspaces.length === 0,
+    workspaces,
+    user: {
+      id: user.id,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      role: undefined,
+      organizationId: undefined,
+      membershipId: undefined,
+      termsVersion: user.termsVersion,
+      privacyVersion: user.privacyVersion,
+      legal: legalAcceptanceStatus({
+        termsVersion: user.termsVersion,
+        privacyVersion: user.privacyVersion,
+      }),
+    },
+    organization: null,
+    entitlements: null,
+    subscription: null,
+  };
+}
+
+async function createOrganizationRecord(input: {
   organizationName: string;
   slug: string;
-  email: string;
-  password: string;
-  firstName: string;
-  lastName: string;
   educationSubtype?: EducationSubtype;
   educationSubtypeOther?: string | null;
+  ownerUserId: string;
+  ownerRole?: UserRole;
 }) {
   const slug = input.slug.toLowerCase().trim();
   const existing = await prisma.organization.findUnique({ where: { slug } });
@@ -92,10 +250,6 @@ export async function registerOrganization(input: {
       );
     }
   }
-
-  const passwordHash = await bcrypt.hash(input.password, 12);
-  const autoVerify = shouldAutoVerifyEmail();
-  const { token, expires } = createVerificationToken();
 
   const org = await prisma.organization.create({
     data: {
@@ -130,122 +284,170 @@ export async function registerOrganization(input: {
           hostname: `${slug}.${process.env.ROOT_DOMAIN || 'businessadvisor.app'}`,
         },
       },
-      users: {
+      memberships: {
         create: {
-          email: input.email.toLowerCase(),
-          passwordHash,
-          firstName: input.firstName,
-          lastName: input.lastName,
-          role: 'OWNER',
-          termsAcceptedAt: new Date(),
-          termsVersion: TERMS_VERSION,
-          privacyAcceptedAt: new Date(),
-          privacyVersion: PRIVACY_VERSION,
-          emailVerified: autoVerify,
-          emailVerificationToken: autoVerify ? null : token,
-          emailVerificationExpires: autoVerify ? null : expires,
+          userId: input.ownerUserId,
+          role: input.ownerRole ?? 'OWNER',
         },
       },
     },
     include: {
-      users: true,
       entitlement: true,
       subscription: true,
+      memberships: true,
     },
   });
 
   await seedDataReadiness(org.id);
   await writeAudit({
     organizationId: org.id,
-    actorUserId: org.users[0]?.id,
+    actorUserId: input.ownerUserId,
     action: 'organization.created',
     resourceType: 'Organization',
     resourceId: org.id,
     metadata: {
       termsVersion: TERMS_VERSION,
-      termsAcceptedAt: new Date().toISOString(),
       privacyVersion: PRIVACY_VERSION,
-      privacyAcceptedAt: new Date().toISOString(),
+    },
+  });
+  return org;
+}
+
+export async function registerOrganization(input: {
+  organizationName: string;
+  slug: string;
+  email: string;
+  password: string;
+  firstName: string;
+  lastName: string;
+  educationSubtype?: EducationSubtype;
+  educationSubtypeOther?: string | null;
+}) {
+  const email = input.email.toLowerCase().trim();
+  const existingUser = await prisma.user.findUnique({ where: { email } });
+  if (existingUser) {
+    throw Object.assign(
+      new Error(
+        'An account with this email already exists. Sign in, then create another organization from Settings.'
+      ),
+      { status: 409, code: 'ACCOUNT_EXISTS' }
+    );
+  }
+
+  const passwordHash = await bcrypt.hash(input.password, 12);
+  const autoVerify = shouldAutoVerifyEmail();
+  const { token, expires } = createVerificationToken();
+
+  const user = await prisma.user.create({
+    data: {
+      email,
+      passwordHash,
+      firstName: input.firstName,
+      lastName: input.lastName,
+      termsAcceptedAt: new Date(),
+      termsVersion: TERMS_VERSION,
+      privacyAcceptedAt: new Date(),
+      privacyVersion: PRIVACY_VERSION,
+      emailVerified: autoVerify,
+      emailVerificationToken: autoVerify ? null : token,
+      emailVerificationExpires: autoVerify ? null : expires,
     },
   });
 
-  const owner = org.users[0];
+  const org = await createOrganizationRecord({
+    organizationName: input.organizationName,
+    slug: input.slug,
+    educationSubtype: input.educationSubtype,
+    educationSubtypeOther: input.educationSubtypeOther,
+    ownerUserId: user.id,
+  });
+
   let verification: { sent: boolean; dryRun: boolean; autoVerified: boolean } = {
     sent: false,
     dryRun: false,
     autoVerified: autoVerify,
   };
 
-  if (!autoVerify && owner) {
+  if (!autoVerify) {
     const verificationUrl = `${frontendBaseUrl()}/verify-email?token=${token}`;
     try {
       const result = await sendVerificationEmail({
-        email: owner.email,
-        firstName: owner.firstName,
+        email: user.email,
+        firstName: user.firstName,
         verificationUrl,
       });
       verification = { ...result, autoVerified: false };
     } catch (err) {
       console.error('[auth] verification email failed', err);
     }
-  } else if (autoVerify) {
+  } else {
     console.log(
       '[auth] BREVO_API_KEY unset — owner email auto-verified for local/dev'
     );
   }
 
-  return { org, verification };
+  return { org, user, verification };
+}
+
+export async function createOrganizationForUser(
+  userId: string,
+  input: {
+    organizationName: string;
+    slug: string;
+    educationSubtype?: EducationSubtype;
+    educationSubtypeOther?: string | null;
+  }
+) {
+  const user = await prisma.user.findFirst({
+    where: { id: userId, isActive: true },
+  });
+  if (!user) {
+    throw Object.assign(new Error('User not found or inactive'), {
+      status: 401,
+      code: 'UNAUTHORIZED',
+    });
+  }
+  if (!user.emailVerified) {
+    throw Object.assign(
+      new Error('Verify your email before creating another organization.'),
+      { status: 403, code: 'EMAIL_NOT_VERIFIED' }
+    );
+  }
+  return createOrganizationRecord({
+    organizationName: input.organizationName,
+    slug: input.slug,
+    educationSubtype: input.educationSubtype,
+    educationSubtypeOther: input.educationSubtypeOther,
+    ownerUserId: user.id,
+  });
 }
 
 export async function loginUser(input: {
   email: string;
   password: string;
-  organizationId?: string;
-  slug?: string;
+  /** Host-subdomain workspace. Membership is required or access is denied. */
+  hostSlug?: string;
 }) {
-  let organizationId = input.organizationId;
-  if (!organizationId && input.slug) {
-    const org = await prisma.organization.findUnique({
-      where: { slug: input.slug.toLowerCase() },
-    });
-    if (!org) {
-      throw Object.assign(new Error('Organization not found'), {
-        status: 404,
-        code: 'TENANT_NOT_FOUND',
-      });
-    }
-    organizationId = org.id;
-  }
-  if (!organizationId) {
-    throw Object.assign(new Error('Organization context required'), {
-      status: 400,
-      code: 'TENANT_REQUIRED',
-    });
-  }
-
+  const email = (input.email || '').toLowerCase().trim();
   const user = await prisma.user.findFirst({
-    where: {
-      organizationId,
-      email: input.email.toLowerCase(),
-      isActive: true,
-    },
-    include: {
-      organization: { include: { entitlement: true, subscription: true } },
-    },
+    where: { email, isActive: true },
   });
+
   if (!user) {
-    throw Object.assign(new Error('Invalid credentials'), {
-      status: 401,
-      code: 'INVALID_CREDENTIALS',
-    });
+    await bcrypt.compare(input.password || '', TIMING_PAD_HASH);
+    invalidCredentials();
   }
 
-  const ok = await bcrypt.compare(input.password, user.passwordHash);
-  if (!ok) {
-    throw Object.assign(new Error('Invalid credentials'), {
-      status: 401,
-      code: 'INVALID_CREDENTIALS',
-    });
+  const ok = await bcrypt.compare(input.password || '', user.passwordHash);
+  if (!ok) invalidCredentials();
+
+  if (user.passwordResetRequired) {
+    throw Object.assign(
+      new Error(
+        'This account needs a new password. Use Forgot Password on the sign-in page.'
+      ),
+      { status: 403, code: 'PASSWORD_RESET_REQUIRED' }
+    );
   }
 
   if (!user.emailVerified) {
@@ -267,50 +469,57 @@ export async function loginUser(input: {
     data: { lastLoginAt: new Date() },
   });
 
-  const payload = {
-    userId: user.id,
-    organizationId: user.organizationId,
-    email: user.email,
-    role: user.role,
-  };
+  const workspaces = await listActiveWorkspaces(user.id);
 
-  return {
-    accessToken: signAccessToken(payload),
-    refreshToken: signRefreshToken(payload),
-    user: {
-      id: user.id,
-      email: user.email,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      role: user.role,
-      organizationId: user.organizationId,
-      termsVersion: user.termsVersion,
-      privacyVersion: user.privacyVersion,
-      legal: legalAcceptanceStatus({
-        termsVersion: user.termsVersion,
-        privacyVersion: user.privacyVersion,
-      }),
-    },
-    organization: {
-      id: user.organization.id,
-      name: user.organization.name,
-      slug: user.organization.slug,
-      status: user.organization.status,
-      industryBlueprintKey: user.organization.industryBlueprintKey,
-      educationSubtype: user.organization.educationSubtype,
-      educationSubtypeOther: user.organization.educationSubtypeOther,
-      onboardingCompleted: user.organization.onboardingCompleted,
-    },
-    entitlements: user.organization.entitlement,
-    subscription: user.organization.subscription,
-  };
+  if (input.hostSlug) {
+    const hostSlug = input.hostSlug.toLowerCase();
+    const target = workspaces.find((w) => w.slug === hostSlug);
+    if (!target) {
+      throw Object.assign(
+        new Error('You do not have access to this organization.'),
+        { status: 403, code: 'WORKSPACE_FORBIDDEN' }
+      );
+    }
+    const membership = await loadMembership(user.id, target.id);
+    if (!membership) {
+      throw Object.assign(
+        new Error('You do not have access to this organization.'),
+        { status: 403, code: 'WORKSPACE_FORBIDDEN' }
+      );
+    }
+    return sessionFor(user, membership, workspaces);
+  }
+
+  if (workspaces.length === 1) {
+    const membership = await loadMembership(user.id, workspaces[0].id);
+    if (!membership) return identitySession(user, workspaces, false);
+    return sessionFor(user, membership, workspaces);
+  }
+
+  return identitySession(user, workspaces, workspaces.length > 1);
 }
 
-/**
- * Record a new Terms + Privacy acceptance for the signed-in user.
- * Creates a fresh acceptance stamp; does not rewrite historical audit
- * metadata from earlier acceptances.
- */
+export async function selectWorkspace(userId: string, organizationId: string) {
+  const user = await prisma.user.findFirst({
+    where: { id: userId, isActive: true },
+  });
+  if (!user) {
+    throw Object.assign(new Error('User not found or inactive'), {
+      status: 401,
+      code: 'UNAUTHORIZED',
+    });
+  }
+  const membership = await loadMembership(userId, organizationId);
+  if (!membership) {
+    throw Object.assign(
+      new Error('You do not have access to this organization.'),
+      { status: 403, code: 'WORKSPACE_FORBIDDEN' }
+    );
+  }
+  const workspaces = await listActiveWorkspaces(userId);
+  return sessionFor(user, membership, workspaces);
+}
+
 export async function acceptCurrentLegalVersions(userId: string) {
   const existing = await prisma.user.findUnique({ where: { id: userId } });
   if (!existing || !existing.isActive) {
@@ -332,7 +541,7 @@ export async function acceptCurrentLegalVersions(userId: string) {
   });
 
   await writeAudit({
-    organizationId: updated.organizationId,
+    organizationId: null,
     actorUserId: updated.id,
     action: 'user.legal_accepted',
     resourceType: 'User',
@@ -382,7 +591,6 @@ export async function verifyEmailToken(token: string) {
         id: byActiveToken.id,
         email: byActiveToken.email,
         firstName: byActiveToken.firstName,
-        role: byActiveToken.role,
       },
     };
   }
@@ -446,29 +654,14 @@ export async function verifyEmailToken(token: string) {
       id: updated.id,
       email: updated.email,
       firstName: updated.firstName,
-      role: updated.role,
     },
   };
 }
 
-export async function resendVerificationEmail(input: {
-  email: string;
-  slug: string;
-}) {
-  const org = await prisma.organization.findUnique({
-    where: { slug: input.slug.toLowerCase().trim() },
-  });
-  if (!org) {
-    // Avoid account enumeration
-    return { sent: true, dryRun: false };
-  }
-
+export async function resendVerificationEmail(input: { email: string }) {
+  const email = input.email.toLowerCase().trim();
   const user = await prisma.user.findFirst({
-    where: {
-      organizationId: org.id,
-      email: input.email.toLowerCase().trim(),
-      isActive: true,
-    },
+    where: { email, isActive: true },
   });
 
   if (!user) {
@@ -507,6 +700,63 @@ export async function resendVerificationEmail(input: {
     verificationUrl,
   });
   return { ...result, alreadyVerified: false };
+}
+
+export async function requestPasswordReset(emailInput: string) {
+  const email = emailInput.toLowerCase().trim();
+  const user = await prisma.user.findFirst({ where: { email, isActive: true } });
+  if (!user) {
+    return { sent: true };
+  }
+  const token = crypto.randomBytes(32).toString('hex');
+  const expires = new Date(Date.now() + 60 * 60 * 1000);
+  await prisma.user.update({
+    where: { id: user.id },
+    data: {
+      passwordResetToken: token,
+      passwordResetExpires: expires,
+    },
+  });
+  const resetUrl = `${frontendBaseUrl()}/reset-password?token=${token}`;
+  await sendPasswordResetEmail({
+    email: user.email,
+    firstName: user.firstName,
+    resetUrl,
+  });
+  return { sent: true };
+}
+
+export async function resetPasswordWithToken(token: string, password: string) {
+  if (!token || !password || password.length < 8) {
+    throw Object.assign(
+      new Error('A valid reset link and a password of at least 8 characters are required.'),
+      { status: 400, code: 'VALIDATION' }
+    );
+  }
+  const user = await prisma.user.findFirst({
+    where: {
+      passwordResetToken: token,
+      passwordResetExpires: { gt: new Date() },
+      isActive: true,
+    },
+  });
+  if (!user) {
+    throw Object.assign(
+      new Error('Invalid or expired reset link. Request a new one from the sign-in page.'),
+      { status: 400, code: 'TOKEN_INVALID' }
+    );
+  }
+  const passwordHash = await bcrypt.hash(password, 12);
+  await prisma.user.update({
+    where: { id: user.id },
+    data: {
+      passwordHash,
+      passwordResetToken: null,
+      passwordResetExpires: null,
+      passwordResetRequired: false,
+    },
+  });
+  return { success: true };
 }
 
 export async function activateOrganizationDev(

@@ -517,6 +517,137 @@ async function main() {
       EXCEPTION WHEN duplicate_object THEN NULL; END $repair$;
     `);
 
+    await prisma.$executeRawUnsafe(`
+      ALTER TABLE "users"
+        ADD COLUMN IF NOT EXISTS "passwordResetToken" TEXT,
+        ADD COLUMN IF NOT EXISTS "passwordResetExpires" TIMESTAMP(3),
+        ADD COLUMN IF NOT EXISTS "passwordResetRequired" BOOLEAN NOT NULL DEFAULT false;
+    `);
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "organization_memberships" (
+        "id" TEXT NOT NULL,
+        "userId" TEXT NOT NULL,
+        "organizationId" TEXT NOT NULL,
+        "role" "UserRole" NOT NULL DEFAULT 'VIEWER',
+        "isActive" BOOLEAN NOT NULL DEFAULT true,
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT "organization_memberships_pkey" PRIMARY KEY ("id")
+      );
+    `);
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "organization_invitations" (
+        "id" TEXT NOT NULL,
+        "organizationId" TEXT NOT NULL,
+        "email" TEXT NOT NULL,
+        "role" "UserRole" NOT NULL DEFAULT 'VIEWER',
+        "tokenHash" TEXT NOT NULL,
+        "expiresAt" TIMESTAMP(3) NOT NULL,
+        "invitedByUserId" TEXT NOT NULL,
+        "acceptedAt" TIMESTAMP(3),
+        "revokedAt" TIMESTAMP(3),
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT "organization_invitations_pkey" PRIMARY KEY ("id")
+      );
+    `);
+    await prisma.$executeRawUnsafe(`
+      CREATE UNIQUE INDEX IF NOT EXISTS "organization_memberships_organizationId_userId_key"
+        ON "organization_memberships"("organizationId", "userId");
+    `);
+    await prisma.$executeRawUnsafe(`
+      CREATE INDEX IF NOT EXISTS "organization_memberships_userId_idx"
+        ON "organization_memberships"("userId");
+    `);
+    await prisma.$executeRawUnsafe(`
+      CREATE UNIQUE INDEX IF NOT EXISTS "organization_invitations_tokenHash_key"
+        ON "organization_invitations"("tokenHash");
+    `);
+    await prisma.$executeRawUnsafe(`
+      CREATE INDEX IF NOT EXISTS "organization_invitations_organizationId_email_idx"
+        ON "organization_invitations"("organizationId", "email");
+    `);
+    await prisma.$executeRawUnsafe(`
+      DO $repair$ BEGIN
+        IF EXISTS (
+          SELECT 1 FROM information_schema.columns
+          WHERE table_schema = 'public'
+            AND table_name = 'users'
+            AND column_name = 'organizationId'
+        ) THEN
+          INSERT INTO "organization_memberships" (
+            "id", "userId", "organizationId", "role", "isActive", "createdAt", "updatedAt"
+          )
+          SELECT
+            CONCAT('mem_', "id"),
+            "id",
+            "organizationId",
+            "role",
+            COALESCE("isActive", true),
+            "createdAt",
+            COALESCE("updatedAt", CURRENT_TIMESTAMP)
+          FROM "users"
+          WHERE "organizationId" IS NOT NULL
+            AND NOT EXISTS (
+              SELECT 1 FROM "organization_memberships" m WHERE m."userId" = "users"."id"
+            );
+        END IF;
+      END $repair$;
+    `);
+    await prisma.$executeRawUnsafe(`
+      DO $fk$ BEGIN
+        ALTER TABLE "organization_memberships"
+          ADD CONSTRAINT "organization_memberships_userId_fkey"
+          FOREIGN KEY ("userId") REFERENCES "users"("id")
+          ON DELETE CASCADE ON UPDATE CASCADE;
+      EXCEPTION WHEN duplicate_object THEN NULL; END $fk$;
+    `);
+    await prisma.$executeRawUnsafe(`
+      DO $fk$ BEGIN
+        ALTER TABLE "organization_memberships"
+          ADD CONSTRAINT "organization_memberships_organizationId_fkey"
+          FOREIGN KEY ("organizationId") REFERENCES "organizations"("id")
+          ON DELETE CASCADE ON UPDATE CASCADE;
+      EXCEPTION WHEN duplicate_object THEN NULL; END $fk$;
+    `);
+    await prisma.$executeRawUnsafe(`
+      DO $fk$ BEGIN
+        ALTER TABLE "organization_invitations"
+          ADD CONSTRAINT "organization_invitations_organizationId_fkey"
+          FOREIGN KEY ("organizationId") REFERENCES "organizations"("id")
+          ON DELETE CASCADE ON UPDATE CASCADE;
+      EXCEPTION WHEN duplicate_object THEN NULL; END $fk$;
+    `);
+    await prisma.$executeRawUnsafe(`
+      DO $fk$ BEGIN
+        ALTER TABLE "organization_invitations"
+          ADD CONSTRAINT "organization_invitations_invitedByUserId_fkey"
+          FOREIGN KEY ("invitedByUserId") REFERENCES "users"("id")
+          ON DELETE CASCADE ON UPDATE CASCADE;
+      EXCEPTION WHEN duplicate_object THEN NULL; END $fk$;
+    `);
+    await prisma.$executeRawUnsafe(`
+      DROP INDEX IF EXISTS "staff_members_userId_key";
+    `);
+    await prisma.$executeRawUnsafe(`
+      ALTER TABLE "staff_members" DROP CONSTRAINT IF EXISTS "staff_members_userId_key";
+    `);
+    await prisma.$executeRawUnsafe(`
+      CREATE UNIQUE INDEX IF NOT EXISTS "staff_members_organizationId_userId_key"
+        ON "staff_members"("organizationId", "userId");
+    `);
+    await prisma.$executeRawUnsafe(`
+      DO $emailuniq$ BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM "users" GROUP BY lower(email) HAVING COUNT(*) > 1
+        ) THEN
+          CREATE UNIQUE INDEX IF NOT EXISTS "users_email_key" ON "users"("email");
+        END IF;
+      END $emailuniq$;
+    `);
+    await prisma.$executeRawUnsafe(`
+      SELECT 1 FROM "organization_memberships" LIMIT 1;
+    `);
+
     console.log('ensure-db-schema: ok');
   } finally {
     await prisma.$disconnect();

@@ -237,7 +237,10 @@ export async function sendWeeklyExecutiveBrief(organizationId: string) {
   const org = await prisma.organization.findUniqueOrThrow({
     where: { id: organizationId },
     include: {
-      users: { where: { role: { in: ['OWNER', 'ADMIN'] }, isActive: true } },
+      memberships: {
+        where: { role: { in: ['OWNER', 'ADMIN'] }, isActive: true },
+        include: { user: true },
+      },
     },
   });
   const dash = await executiveDashboard(organizationId);
@@ -255,13 +258,18 @@ export async function sendWeeklyExecutiveBrief(organizationId: string) {
 
   if (!process.env.BREVO_API_KEY) {
     console.log(
-      `[brief:dry-run] ${subject} -> ${org.users.map((u) => u.email).join(', ')}`
+      `[brief:dry-run] ${subject} -> ${org.memberships
+        .filter((m) => m.user.isActive && m.user.emailVerified)
+        .map((m) => m.user.email)
+        .join(', ')}`
     );
     return { sent: false, dryRun: true, subject };
   }
 
   let sentCount = 0;
-  for (const user of org.users) {
+  for (const membership of org.memberships) {
+    const user = membership.user;
+    if (!user.isActive || !user.emailVerified) continue;
     const { htmlContent, textContent } = buildWeeklyBriefContent({
       orgName,
       firstName: user.firstName,
@@ -284,7 +292,8 @@ export async function sendWeeklyExecutiveBrief(organizationId: string) {
     sent: sentCount > 0,
     dryRun: false,
     subject,
-    recipients: org.users.length,
+    recipients: org.memberships.filter((m) => m.user.isActive && m.user.emailVerified)
+      .length,
   };
 }
 

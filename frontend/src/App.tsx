@@ -20,12 +20,20 @@ import { LandingPage } from './pages/LandingPage';
 import { PrivacyPage } from './pages/PrivacyPage';
 import { EnrolmentPage } from './pages/EnrolmentPage';
 import { AiUsagePage } from './pages/AiUsagePage';
+import { ChooseWorkspacePage } from './pages/ChooseWorkspacePage';
+import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
+import { ResetPasswordPage } from './pages/ResetPasswordPage';
+import { AcceptInvitationPage } from './pages/AcceptInvitationPage';
 
 export default function App() {
   return (
     <Routes>
       <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/choose-workspace" element={<ChooseWorkspacePage />} />
+      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
+      <Route path="/accept-invitation" element={<AcceptInvitationPage />} />
       <Route path="/signup" element={<SignupPage />} />
       <Route path="/terms" element={<TermsPage />} />
       <Route path="/privacy" element={<PrivacyPage />} />

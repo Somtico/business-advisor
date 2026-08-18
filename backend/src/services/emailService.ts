@@ -113,3 +113,110 @@ export async function sendVerificationEmail(params: {
     textContent: built.textContent,
   });
 }
+
+export function buildPasswordResetEmail(params: {
+  firstName: string;
+  resetUrl: string;
+}): { subject: string; htmlContent: string; textContent: string } {
+  const name = params.firstName?.trim() || 'there';
+  const subject = 'Somtico Business Advisor — Reset Your Password';
+  const htmlContent = wrapBrandedEmailHtml({
+    preheader: 'Reset your Somtico Business Advisor password.',
+    cardTitle: 'Reset Your Password',
+    contentHtml: `
+      ${emailBodyParagraph(`Hello ${name},`)}
+      ${emailBodyParagraph(
+        'We received a request to reset the password for your Somtico Business Advisor account.'
+      )}
+      ${emailPrimaryButtonHtml(params.resetUrl, 'Reset Password')}
+      ${emailBodyParagraph(
+        'This link expires in 1 hour. If you did not request a reset, you can ignore this email.'
+      )}
+      ${emailRichParagraph(
+        `Or copy this link: ${emailTextLink(params.resetUrl, params.resetUrl)}`
+      )}
+    `,
+  });
+  const textContent = `
+Somtico Business Advisor — Reset Your Password
+
+Hello ${name},
+
+Reset your password:
+
+${params.resetUrl}
+
+This link expires in 1 hour. If you did not request a reset, you can ignore this email.
+${brandTextEmailSuffix()}
+  `.trim();
+  return { subject, htmlContent, textContent };
+}
+
+export async function sendPasswordResetEmail(params: {
+  email: string;
+  firstName: string;
+  resetUrl: string;
+}): Promise<{ sent: boolean; dryRun: boolean }> {
+  const built = buildPasswordResetEmail(params);
+  return sendTransactionalEmail({
+    toEmail: params.email,
+    toName: params.firstName || 'there',
+    subject: built.subject,
+    htmlContent: built.htmlContent,
+    textContent: built.textContent,
+  });
+}
+
+export function buildInvitationEmail(params: {
+  firstName?: string;
+  organizationName: string;
+  roleLabel: string;
+  acceptUrl: string;
+}): { subject: string; htmlContent: string; textContent: string } {
+  const name = params.firstName?.trim() || 'there';
+  const subject = `You're Invited to ${params.organizationName} on Somtico Business Advisor`;
+  const htmlContent = wrapBrandedEmailHtml({
+    preheader: `Join ${params.organizationName} on Somtico Business Advisor.`,
+    cardTitle: 'You Are Invited',
+    contentHtml: `
+      ${emailBodyParagraph(`Hello ${name},`)}
+      ${emailBodyParagraph(
+        `You have been invited to join ${params.organizationName} as ${params.roleLabel}.`
+      )}
+      ${emailPrimaryButtonHtml(params.acceptUrl, 'Accept Invitation')}
+      ${emailBodyParagraph(
+        'This link expires in 7 days. If you were not expecting this invitation, you can ignore this email.'
+      )}
+    `,
+  });
+  const textContent = `
+You're invited to ${params.organizationName} on Somtico Business Advisor
+
+Hello ${name},
+
+You have been invited to join ${params.organizationName} as ${params.roleLabel}.
+
+${params.acceptUrl}
+
+This link expires in 7 days. If you were not expecting this invitation, you can ignore this email.
+${brandTextEmailSuffix()}
+  `.trim();
+  return { subject, htmlContent, textContent };
+}
+
+export async function sendInvitationEmail(params: {
+  email: string;
+  firstName?: string;
+  organizationName: string;
+  roleLabel: string;
+  acceptUrl: string;
+}): Promise<{ sent: boolean; dryRun: boolean }> {
+  const built = buildInvitationEmail(params);
+  return sendTransactionalEmail({
+    toEmail: params.email,
+    toName: params.firstName || params.email,
+    subject: built.subject,
+    htmlContent: built.htmlContent,
+    textContent: built.textContent,
+  });
+}

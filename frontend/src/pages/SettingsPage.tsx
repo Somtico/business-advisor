@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
 import { api } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
+import { EDUCATION_SUBTYPE_OPTIONS, slugifyOrganizationName } from '../lib/forms';
+import { ROLE_LABELS } from '../lib/workspace';
 
 interface ConnectorRow {
   key: string;
@@ -48,7 +50,7 @@ const HELP_IMPROVE_DISCLOSURE = (
 );
 
 export function SettingsPage() {
-  const { organization, user } = useAuth();
+  const { organization, user, setSession } = useAuth();
   const canManageLearning = user?.role === 'OWNER' || user?.role === 'ADMIN';
   const [billing, setBilling] = useState<{
     subscription: {
@@ -65,6 +67,13 @@ export function SettingsPage() {
   const [helpImprove, setHelpImprove] = useState<HelpImproveStatus | null>(null);
   const [learningBusy, setLearningBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteRole, setInviteRole] = useState('VIEWER');
+  const [pendingInvites, setPendingInvites] = useState<
+    Array<{ id: string; email: string; role: string; expiresAt: string }>
+  >([]);
+  const [newOrgName, setNewOrgName] = useState('');
+  const [newOrgSlug, setNewOrgSlug] = useState('');
 
   useEffect(() => {
     api<{ success: boolean; data: NonNullable<typeof billing> }>(
@@ -80,7 +89,15 @@ export function SettingsPage() {
     )
       .then((r) => setHelpImprove(r.data))
       .catch(() => setHelpImprove(null));
-  }, []);
+    if (user?.role === 'OWNER' || user?.role === 'ADMIN') {
+      api<{
+        success: boolean;
+        data: Array<{ id: string; email: string; role: string; expiresAt: string }>;
+      }>('/api/app/invitations')
+        .then((r) => setPendingInvites(r.data))
+        .catch(() => setPendingInvites([]));
+    }
+  }, [user?.role]);
 
   async function checkout() {
     const res = await api<{
@@ -184,7 +201,7 @@ export function SettingsPage() {
     <div>
       <h1 className="font-display text-3xl font-bold">Settings</h1>
       <p className="mt-2 text-base text-ba-ink/70">
-        Organization: {organization?.name} ({organization?.slug})
+        Organization: {organization?.name}
       </p>
 
       <section
@@ -313,6 +330,160 @@ export function SettingsPage() {
           className="mt-4 cursor-pointer rounded-md border border-ba-line px-4 py-2 text-base"
         >
           Send Weekly Executive Brief
+        </button>
+      </section>
+
+      {canManageLearning && (
+        <section className="mt-6 border border-ba-line bg-white p-5">
+          <h2 className="font-display text-2xl font-bold">People & Invitations</h2>
+          <p className="mt-2 text-base text-ba-ink/70">
+            Invite someone to this organization. They will join with their existing
+            account, or create one if they are new.
+          </p>
+          <div className="mt-4 flex flex-wrap gap-3">
+            <input
+              type="email"
+              className="rounded-md border-ba-line text-base"
+              placeholder="Email"
+              value={inviteEmail}
+              onChange={(e) => setInviteEmail(e.target.value)}
+            />
+            <select
+              className="cursor-pointer rounded-md border-ba-line text-base"
+              value={inviteRole}
+              onChange={(e) => setInviteRole(e.target.value)}
+            >
+              {['ADMIN', 'FINANCE', 'OPERATIONS', 'ANALYST', 'VIEWER'].map((r) => (
+                <option key={r} value={r}>
+                  {ROLE_LABELS[r]}
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              className="cursor-pointer rounded-md bg-ba-accent px-4 py-2 text-base font-semibold text-white"
+              onClick={() => {
+                void api('/api/app/invitations', {
+                  method: 'POST',
+                  body: JSON.stringify({ email: inviteEmail, role: inviteRole }),
+                })
+                  .then(() => {
+                    setInviteEmail('');
+                    setMessage('Invitation sent.');
+                    return api<{
+                      success: boolean;
+                      data: Array<{
+                        id: string;
+                        email: string;
+                        role: string;
+                        expiresAt: string;
+                      }>;
+                    }>('/api/app/invitations');
+                  })
+                  .then((r) => setPendingInvites(r.data))
+                  .catch((err: Error) => setMessage(err.message));
+              }}
+            >
+              Send Invitation
+            </button>
+          </div>
+          {pendingInvites.length > 0 && (
+            <ul className="mt-4 space-y-2 text-base">
+              {pendingInvites.map((inv) => (
+                <li key={inv.id} className="flex justify-between gap-3">
+                  <span>
+                    {inv.email} · {ROLE_LABELS[inv.role] || inv.role}
+                  </span>
+                  <button
+                    type="button"
+                    className="cursor-pointer text-ba-warm underline"
+                    onClick={() => {
+                      void api(`/api/app/invitations/${inv.id}`, {
+                        method: 'DELETE',
+                      })
+                        .then(() =>
+                          setPendingInvites((rows) =>
+                            rows.filter((r) => r.id !== inv.id)
+                          )
+                        )
+                        .catch((err: Error) => setMessage(err.message));
+                    }}
+                  >
+                    Revoke
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      )}
+
+      <section className="mt-6 border border-ba-line bg-white p-5">
+        <h2 className="font-display text-2xl font-bold">Create Another Organization</h2>
+        <p className="mt-2 text-base text-ba-ink/70">
+          Add a new workspace to this account. You will be the owner.
+        </p>
+        <div className="mt-4 grid gap-3 md:grid-cols-2">
+          <input
+            className="rounded-md border-ba-line text-base"
+            placeholder="Organization Name"
+            value={newOrgName}
+            onChange={(e) => {
+              setNewOrgName(e.target.value);
+              setNewOrgSlug(slugifyOrganizationName(e.target.value));
+            }}
+          />
+          <input
+            className="rounded-md border-ba-line text-base"
+            placeholder="Workspace Address"
+            value={newOrgSlug}
+            onChange={(e) => setNewOrgSlug(e.target.value.toLowerCase())}
+          />
+        </div>
+        <button
+          type="button"
+          className="mt-4 cursor-pointer rounded-md border border-ba-line px-4 py-2 text-base"
+          onClick={() => {
+            void api<{
+              success: boolean;
+              data: {
+                session: {
+                  accessToken: string;
+                  user: NonNullable<typeof user>;
+                  organization: NonNullable<typeof organization>;
+                  workspaces?: Array<{
+                    id: string;
+                    name: string;
+                    slug: string;
+                    role: string;
+                    status: string;
+                    onboardingCompleted: boolean;
+                  }>;
+                };
+              };
+            }>('/api/auth/organizations', {
+              method: 'POST',
+              body: JSON.stringify({
+                organizationName: newOrgName,
+                slug: newOrgSlug,
+                educationSubtype: EDUCATION_SUBTYPE_OPTIONS[0]?.value,
+              }),
+            })
+              .then((res) => {
+                setSession({
+                  accessToken: res.data.session.accessToken,
+                  user: res.data.session.user,
+                  organization: res.data.session.organization,
+                  workspaces: res.data.session.workspaces,
+                  needsWorkspaceSelection: false,
+                  noWorkspace: false,
+                });
+                window.location.assign('/app/onboarding');
+              })
+              .catch((err: Error) => setMessage(err.message));
+          }}
+        >
+          Create Organization
         </button>
       </section>
 

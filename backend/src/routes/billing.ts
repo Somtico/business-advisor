@@ -1,16 +1,15 @@
 import { Router, Request, Response } from 'express';
-import { authenticateToken, requireRole } from '../middleware/auth';
-import { requireTenant } from '../middleware/tenant';
+import { authenticateToken, requireRole, requireWorkspace } from '../middleware/auth';
+import prisma from '../config/prisma';
 import {
   createConnectExpressAccount,
   createPilotCheckoutSession,
   refreshConnectStatus,
 } from '../services/billingService';
-import prisma from '../config/prisma';
 
 const router = Router();
 
-router.use(requireTenant, authenticateToken);
+router.use(authenticateToken, requireWorkspace);
 
 router.get('/subscription', async (req: Request, res: Response) => {
   const sub = await prisma.platformSubscription.findUnique({

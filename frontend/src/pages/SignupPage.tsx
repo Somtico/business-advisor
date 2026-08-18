@@ -86,7 +86,7 @@ export function SignupPage() {
           : 'Organization created.') + verifyNote
       );
       navigate(
-        `/login?slug=${res.data.organization.slug}&verify=${
+        `/login?verify=${
           res.data.verification?.autoVerified ? 'done' : 'pending'
         }`
       );
@@ -124,7 +124,7 @@ export function SignupPage() {
         </label>
 
         <label className="mt-4 block text-base font-semibold">
-          Organization Slug
+          Workspace Address
           <RequiredMark />
           <input
             type="text"
@@ -140,13 +140,12 @@ export function SignupPage() {
             autoComplete="off"
           />
           <span className="mt-1 block text-base font-normal text-ba-ink/70">
-            Your unique URL identifier for this centre. It appears in your
-            workspace address as{' '}
+            Your unique workspace address is{' '}
             <span className="font-semibold text-ba-ink">
-              {form.slug || 'your-slug'}.{ROOT_DOMAIN}
-            </span>{' '}
-            and is what you enter when signing in. Filled from your business name;
-            you can edit it before creating the account.
+              {form.slug || 'your-centre'}.{ROOT_DOMAIN}
+            </span>
+            . Filled from your business name; you can edit it before creating
+            the account.
           </span>
         </label>
 

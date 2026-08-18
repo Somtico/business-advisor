@@ -7,7 +7,7 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { api, setTenantSlug } from '../lib/api';
+import { api, clearTenantSlug, setTenantSlug } from '../lib/api';
 
 export interface LegalAcceptanceStatus {
   termsVersion: string;
@@ -22,6 +22,15 @@ export interface LegalAcceptanceStatus {
   requiresReacceptance: boolean;
 }
 
+export interface WorkspaceSummary {
+  id: string;
+  name: string;
+  slug: string;
+  role: string;
+  status: string;
+  onboardingCompleted: boolean;
+}
+
 interface AuthState {
   accessToken: string | null;
   user: {
@@ -29,8 +38,8 @@ interface AuthState {
     email: string;
     firstName: string;
     lastName: string;
-    role: string;
-    organizationId: string;
+    role?: string;
+    organizationId?: string;
     termsVersion?: string | null;
     privacyVersion?: string | null;
     legal?: LegalAcceptanceStatus | null;
@@ -43,6 +52,9 @@ interface AuthState {
     educationSubtype?: string;
     onboardingCompleted?: boolean;
   } | null;
+  workspaces: WorkspaceSummary[];
+  needsWorkspaceSelection: boolean;
+  noWorkspace: boolean;
 }
 
 interface AuthContextValue extends AuthState {
@@ -50,6 +62,9 @@ interface AuthContextValue extends AuthState {
     accessToken: string;
     user: AuthState['user'];
     organization: AuthState['organization'];
+    workspaces?: WorkspaceSummary[];
+    needsWorkspaceSelection?: boolean;
+    noWorkspace?: boolean;
   }) => void;
   refreshSession: () => Promise<void>;
   applyLegalAcceptance: (legal: LegalAcceptanceStatus) => void;
@@ -62,11 +77,33 @@ function loadInitial(): AuthState {
   try {
     const raw = localStorage.getItem('ba_session');
     if (!raw) {
-      return { accessToken: null, user: null, organization: null };
+      return {
+        accessToken: null,
+        user: null,
+        organization: null,
+        workspaces: [],
+        needsWorkspaceSelection: false,
+        noWorkspace: false,
+      };
     }
-    return JSON.parse(raw) as AuthState;
+    const parsed = JSON.parse(raw) as Partial<AuthState>;
+    return {
+      accessToken: parsed.accessToken ?? null,
+      user: parsed.user ?? null,
+      organization: parsed.organization ?? null,
+      workspaces: parsed.workspaces ?? [],
+      needsWorkspaceSelection: Boolean(parsed.needsWorkspaceSelection),
+      noWorkspace: Boolean(parsed.noWorkspace),
+    };
   } catch {
-    return { accessToken: null, user: null, organization: null };
+    return {
+      accessToken: null,
+      user: null,
+      organization: null,
+      workspaces: [],
+      needsWorkspaceSelection: false,
+      noWorkspace: false,
+    };
   }
 }
 
@@ -85,13 +122,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       accessToken: string;
       user: AuthState['user'];
       organization: AuthState['organization'];
+      workspaces?: WorkspaceSummary[];
+      needsWorkspaceSelection?: boolean;
+      noWorkspace?: boolean;
     }) => {
-      const next = {
+      const next: AuthState = {
         accessToken: data.accessToken,
         user: data.user,
         organization: data.organization,
+        workspaces: data.workspaces ?? [],
+        needsWorkspaceSelection: Boolean(data.needsWorkspaceSelection),
+        noWorkspace: Boolean(data.noWorkspace),
       };
       if (data.organization?.slug) setTenantSlug(data.organization.slug);
+      else clearTenantSlug();
       persist(next);
       setState(next);
     },
@@ -101,7 +145,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = useCallback(() => {
     localStorage.removeItem('ba_access_token');
     localStorage.removeItem('ba_session');
-    setState({ accessToken: null, user: null, organization: null });
+    clearTenantSlug();
+    setState({
+      accessToken: null,
+      user: null,
+      organization: null,
+      workspaces: [],
+      needsWorkspaceSelection: false,
+      noWorkspace: false,
+    });
   }, []);
 
   const applyLegalAcceptance = useCallback((legal: LegalAcceptanceStatus) => {
@@ -133,6 +185,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             entitlement?: unknown;
             subscription?: unknown;
           };
+          workspaces?: WorkspaceSummary[];
+          needsWorkspaceSelection?: boolean;
+          noWorkspace?: boolean;
         };
       }>('/api/auth/me');
       const org = res.data.organization
@@ -146,10 +201,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
         : null;
       if (org?.slug) setTenantSlug(org.slug);
-      const next = {
+      else clearTenantSlug();
+      const next: AuthState = {
         accessToken: token,
         user: res.data.user,
         organization: org,
+        workspaces: res.data.workspaces || [],
+        needsWorkspaceSelection: Boolean(res.data.needsWorkspaceSelection),
+        noWorkspace: Boolean(res.data.noWorkspace),
       };
       persist(next);
       setState(next);

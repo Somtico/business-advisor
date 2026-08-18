@@ -37,17 +37,20 @@ async function main() {
   const passwordHash = await bcrypt.hash('DemoPass!234', 12);
   await prisma.user.create({
     data: {
-      organizationId: org.id,
       email: 'demo@northlight.test',
       passwordHash,
       firstName: 'John',
       lastName: 'Smith',
-      role: 'OWNER',
       emailVerified: true,
       termsAcceptedAt: new Date(),
       termsVersion: '2026-08-16.2',
       privacyAcceptedAt: new Date(),
       privacyVersion: '2026-08-16.2',
+      memberships: {
+        create: { organizationId: org.id, role: 'OWNER' },
+      },
+    },
+  });
     },
   });
 

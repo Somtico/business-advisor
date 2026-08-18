@@ -26,8 +26,7 @@ const page = await browser.newPage({
 
 mkdirSync(OUT_DIR, { recursive: true });
 
-await page.goto(`${BASE}/login?slug=${SLUG}`, { waitUntil: 'networkidle' });
-await page.getByLabel('Organization Slug').fill(SLUG);
+await page.goto(`${BASE}/login`, { waitUntil: 'networkidle' });
 await page.getByLabel('Email').fill(EMAIL);
   await page.locator('input[type="password"]').fill(PASSWORD);
 await page.getByRole('button', { name: 'Sign In' }).click();

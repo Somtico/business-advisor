@@ -11,6 +11,8 @@ declare global {
     interface Request {
       organization?: OrgWithEntitlement;
       tenantSlug?: string;
+      /** True when the slug came from the request Host subdomain, not a client header. */
+      tenantFromHost?: boolean;
     }
   }
 }
@@ -33,9 +35,12 @@ export async function resolveTenant(
   next: NextFunction
 ): Promise<void> {
   try {
-    let slug =
-      extractSlugFromHost(req.headers.host) ||
-      (typeof req.query.slug === 'string' ? req.query.slug : null);
+    let slug = extractSlugFromHost(req.headers.host);
+    const fromHost = Boolean(slug);
+
+    if (!slug && typeof req.query.slug === 'string') {
+      slug = req.query.slug;
+    }
 
     if (
       !slug &&
@@ -52,6 +57,7 @@ export async function resolveTenant(
 
     slug = slug.toLowerCase().trim();
     req.tenantSlug = slug;
+    req.tenantFromHost = fromHost;
 
     const organization = await prisma.organization.findUnique({
       where: { slug },

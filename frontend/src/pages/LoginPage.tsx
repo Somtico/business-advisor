@@ -1,7 +1,7 @@
 import { FormEvent, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router';
-import { api, ApiError, setTenantSlug } from '../lib/api';
-import { useAuth } from '../context/AuthContext';
+import { api, ApiError, clearTenantSlug } from '../lib/api';
+import { useAuth, type WorkspaceSummary } from '../context/AuthContext';
 import { PasswordField } from '../components/PasswordField';
 import { PublicShell } from '../components/PublicShell';
 import { RequiredMark } from '../lib/forms';
@@ -10,7 +10,6 @@ export function LoginPage() {
   const { setSession } = useAuth();
   const navigate = useNavigate();
   const [params] = useSearchParams();
-  const [slug, setSlug] = useState(params.get('slug') || '');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -22,30 +21,53 @@ export function LoginPage() {
     if (params.get('billing') === 'success') {
       return 'Payment received. Verify your email if you have not already, then sign in.';
     }
+    if (params.get('reset') === 'sent') {
+      return 'If an account matches, a password reset email was sent.';
+    }
     return null;
   });
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
   const [needsVerification, setNeedsVerification] = useState(false);
 
+  function goAfterLogin(data: {
+    organization: { onboardingCompleted?: boolean } | null;
+    needsWorkspaceSelection?: boolean;
+    noWorkspace?: boolean;
+    workspaces?: WorkspaceSummary[];
+  }) {
+    if (data.needsWorkspaceSelection) {
+      navigate('/choose-workspace');
+      return;
+    }
+    if (data.noWorkspace || !data.organization) {
+      navigate('/choose-workspace');
+      return;
+    }
+    navigate(data.organization.onboardingCompleted ? '/app' : '/app/onboarding');
+  }
+
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
     setLoading(true);
     setError(null);
     setNeedsVerification(false);
+    clearTenantSlug();
     try {
-      setTenantSlug(slug);
       const res = await api<{
         success: boolean;
         data: {
           accessToken: string;
+          needsWorkspaceSelection?: boolean;
+          noWorkspace?: boolean;
+          workspaces?: WorkspaceSummary[];
           user: {
             id: string;
             email: string;
             firstName: string;
             lastName: string;
-            role: string;
-            organizationId: string;
+            role?: string;
+            organizationId?: string;
           };
           organization: {
             id: string;
@@ -53,20 +75,21 @@ export function LoginPage() {
             slug: string;
             status: string;
             onboardingCompleted?: boolean;
-          };
+          } | null;
         };
       }>('/api/auth/login', {
         method: 'POST',
-        body: JSON.stringify({ email, password, slug }),
+        body: JSON.stringify({ email, password }),
       });
       setSession({
         accessToken: res.data.accessToken,
         user: res.data.user,
         organization: res.data.organization,
+        workspaces: res.data.workspaces || [],
+        needsWorkspaceSelection: Boolean(res.data.needsWorkspaceSelection),
+        noWorkspace: Boolean(res.data.noWorkspace),
       });
-      navigate(
-        res.data.organization.onboardingCompleted ? '/app' : '/app/onboarding'
-      );
+      goAfterLogin(res.data);
     } catch (err) {
       if (err instanceof ApiError && err.requiresVerification) {
         setNeedsVerification(true);
@@ -79,8 +102,8 @@ export function LoginPage() {
   }
 
   async function onResendVerification() {
-    if (!email || !slug) {
-      setError('Enter your organization slug and email to resend verification.');
+    if (!email) {
+      setError('Enter your email to resend verification.');
       return;
     }
     setResending(true);
@@ -90,7 +113,7 @@ export function LoginPage() {
         '/api/auth/resend-verification',
         {
           method: 'POST',
-          body: JSON.stringify({ email, slug }),
+          body: JSON.stringify({ email }),
         }
       );
       setInfo(res.message || 'Verification email sent if an account matches.');
@@ -114,17 +137,6 @@ export function LoginPage() {
           Sign in to your after-school command centre.
         </p>
         <label className="mt-6 block text-base font-semibold">
-          Organization Slug
-          <RequiredMark />
-          <input
-            className="mt-1 w-full rounded-md border-ba-line text-base"
-            value={slug}
-            onChange={(e) => setSlug(e.target.value)}
-            required
-            autoComplete="organization"
-          />
-        </label>
-        <label className="mt-4 block text-base font-semibold">
           Email
           <RequiredMark />
           <input
@@ -167,6 +179,11 @@ export function LoginPage() {
         >
           {loading ? 'Signing In…' : 'Sign In'}
         </button>
+        <p className="mt-4 text-base">
+          <Link className="text-ba-accent underline" to="/forgot-password">
+            Forgot Password?
+          </Link>
+        </p>
         <p className="mt-4 text-base">
           New centre?{' '}
           <Link className="text-ba-accent underline" to="/signup">
