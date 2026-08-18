@@ -1,13 +1,22 @@
 /**
- * Transactional email via Brevo (same transport as weekly briefs).
+ * Transactional email via Brevo.
  * When BREVO_API_KEY is unset, messages are logged and treated as dry-run success.
  */
+
+import {
+  brandTextEmailSuffix,
+  emailBodyParagraph,
+  emailPrimaryButtonHtml,
+  emailRichParagraph,
+  emailTextLink,
+  wrapBrandedEmailHtml,
+} from '../lib/emailLayout';
 
 const SENDER_EMAIL =
   process.env.BREVO_SENDER_EMAIL || 'noreply@businessadvisor.app';
 const SENDER_NAME = process.env.BREVO_SENDER_NAME || 'Somtico Business Advisor';
 
-async function sendBrevoEmail(params: {
+export async function sendTransactionalEmail(params: {
   toEmail: string;
   toName: string;
   subject: string;
@@ -46,35 +55,29 @@ async function sendBrevoEmail(params: {
   return { sent: true, dryRun: false };
 }
 
-export async function sendVerificationEmail(params: {
-  email: string;
+export function buildVerificationEmail(params: {
   firstName: string;
   verificationUrl: string;
-}): Promise<{ sent: boolean; dryRun: boolean }> {
-  const name = params.firstName || 'there';
+}): { subject: string; htmlContent: string; textContent: string } {
+  const name = params.firstName?.trim() || 'there';
   const subject = 'Somtico Business Advisor — Verify Your Email';
-  const htmlContent = `
-    <p style="color:#333;line-height:1.6">Hello ${name},</p>
-    <p style="color:#333;line-height:1.6">
-      Thanks for creating a Somtico Business Advisor account. Verify your email to sign in
-      by clicking the button below.
-    </p>
-    <p style="text-align:center;margin:28px 0">
-      <a href="${params.verificationUrl}"
-         style="background:#0f4c5c;color:#fff;padding:14px 28px;text-decoration:none;border-radius:6px;display:inline-block;font-weight:600">
-        Verify Email Address
-      </a>
-    </p>
-    <p style="color:#333;line-height:1.6">
-      This link expires in 24 hours. If you did not create an account, you can ignore this email.
-    </p>
-    <p style="color:#555;font-size:14px;line-height:1.6">
-      Or copy this link: ${params.verificationUrl}
-    </p>
-    <p style="color:#777;font-size:12px;margin-top:24px">
-      © ${new Date().getFullYear()} Somtico Tech. This is an automated message.
-    </p>
-  `;
+  const htmlContent = wrapBrandedEmailHtml({
+    preheader: 'Verify your email to finish setting up Somtico Business Advisor.',
+    cardTitle: 'Verify Your Email',
+    contentHtml: `
+      ${emailBodyParagraph(`Hello ${name},`)}
+      ${emailBodyParagraph(
+        'Thanks for creating a Somtico Business Advisor account. Verify your email to sign in by clicking the button below.'
+      )}
+      ${emailPrimaryButtonHtml(params.verificationUrl, 'Verify Email Address')}
+      ${emailBodyParagraph(
+        'This link expires in 24 hours. If you did not create an account, you can ignore this email.'
+      )}
+      ${emailRichParagraph(
+        `Or copy this link: ${emailTextLink(params.verificationUrl, params.verificationUrl)}`
+      )}
+    `,
+  });
   const textContent = `
 Somtico Business Advisor — Verify Your Email
 
@@ -85,15 +88,28 @@ Thanks for creating a Somtico Business Advisor account. Verify your email to sig
 ${params.verificationUrl}
 
 This link expires in 24 hours. If you did not create an account, you can ignore this email.
-
-© ${new Date().getFullYear()} Somtico Tech
+${brandTextEmailSuffix()}
   `.trim();
 
-  return sendBrevoEmail({
+  return { subject, htmlContent, textContent };
+}
+
+export async function sendVerificationEmail(params: {
+  email: string;
+  firstName: string;
+  verificationUrl: string;
+}): Promise<{ sent: boolean; dryRun: boolean }> {
+  const name = params.firstName || 'there';
+  const built = buildVerificationEmail({
+    firstName: params.firstName,
+    verificationUrl: params.verificationUrl,
+  });
+
+  return sendTransactionalEmail({
     toEmail: params.email,
     toName: name,
-    subject,
-    htmlContent,
-    textContent,
+    subject: built.subject,
+    htmlContent: built.htmlContent,
+    textContent: built.textContent,
   });
 }

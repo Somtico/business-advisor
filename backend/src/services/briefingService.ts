@@ -6,9 +6,231 @@ import { impactSummary } from './impactService';
 import { runImpactVerificationForOrg } from './impactVerificationService';
 import { ADVICE_DISCLAIMER } from '../config/legal';
 import { operatingLoop } from './organizationMemoryService';
+import { sendTransactionalEmail } from './emailService';
+import {
+  brandTextEmailSuffix,
+  emailBodyParagraph,
+  emailBulletList,
+  emailFinePrint,
+  emailHighlightBox,
+  emailPrimaryButtonHtml,
+  emailRichParagraph,
+  emailSectionHeading,
+  emailStatTable,
+  escapeEmailHtml,
+  publicEmailSiteBaseUrl,
+  wrapBrandedEmailHtml,
+} from '../lib/emailLayout';
 
 function dollars(cents: number): string {
   return `$${(cents / 100).toFixed(2)}`;
+}
+
+function buildWeeklyBriefContent(params: {
+  orgName: string;
+  firstName: string;
+  impact: Awaited<ReturnType<typeof impactSummary>>;
+  loop: Awaited<ReturnType<typeof operatingLoop>>;
+  dash: Awaited<ReturnType<typeof executiveDashboard>>;
+  openTitles: string[];
+}): { htmlContent: string; textContent: string } {
+  const { orgName, firstName, impact, loop, dash, openTitles } = params;
+  const greeting = firstName.trim() || 'there';
+  const appUrl = `${publicEmailSiteBaseUrl()}/app`;
+
+  const impactBits: string[] = [];
+  if (impact.verified.totalCents > 0) {
+    impactBits.push(
+      emailRichParagraph(
+        `Advisor's verified impact to date: <strong>${escapeEmailHtml(
+          `${dollars(impact.verified.savedCents)} saved · ${dollars(impact.verified.earnedCents)} earned`
+        )}</strong> across ${impact.verified.actionCount} completed action${
+          impact.verified.actionCount === 1 ? '' : 's'
+        }.`
+      )
+    );
+    if (impact.thisMonth.totalCents > 0) {
+      impactBits.push(
+        emailRichParagraph(
+          `This month: <strong>${escapeEmailHtml(dollars(impact.thisMonth.totalCents))}</strong> in verified impact.`
+        )
+      );
+    }
+  } else {
+    impactBits.push(
+      emailBodyParagraph(
+        'No verified impact from Advisor yet. Complete actions in the Action Centre and confirm their results to build your impact ledger.'
+      )
+    );
+  }
+  if (impact.awaitingConfirmationCount > 0) {
+    impactBits.push(
+      emailBodyParagraph(
+        `${impact.awaitingConfirmationCount} completed action${
+          impact.awaitingConfirmationCount === 1 ? ' is' : 's are'
+        } awaiting your impact confirmation in the Action Centre.`
+      )
+    );
+  }
+  if (impact.pipelineExpectedCents > 0) {
+    impactBits.push(
+      emailRichParagraph(
+        `Open action pipeline: <strong>${escapeEmailHtml(
+          dollars(impact.pipelineExpectedCents)
+        )}</strong> in estimated impact across ${impact.pipelineCount} action${
+          impact.pipelineCount === 1 ? '' : 's'
+        }.`
+      )
+    );
+  }
+
+  const loopLines: string[] = [
+    emailRichParagraph(
+      `Enrolment diagnosis: <strong>${escapeEmailHtml(loop.leakLabel)}</strong>`
+    ),
+    emailBodyParagraph(loop.focus),
+  ];
+  if (loop.cheapNextStep) {
+    loopLines.push(
+      emailRichParagraph(
+        `Cheap next step: <strong>${escapeEmailHtml(loop.cheapNextStep.title)}</strong> — ${escapeEmailHtml(loop.cheapNextStep.detail)}`
+      )
+    );
+  }
+  if (loop.lastTactic) {
+    loopLines.push(
+      emailRichParagraph(
+        `Last tactic you recorded: <strong>${escapeEmailHtml(loop.lastTactic.label)}</strong> (${escapeEmailHtml(String(loop.lastTactic.outcome))}).`
+      )
+    );
+  } else {
+    loopLines.push(
+      emailBodyParagraph(
+        'Record what you tried and the result you got on Enrolment Advisor so next week is not a guess.'
+      )
+    );
+  }
+  if (loop.peerPlaybook.length) {
+    loopLines.push(
+      emailBodyParagraph(
+        `Playbook (8+ similar reports): ${loop.peerPlaybook
+          .map((p) => `${p.label} helped in ${p.helped} of ${p.total}`)
+          .join('; ')}.`
+      )
+    );
+  }
+
+  const htmlContent = wrapBrandedEmailHtml({
+    preheader: `${orgName}: this week's numbers, operating loop, and open actions.`,
+    cardTitle: 'Weekly Executive Brief',
+    contentHtml: `
+      ${emailBodyParagraph(`Hello ${greeting},`)}
+      ${emailHighlightBox(
+        `<strong>${escapeEmailHtml(orgName)}</strong>. Your weekly snapshot from Advisor.`
+      )}
+      ${emailSectionHeading("Advisor's Impact")}
+      ${impactBits.join('\n')}
+      ${emailSectionHeading("This Week's Operating Loop")}
+      ${loopLines.join('\n')}
+      ${emailSectionHeading("This Week's Numbers")}
+      ${emailStatTable([
+        { label: 'Active Students', value: String(dash.enrolment.activeStudents) },
+        {
+          label: 'Month Expenses',
+          value: `$${(dash.expenses.monthExpenseCents / 100).toFixed(2)}`,
+        },
+        {
+          label: 'Cash Net Monthly Outlook',
+          value: `$${(dash.cash.netMonthlyCents / 100).toFixed(2)}`,
+        },
+        {
+          label: 'Staffing Savings Opportunity This Week',
+          value: `$${(dash.staffing.estimatedSavingsCents / 100).toFixed(2)}`,
+        },
+      ])}
+      ${emailSectionHeading('Open Actions')}
+      ${emailBulletList(openTitles)}
+      ${emailPrimaryButtonHtml(appUrl, 'Open Command Centre')}
+      ${emailFinePrint(
+        'Generated by Somtico Business Advisor. Open the app for drill-down evidence.'
+      )}
+      ${emailFinePrint(ADVICE_DISCLAIMER)}
+    `,
+  });
+
+  const impactText: string[] = [];
+  if (impact.verified.totalCents > 0) {
+    impactText.push(
+      `Advisor's verified impact to date: ${dollars(impact.verified.savedCents)} saved · ${dollars(impact.verified.earnedCents)} earned across ${impact.verified.actionCount} completed action${impact.verified.actionCount === 1 ? '' : 's'}.`
+    );
+    if (impact.thisMonth.totalCents > 0) {
+      impactText.push(
+        `This month: ${dollars(impact.thisMonth.totalCents)} in verified impact.`
+      );
+    }
+  } else {
+    impactText.push(
+      'No verified impact from Advisor yet. Complete actions in the Action Centre and confirm their results to build your impact ledger.'
+    );
+  }
+  if (impact.awaitingConfirmationCount > 0) {
+    impactText.push(
+      `${impact.awaitingConfirmationCount} completed action${impact.awaitingConfirmationCount === 1 ? ' is' : 's are'} awaiting your impact confirmation in the Action Centre.`
+    );
+  }
+  if (impact.pipelineExpectedCents > 0) {
+    impactText.push(
+      `Open action pipeline: ${dollars(impact.pipelineExpectedCents)} in estimated impact across ${impact.pipelineCount} action${impact.pipelineCount === 1 ? '' : 's'}.`
+    );
+  }
+
+  const loopText = [
+    `Enrolment diagnosis: ${loop.leakLabel}`,
+    loop.focus,
+    loop.cheapNextStep
+      ? `Cheap next step: ${loop.cheapNextStep.title} — ${loop.cheapNextStep.detail}`
+      : null,
+    loop.lastTactic
+      ? `Last tactic you recorded: ${loop.lastTactic.label} (${loop.lastTactic.outcome}).`
+      : 'Record what you tried and the result you got on Enrolment Advisor so next week is not a guess.',
+    loop.peerPlaybook.length
+      ? `Playbook (8+ similar reports): ${loop.peerPlaybook
+          .map((p) => `${p.label} helped in ${p.helped} of ${p.total}`)
+          .join('; ')}.`
+      : null,
+  ]
+    .filter(Boolean)
+    .join('\n');
+
+  const textContent = `
+Weekly Executive Brief — ${orgName}
+
+Hello ${greeting},
+
+Advisor's Impact
+${impactText.join('\n')}
+
+This Week's Operating Loop
+${loopText}
+
+This Week's Numbers
+Active Students: ${dash.enrolment.activeStudents}
+Month Expenses: $${(dash.expenses.monthExpenseCents / 100).toFixed(2)}
+Cash Net Monthly Outlook: $${(dash.cash.netMonthlyCents / 100).toFixed(2)}
+Staffing Savings Opportunity This Week: $${(dash.staffing.estimatedSavingsCents / 100).toFixed(2)}
+
+Open Actions
+${openTitles.length ? openTitles.map((t) => `- ${t}`).join('\n') : '- None'}
+
+Open Command Centre: ${appUrl}
+
+Generated by Somtico Business Advisor. Open the app for drill-down evidence.
+
+${ADVICE_DISCLAIMER}
+${brandTextEmailSuffix()}
+  `.trim();
+
+  return { htmlContent, textContent };
 }
 
 export async function sendWeeklyExecutiveBrief(organizationId: string) {
@@ -27,97 +249,43 @@ export async function sendWeeklyExecutiveBrief(organizationId: string) {
     take: 5,
   });
 
-  const impactLines: string[] = [];
-  if (impact.verified.totalCents > 0) {
-    impactLines.push(
-      `<p>Advisor's verified impact to date: <strong>${dollars(impact.verified.savedCents)} saved · ${dollars(impact.verified.earnedCents)} earned</strong> across ${impact.verified.actionCount} completed action${impact.verified.actionCount === 1 ? '' : 's'}.</p>`
-    );
-    if (impact.thisMonth.totalCents > 0) {
-      impactLines.push(
-        `<p>This month: <strong>${dollars(impact.thisMonth.totalCents)}</strong> in verified impact.</p>`
-      );
-    }
-  } else {
-    impactLines.push(
-      '<p>No verified impact from Advisor yet. Complete actions in the Action Centre and confirm their results to build your impact ledger.</p>'
-    );
-  }
-  if (impact.awaitingConfirmationCount > 0) {
-    impactLines.push(
-      `<p>${impact.awaitingConfirmationCount} completed action${impact.awaitingConfirmationCount === 1 ? ' is' : 's are'} awaiting your impact confirmation in the Action Centre.</p>`
-    );
-  }
-  if (impact.pipelineExpectedCents > 0) {
-    impactLines.push(
-      `<p>Open action pipeline: <strong>${dollars(impact.pipelineExpectedCents)}</strong> in estimated impact across ${impact.pipelineCount} action${impact.pipelineCount === 1 ? '' : 's'}.</p>`
-    );
-  }
+  const orgName = org.displayName || org.name;
+  const subject = `Weekly Executive Brief — ${orgName}`;
+  const openTitles = openRecs.map((r) => r.title);
 
-  const subject = `Weekly Executive Brief — ${org.displayName || org.name}`;
-  const html = `
-    <h1>${subject}</h1>
-    <h2>Advisor's Impact</h2>
-    ${impactLines.join('\n    ')}
-    <h2>This Week's Operating Loop</h2>
-    <p>Enrolment diagnosis: <strong>${loop.leakLabel}</strong></p>
-    <p>${loop.focus}</p>
-    ${
-      loop.cheapNextStep
-        ? `<p>Cheap next step: <strong>${loop.cheapNextStep.title}</strong> — ${loop.cheapNextStep.detail}</p>`
-        : ''
-    }
-    ${
-      loop.lastTactic
-        ? `<p>Last tactic you recorded: <strong>${loop.lastTactic.label}</strong> (${loop.lastTactic.outcome}).</p>`
-        : '<p>Record what you tried and the result you got on Enrolment Advisor so next week is not a guess.</p>'
-    }
-    ${
-      loop.peerPlaybook.length
-        ? `<p>Playbook (8+ similar reports): ${loop.peerPlaybook
-            .map((p) => `${p.label} helped in ${p.helped} of ${p.total}`)
-            .join('; ')}.</p>`
-        : ''
-    }
-    <h2>This Week's Numbers</h2>
-    <p>Active students: <strong>${dash.enrolment.activeStudents}</strong></p>
-    <p>Month expenses: <strong>$${(dash.expenses.monthExpenseCents / 100).toFixed(2)}</strong></p>
-    <p>Cash net monthly outlook: <strong>$${(dash.cash.netMonthlyCents / 100).toFixed(2)}</strong></p>
-    <p>Staffing savings opportunity this week: <strong>$${(dash.staffing.estimatedSavingsCents / 100).toFixed(2)}</strong></p>
-    <h2>Open Actions</h2>
-    <ul>
-      ${openRecs.map((r) => `<li>${r.title}</li>`).join('') || '<li>None</li>'}
-    </ul>
-    <p style="font-size:14px;color:#555">Generated by Somtico Business Advisor. Open the app for drill-down evidence.</p>
-    <p style="font-size:14px;color:#555">${ADVICE_DISCLAIMER}</p>
-  `;
-
-  const apiKey = process.env.BREVO_API_KEY;
-  const senderEmail = process.env.BREVO_SENDER_EMAIL || 'noreply@businessadvisor.app';
-  const senderName = process.env.BREVO_SENDER_NAME || 'Somtico Business Advisor';
-
-  if (!apiKey) {
-    console.log(`[brief:dry-run] ${subject} -> ${org.users.map((u) => u.email).join(', ')}`);
+  if (!process.env.BREVO_API_KEY) {
+    console.log(
+      `[brief:dry-run] ${subject} -> ${org.users.map((u) => u.email).join(', ')}`
+    );
     return { sent: false, dryRun: true, subject };
   }
 
+  let sentCount = 0;
   for (const user of org.users) {
-    await fetch('https://api.brevo.com/v3/smtp/email', {
-      method: 'POST',
-      headers: {
-        'api-key': apiKey,
-        'Content-Type': 'application/json',
-        Accept: 'application/json',
-      },
-      body: JSON.stringify({
-        sender: { email: senderEmail, name: senderName },
-        to: [{ email: user.email, name: `${user.firstName} ${user.lastName}` }],
-        subject,
-        htmlContent: html,
-      }),
+    const { htmlContent, textContent } = buildWeeklyBriefContent({
+      orgName,
+      firstName: user.firstName,
+      impact,
+      loop,
+      dash,
+      openTitles,
     });
+    const result = await sendTransactionalEmail({
+      toEmail: user.email,
+      toName: `${user.firstName} ${user.lastName}`.trim(),
+      subject,
+      htmlContent,
+      textContent,
+    });
+    if (result.sent) sentCount += 1;
   }
 
-  return { sent: true, dryRun: false, subject, recipients: org.users.length };
+  return {
+    sent: sentCount > 0,
+    dryRun: false,
+    subject,
+    recipients: org.users.length,
+  };
 }
 
 export async function runDailyAnalysisForOrg(organizationId: string) {
