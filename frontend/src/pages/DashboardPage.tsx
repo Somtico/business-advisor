@@ -43,6 +43,16 @@ interface Dashboard {
     runwayWeeks: number | null;
     outlookStatus: 'READY' | 'INSUFFICIENT_DATA';
     missingData: string[];
+    cashPosition?: {
+      total: { amountCents: number | null; available: boolean };
+      committed: { amountCents: number | null; available: boolean };
+      restricted: { amountCents: number | null; available: boolean };
+      availableOperatingCashCents: number | null;
+      availableOperatingCashAvailable: boolean;
+      commitmentGapCents: number;
+      commitmentGapPresent: boolean;
+      allocationIncomplete: boolean;
+    };
   };
   targets: {
     id: string;
@@ -194,9 +204,22 @@ function expensesCard(data: Dashboard): MetricCard {
 
 function cashOutlookCard(data: Dashboard): MetricCard {
   const currency = data.cash.currency || 'CAD';
-  const currentCashNote = data.cash.cashBalanceAvailable && data.cash.cashBalanceCents != null
-    ? `Current cash: ${cashMoney(data.cash.cashBalanceCents, currency)}`
-    : 'Current cash has not been recorded.';
+  const position = data.cash.cashPosition;
+  const totalLine =
+    data.cash.cashBalanceAvailable && data.cash.cashBalanceCents != null
+      ? `Total business cash: ${cashMoney(data.cash.cashBalanceCents, currency)}`
+      : 'Total business cash has not been recorded.';
+  let availableLine = 'Available operating cash: Needs allocation details';
+  if (position?.availableOperatingCashAvailable && position.availableOperatingCashCents != null) {
+    availableLine = `Available operating cash: ${cashMoney(position.availableOperatingCashCents, currency)}`;
+  } else if (!data.cash.cashBalanceAvailable) {
+    availableLine = 'Available operating cash: Needs total business cash';
+  }
+  const gapLine =
+    position?.commitmentGapPresent && position.commitmentGapCents > 0
+      ? `Commitments and restrictions exceed cash by ${cashMoney(position.commitmentGapCents, currency)}`
+      : null;
+  const note = [totalLine, availableLine, gapLine].filter(Boolean).join('\n');
   if (
     data.cash.outlookStatus !== 'READY' ||
     data.cash.netMonthlyCents == null
@@ -204,7 +227,7 @@ function cashOutlookCard(data: Dashboard): MetricCard {
     return {
       label: 'Projected Monthly Net',
       value: 'Not enough data to forecast',
-      note: currentCashNote,
+      note,
     };
   }
   return {
@@ -212,8 +235,8 @@ function cashOutlookCard(data: Dashboard): MetricCard {
     value: cashMoney(data.cash.netMonthlyCents, currency),
     note:
       data.cash.runwayWeeks == null
-        ? currentCashNote
-        : `~${data.cash.runwayWeeks} weeks runway · ${currentCashNote}`,
+        ? note
+        : `~${data.cash.runwayWeeks} weeks runway\n${note}`,
   };
 }
 
@@ -346,7 +369,7 @@ export function DashboardPage() {
           <div key={card.label} className="border border-ba-line bg-white p-5">
             <p className="text-base font-semibold text-ba-ink/70">{card.label}</p>
             <p className="mt-2 font-display text-3xl font-bold">{card.value}</p>
-            <p className="mt-2 text-base text-ba-ink/60">{card.note}</p>
+            <p className="mt-2 whitespace-pre-line text-base text-ba-ink/60">{card.note}</p>
           </div>
         ))}
       </div>

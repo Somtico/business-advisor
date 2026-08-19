@@ -4,7 +4,7 @@
 **Customer #1:** STEM Lantern Education Inc. (operating name STEM Lantern)  
 **Portal data source (during rebrand):** Skill Samurai Saskatoon Registration Portal  
 **Ports:** frontend 3007 · backend 5007  
-**Revision:** Phase 0 + Phase 1 beachhead + advice impact ledger + pricing advisor + enrolment advisor + privacy policy + terms of service + Advisor branding (Somtico Business Advisor) + signup UX / email verification + public landing page + Cloudflare R2 daily DB backups + Claude-first advisor + operating-loop moat + proprietary intelligence flywheel foundation (decision/outcome lifecycle, context snapshots, somtico_models_v2, benchmark-ready snapshots, mapping knowledge, evaluation harness, moat health) + provider-boundary PII minimization + branded transactional email template + multi-organization accounts (email/password identity, membership authorization) + onboarding and Command Centre missing-data semantics — 18 August 2026  
+**Revision:** Phase 0 + Phase 1 beachhead + advice impact ledger + pricing advisor + enrolment advisor + privacy policy + terms of service + Advisor branding (Somtico Business Advisor) + signup UX / email verification + public landing page + Cloudflare R2 daily DB backups + Claude-first advisor + operating-loop moat + proprietary intelligence flywheel foundation (decision/outcome lifecycle, context snapshots, somtico_models_v2, benchmark-ready snapshots, mapping knowledge, evaluation harness, moat health) + provider-boundary PII minimization + branded transactional email template + multi-organization accounts (email/password identity, membership authorization) + onboarding and Command Centre missing-data semantics + structured cash position (total, committed, restricted, derived available operating cash) — 18 August 2026  
 **Vision doc sync:** `AI_Business_Intelligence_SaaS_Product_Vision_and_Roadmap_Beachhead_Strategy.docx` updated 16 August 2026 so sections 38–40 and the header identity match this shipped behaviour (long-term roadmap sections remain intentional future scope).
 
 ## Positioning
@@ -105,7 +105,8 @@ Older clients that still POST `slug` with email and password continue to authent
 - Deterministic unit-economics tools (15 Aug 2026): instructor cost per seat-hour, household monthly/annualized list-price value, trial-to-paid by programme, and cash-safe weekly paid-test cap. Enrolment paid tests use that cap. Verdicts stay in services; the model only phrases them.
 - Playbook ranking (15 Aug 2026): peer patterns (8+ similar opted-in reports) sort by helped share and reorder the tactic catalogue. Fine-tune/ranker on `somtico_models_v1` stays deferred until volume is enough.
 - Command Centre operating loop (15 Aug 2026): `/app` leads with this week's named leak, cheap next step, last tactic, playbook counts, and open actions. Weekly brief emails the same loop. `GET /api/app/connectors` lists portal / CSV / manual data sources on Settings.
-- Onboarding and Command Centre missing-data semantics (18 Aug 2026): a displayed zero means the system actually observed zero. `GET /api/app/dashboard` exposes availability flags and `null` for unavailable metrics rather than collapsing missing values to `$0`. Onboarding copy is customer-facing; education subtype remains required (`What Type of Education Business Do You Run?`); cash is optional (blank is omitted, not stored as `$0`). Supplied cash writes an append-only `metric_snapshots` row (`metricKey` `cash_balance`, as-of date, currency, source `manual_onboarding`) and updates the existing `Organization.cashBalanceCents` / `cashBalanceAsOf` cache. Legacy rows with `cashBalanceAsOf` set remain the current value; `cashBalanceAsOf` null means cash was never recorded. Command Centre cards: Advisor's Impact (no verified actions → “No verified impact yet”), Active Students, Labour Opportunity, Expenses This Month (month-to-date expense transactions), Projected Monthly Net (monthly in − out; current cash still shown when the forecast is unavailable). Empty Programmes and enrolment-history-less Forecasts show empty states with Add Programme / Add Enrolment Records. This Week uses natural enrolment copy and blueprint terms (`Students`, `Programmes`, `Enrolments`). Help Improve Advisor consent banner is unchanged.
+- Onboarding and Command Centre missing-data semantics (18 Aug 2026): a displayed zero means the system actually observed zero. `GET /api/app/dashboard` exposes availability flags and `null` for unavailable metrics rather than collapsing missing values to `$0`. Onboarding copy is customer-facing; education subtype remains required (`What Type of Education Business Do You Run?`); cash is optional (blank is omitted, not stored as `$0`). Supplied cash writes an append-only `metric_snapshots` row (`metricKey` `cash_balance`, as-of date, currency, source `manual_onboarding`) and updates the existing `Organization.cashBalanceCents` / `cashBalanceAsOf` cache. Legacy rows with `cashBalanceAsOf` set remain the current value; `cashBalanceAsOf` null means cash was never recorded. Command Centre cards: Advisor's Impact (no verified actions → “No verified impact yet”), Active Students, Labour Opportunity, Expenses This Month (month-to-date expense transactions), Projected Monthly Net (monthly in − out; **Total business cash** is shown, with **Available operating cash** when allocation details are known). Empty Programmes and enrolment-history-less Forecasts show empty states with Add Programme / Add Enrolment Records. This Week uses natural enrolment copy and blueprint terms (`Students`, `Programmes`, `Enrolments`). Help Improve Advisor consent banner is unchanged.
+- Structured cash position (18 Aug 2026): Advisor distinguishes cash in the bank from cash that is actually available for new decisions. See **Cash position** below.
 - API hygiene (15 Aug 2026): `GET /api/app/pricing/guidance` strips per-instructor hourly rates and burden percents from session evidence (Advisor still sees full evidence server-side). Ask Advisor UI no longer shows provider/model names.
 - Daily analysis + weekly executive brief jobs (Brevo when configured); daily job also runs impact verification. Weekly brief HTML uses the branded email shell (17 Aug 2026) with impact, operating loop, numbers, open actions, and an Open Command Centre CTA.
 - Portal connector sync into canonical objects via ExternalIdentity
@@ -120,6 +121,8 @@ Older clients that still POST `slug` with email and password continue to authent
 - Fast/Standard/Deep AI mode packaging
 - Public API/SDK marketplace
 - Full PlatformAdmin product UI (moat health is internal services/scripts only)
+- Detailed cash-commitment line items (payroll, tax, supplier invoices) and a customer-facing debt-management UI; the `Loan` model remains the liability store and is not subtracted from cash
+- Multi-currency cash accounts / foreign-exchange conversion
 
 ## Proprietary intelligence flywheel (shipped 16 August 2026)
 
@@ -182,6 +185,41 @@ Somtico-owned intelligence increasingly lives in canonical data, deterministic m
 ## Onboarding
 
 Use `/signup` to create an organization (education blueprint applied automatically). Connect the STEM Lantern registration portal from Settings after you set `STEM_LANTERN_PORTAL_URL` and `STEM_LANTERN_PORTAL_API_KEY`.
+
+Centre Setup still asks only for **Current Business Cash Balance ({currency}) — Optional**. Helper text tells the owner to include deposited funds even if borrowed or set aside, and to exclude unused credit cards, lines of credit, overdraft limits, and other undrawn borrowing capacity. Blank remains unknown; an explicit `0` is a known zero. No committed, restricted, or debt questionnaire is added to onboarding.
+
+## Cash position
+
+**Total Business Cash** = cash actually held by the business.
+
+**Committed / Earmarked Cash** = cash internally allocated by management for known obligations or purposes.
+
+**Restricted Cash** = cash externally constrained by legal, contractual, funding, fiduciary, or similar restrictions.
+
+**Available Operating Cash** = the portion of Total Business Cash remaining after known Committed and Restricted Cash are taken into account.
+
+Borrowed cash that has already been deposited is still cash. The corresponding debt is a separate liability (`Loan.balanceCents`); it is not netted against the cash balance.
+
+Committed or Restricted Cash is not automatically an expense and must not be double counted in forecasts. Runway and monthly net continue to start from Total Business Cash. The system does not infer committed amounts from upcoming payroll, rent, or subscriptions.
+
+### Storage
+
+Dated observations reuse append-only `metric_snapshots`:
+
+- `cash_balance` — Total Business Cash (also cached on `Organization.cashBalanceCents` / `cashBalanceAsOf`)
+- `committed_cash` — Committed / Earmarked Cash
+- `restricted_cash` — Restricted Cash
+
+Available Operating Cash is **derived**, never persisted:
+
+- available = `max(total − committed − restricted, 0)`
+- commitment gap = `max(committed + restricted − total, 0)` (warning only; allocations that exceed cash are accepted)
+
+Zero means the amount is known to be zero. Missing means Advisor does not know. Available Operating Cash is shown only when all three inputs are known in the organization base currency. Otherwise the UI says allocation details are needed.
+
+### Progressive collection
+
+Owners, admins, and finance enter totals on **Data Readiness** (`/app/readiness`), not during onboarding and not as a new top-level nav item. `GET`/`POST /api/app/cash-position` return amount-or-null, availability/status, as-of date, and currency. `GET /api/app/readiness` includes the same snapshot.
 
 ## Env
 

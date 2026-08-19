@@ -1,7 +1,8 @@
 import { ForecastScenario } from '@prisma/client';
 import prisma from '../../config/prisma';
 import { impactSummary } from '../impactService';
-import { resolveCurrentCash } from './cashObservationService';
+import { resolveCashPosition } from './cashObservationService';
+import { startingCashForRunway } from './cashPosition';
 import {
   cashOutlookIsReady,
   enrolmentCountIsReady,
@@ -260,8 +261,9 @@ export async function expenseRollup(organizationId: string) {
 }
 
 export async function cashOutlook(organizationId: string) {
-  const [currentCash, expenses, staffing, revenues, programmes] = await Promise.all([
-    resolveCurrentCash(organizationId),
+  const [cashPosition, expenses, staffing, revenues, programmes] =
+    await Promise.all([
+    resolveCashPosition(organizationId),
     expenseRollup(organizationId),
     staffingVersusDemand(organizationId),
     prisma.revenueTransaction.findMany({
@@ -315,14 +317,21 @@ export async function cashOutlook(organizationId: string) {
   }
 
   const net = monthlyIn - monthlyOut;
-  const cash = currentCash.cashBalanceCents;
+  // Runway uses Total Business Cash, never Available Operating Cash.
+  // Committed / restricted amounts classify cash already on hand; they are not extra expenses.
+  const cash = startingCashForRunway(cashPosition.total);
   const runwayWeeks =
     !outlookReady || net >= 0 || cash == null || cash <= 0
       ? null
       : Number(((cash / Math.abs(net)) * 4.345).toFixed(1));
 
   return {
-    ...currentCash,
+    cashBalanceCents: cashPosition.total.amountCents,
+    cashBalanceAsOf: cashPosition.total.asOf,
+    cashBalanceAvailable: cashPosition.total.available,
+    currency: cashPosition.currency,
+    cashPosition,
+    advisorCashEvidence: cashPosition.advisorEvidence,
     monthlyInCents: monthlyIn,
     monthlyOutCents: monthlyOut,
     hasRevenueSignal,
@@ -803,6 +812,7 @@ export const analyticsTools = {
   staffingVersusDemand,
   expenseRollup,
   cashOutlook,
+  cashPosition: resolveCashPosition,
   targetProgress,
   executiveDashboard,
   countActiveStudents,

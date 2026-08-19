@@ -38,7 +38,10 @@ const TOOL_DESCRIPTIONS: Record<string, string> = {
   programmePerformance: 'Programme enrolment, trials, capacity and utilization',
   staffingVersusDemand: 'Scheduled labour versus demand and estimated savings',
   expenseRollup: 'Month expenses and recurring subscriptions',
-  cashOutlook: 'Cash balance, monthly in/out and runway',
+  cashOutlook:
+    'Total business cash, committed/earmarked cash, restricted cash, derived available operating cash, commitment gap, monthly in/out and runway. Total cash is not freely available unless allocation details are known. Committed and restricted cash are not extra expenses.',
+  cashPosition:
+    'Structured cash position with unknown-versus-zero status for total, committed, and restricted cash, plus derived available operating cash and any commitment gap.',
   targetProgress: 'Academic/fiscal targets versus actuals',
   executiveDashboard: 'Full executive snapshot',
   advisorImpact:
@@ -74,7 +77,7 @@ function pickTools(question: string): ToolName[] {
   if (/expense|subscription|vendor|software|cost/.test(q)) {
     tools.push('expenseRollup');
   }
-  if (/cash|runway|burn|money|revenue/.test(q)) {
+  if (/cash|runway|burn|money|revenue|committed|restricted|liquidity/.test(q)) {
     tools.push('cashOutlook');
   }
   if (/target|goal|on track|milestone/.test(q)) {
@@ -112,6 +115,7 @@ function pickTools(question: string): ToolName[] {
   }
   if (/ad spend|how much can i (spend|afford)|paid test|spend cap|cash.safe/.test(q)) {
     tools.push('cashSafeTestSize');
+    if (!tools.includes('cashOutlook')) tools.push('cashOutlook');
   }
   if (tools.length === 0) tools.push('executiveDashboard');
   if (!tools.includes('organizationMemory')) {
@@ -204,7 +208,7 @@ export const ADVISOR_SYSTEM_PROMPT = `You are the AI-powered Advisor within Somt
 NON-NEGOTIABLE EVIDENCE RULES:
 1. Use ONLY the structured analytics evidence provided in this message. Every number, name, and date in your answer must appear in, or be arithmetic on, that evidence.
 2. NEVER guess, estimate, extrapolate, or invent figures, records, or facts that are not in the evidence. A wrong number is worse than no number.
-3. If the evidence is missing, empty, or insufficient to answer, your answer IS the request for data: state exactly what is missing and where to add it (Programmes & Students, Staffing, Expenses & Subscriptions, Targets & Forecasts, Pricing Advisor, CSV import, or the portal connector).
+3. If the evidence is missing, empty, or insufficient to answer, your answer IS the request for data: state exactly what is missing and where to add it (Programmes & Students, Staffing, Expenses & Subscriptions, Targets & Forecasts, Pricing Advisor, Data Readiness, CSV import, or the portal connector).
 4. If a tool result has status INSUFFICIENT_DATA or a missingData list, relay those items verbatim as the required next step. Do not fill the gaps yourself.
 5. Projections may only restate the scenario figures present in the evidence, labelled as scenarios, never as certainties.
 6. Do not provide legal, tax, accounting, or investment advice; frame everything as operational information the owner must verify and decide on.
@@ -213,6 +217,7 @@ NON-NEGOTIABLE EVIDENCE RULES:
 9. If organizationMemory is present, treat it as this centre's history. Cite specific actions and tactics already tried. Do not recommend repeating a tactic whose recorded outcome was NO_EFFECT or HURT unless the owner asks. Prefer tactics that HELPED here, then peerPatterns counts.
 10. instructorCostPerSeatHour, householdLtv, trialToPaidByProgramme, and cashSafeTestSize are calculated verdicts. Restate them. Do not recompute or invent a different figure.
 11. Evidence may use request-scoped aliases (Instructor A, Student A, etc.) instead of real personal names. Treat those aliases as stable identifiers within this message only.
+12. If cashOutlook or cashPosition evidence is present: total business cash is money in the bank, including deposited borrowed funds. Related debt is a separate liability. Committed and restricted cash remain cash, not extra expenses, and must not be treated as additional forecast outflows. Do not treat total cash as freely available unless availableOperatingCashKnown is true. If available operating cash is unknown, say that cash-allocation details are needed. Never invent committed or restricted amounts. If commitmentGapPresent is true, warn that current commitments and restrictions exceed total cash.
 
 Speak plainly to the owner. Prefer dollars, students, capacity, and next actions.
 Canadian English spelling.`;

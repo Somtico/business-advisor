@@ -235,4 +235,21 @@ describe('completeOnboarding', () => {
       })
     ).rejects.toBeInstanceOf(OnboardingError);
   });
+
+  it('records supplied onboarding cash as total business cash without treating borrowed deposits differently', async () => {
+    await completeOnboarding({
+      organizationId: 'org-a',
+      educationSubtype: 'STEM_ACADEMY',
+      cashBalanceCents: 1_500_000,
+    });
+    expect(prisma.metricSnapshot.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          metricKey: CASH_BALANCE_METRIC_KEY,
+          value: 1_500_000,
+          organizationId: 'org-a',
+        }),
+      })
+    );
+  });
 });

@@ -18,6 +18,8 @@ describe('product branding', () => {
     expect(prompt).toContain('Somtico Business Advisor');
     expect(prompt).not.toMatch(/\bYou are Chuk\b/i);
     expect(prompt).not.toMatch(/\bYou are Tico\b/i);
+    expect(prompt).toMatch(/Available operating cash is derived/);
+    expect(prompt).toMatch(/Never invent committed or restricted amounts/);
   });
 
   it('exposes advisorVersusGenericEvaluation (not chukVersus) on moat health shape', async () => {

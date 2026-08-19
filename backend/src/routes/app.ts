@@ -28,6 +28,13 @@ import { importCsv } from '../services/csvImportService';
 import { fetchAndSyncPortal, syncPortalPayload } from '../services/portalSyncService';
 import { completeOnboarding, OnboardingError } from '../services/onboardingService';
 import { EDUCATION_DATASETS } from '../catalog/educationBlueprint';
+import {
+  parseOptionalCashBalanceCents,
+} from '../lib/parseMoney';
+import {
+  resolveCashPosition,
+  updateCashPosition,
+} from '../services/metrics/cashObservationService';
 import { writeAudit } from '../services/auditService';
 import {
   runDailyAnalysisForOrg,
@@ -89,15 +96,20 @@ router.get('/connectors', async (req: Request, res: Response) => {
 });
 
 router.get('/readiness', async (req: Request, res: Response) => {
-  const items = await prisma.dataReadinessItem.findMany({
-    where: { organizationId: req.user!.organizationId },
-    orderBy: { priority: 'desc' },
-  });
+  const organizationId = req.user!.organizationId;
+  const [items, cashPosition] = await Promise.all([
+    prisma.dataReadinessItem.findMany({
+      where: { organizationId },
+      orderBy: { priority: 'desc' },
+    }),
+    resolveCashPosition(organizationId),
+  ]);
   res.json({
     success: true,
     data: {
       items,
       catalogue: EDUCATION_DATASETS,
+      cashPosition,
     },
   });
 });
@@ -147,6 +159,46 @@ router.post(
         return;
       }
       throw err;
+    }
+  }
+);
+
+router.get('/cash-position', async (req: Request, res: Response) => {
+  const data = await resolveCashPosition(req.user!.organizationId);
+  res.json({ success: true, data });
+});
+
+router.post(
+  '/cash-position',
+  requireRole(['OWNER', 'ADMIN', 'FINANCE']),
+  async (req: Request, res: Response) => {
+    try {
+      const totalBusinessCashCents = parseOptionalCashBalanceCents(
+        req.body?.totalBusinessCashCents
+      );
+      const committedCashCents = parseOptionalCashBalanceCents(
+        req.body?.committedCashCents
+      );
+      const restrictedCashCents = parseOptionalCashBalanceCents(
+        req.body?.restrictedCashCents
+      );
+      const data = await updateCashPosition({
+        organizationId: req.user!.organizationId,
+        totalBusinessCashCents,
+        committedCashCents,
+        restrictedCashCents,
+      });
+      res.json({ success: true, data });
+    } catch (err) {
+      const code = err instanceof Error ? err.message : 'INVALID_CASH_BALANCE';
+      const message =
+        code === 'CURRENCY_MISMATCH'
+          ? 'Cash amounts must use the organization\'s base currency.'
+          : 'Enter whole-cent cash amounts, or leave a field blank to leave it unchanged.';
+      res.status(400).json({
+        success: false,
+        error: { code, message },
+      });
     }
   }
 );

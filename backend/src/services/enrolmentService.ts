@@ -419,6 +419,12 @@ export async function enrolmentGuidance(organizationId: string) {
       cashBalanceCents: cash.cashBalanceCents,
       cashBalanceAvailable: cash.cashBalanceAvailable,
       currency: cash.currency,
+      availableOperatingCashCents: cash.cashPosition.availableOperatingCashCents,
+      availableOperatingCashAvailable:
+        cash.cashPosition.availableOperatingCashAvailable,
+      allocationIncomplete: cash.cashPosition.allocationIncomplete,
+      commitmentGapPresent: cash.cashPosition.commitmentGapPresent,
+      commitmentGapCents: cash.cashPosition.commitmentGapCents,
     },
     cheapNextSteps:
       leak === 'INSUFFICIENT_DATA'

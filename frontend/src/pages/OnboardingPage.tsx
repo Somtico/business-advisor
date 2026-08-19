@@ -123,8 +123,10 @@ export function OnboardingPage() {
           </label>
           <p className="mt-1 text-base text-ba-ink/70">
             Approximately how much cash does the business currently have
-            available across its bank accounts? Do not include available credit.
-            An estimate is fine.
+            across its bank accounts? Include funds already deposited, even if
+            borrowed or set aside for a specific purpose. Do not include unused
+            credit cards, lines of credit, overdraft limits, or other borrowing
+            capacity.
           </p>
         </div>
         {error && <p className="text-base text-ba-warm">{error}</p>}

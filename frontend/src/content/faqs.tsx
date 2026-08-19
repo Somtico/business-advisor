@@ -187,6 +187,10 @@ export const FAQ_SECTIONS: FaqSection[] = [
         q: 'What is the difference between Run Insights and Ask Advisor?',
         a: 'Run Insights (Action Centre) generates a batch of structured recommendations from deterministic rules — staffing, pricing, cash, conversion. Ask Advisor answers a specific question in conversation. Both use the same analytics tools and the same no-guessing rules.',
       },
+      {
+        q: 'What is available operating cash?',
+        a: 'Total business cash is the money actually in the business bank accounts, including deposited borrowed funds. Committed or earmarked cash is an internal allocation for a known purpose. Restricted cash is cash the business holds but cannot freely redirect because of a legal, contractual, funding, or similar external constraint. Available operating cash is derived from those three amounts; you do not enter it. A blank field means Advisor does not know yet, which is different from a known $0. Committed or restricted cash is not itself an expense, and related debt stays a separate liability.',
+      },
     ],
   },
   {

@@ -165,4 +165,21 @@ describe('requireRole is organization-specific', () => {
     requireRole(['OWNER'])(req, res, next);
     expect(res.status).toHaveBeenCalledWith(403);
   });
+
+  it('allows FINANCE and forbids VIEWER for cash-position writes', () => {
+    const guard = requireRole(['OWNER', 'ADMIN', 'FINANCE']);
+    const financeReq = {
+      user: { role: 'FINANCE' as UserRole, organizationId: 'org-a' },
+    } as unknown as Request;
+    const financeNext = jest.fn();
+    guard(financeReq, mockRes(), financeNext);
+    expect(financeNext).toHaveBeenCalled();
+
+    const viewerReq = {
+      user: { role: 'VIEWER' as UserRole, organizationId: 'org-a' },
+    } as unknown as Request;
+    const viewerRes = mockRes();
+    guard(viewerReq, viewerRes, jest.fn());
+    expect(viewerRes.status).toHaveBeenCalledWith(403);
+  });
 });

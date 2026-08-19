@@ -98,9 +98,11 @@ export const EDUCATION_DATASETS: BlueprintDataset[] = [
   },
   {
     datasetKey: 'loans_cash',
-    label: 'Loans and Cash Balance',
-    whyItMatters: 'Supports basic cash runway and shortfall warnings.',
-    exampleInsight: 'At current burn, cash covers about 6 weeks of fixed costs.',
+    label: 'Cash Position and Loans',
+    whyItMatters:
+      'Total business cash is money actually in the bank. Committed and restricted amounts tell Advisor what is available for decisions. Loan balances are liabilities and are not subtracted from cash.',
+    exampleInsight:
+      'The centre holds $40,000 in total cash, with $15,000 currently uncommitted and unrestricted.',
     priority: 65,
   },
   {

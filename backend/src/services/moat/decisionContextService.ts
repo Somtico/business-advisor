@@ -9,6 +9,7 @@ import {
   expenseRollup,
   staffingVersusDemand,
 } from '../metrics/analyticsService';
+import type { CashPositionSnapshot } from '../metrics/cashObservationService';
 import { enrolmentGuidance } from '../enrolmentService';
 
 /**
@@ -36,6 +37,12 @@ export interface DecisionContextV1 {
   };
   cashRunwayWeeks: number | null;
   cashBalanceCents: number | null;
+  committedCashCents: number | null;
+  restrictedCashCents: number | null;
+  availableOperatingCashCents: number | null;
+  cashCommitmentGapCents: number;
+  cashCommitmentGapPresent: boolean;
+  advisorCashEvidence: CashPositionSnapshot['advisorEvidence'] | null;
   programmeDemandState: string | null;
   seasonOrPeriod: string;
   targetStatus: string | null;
@@ -82,6 +89,10 @@ export async function captureDecisionContext(
   if (!expenses.monthExpensesAvailable && !expenses.recurringSubscriptionMonthlyCents) {
     missing.push('expenses_or_subscriptions');
   }
+  if (!cash.cashPosition.total.available) missing.push('total_business_cash');
+  if (cash.cashPosition.allocationIncomplete) {
+    missing.push('cash_allocation_details');
+  }
 
   const utilization =
     staffing.scheduledHours > 0
@@ -124,6 +135,12 @@ export async function captureDecisionContext(
     },
     cashRunwayWeeks: cash.runwayWeeks ?? null,
     cashBalanceCents: cash.cashBalanceCents,
+    committedCashCents: cash.cashPosition.committed.amountCents,
+    restrictedCashCents: cash.cashPosition.restricted.amountCents,
+    availableOperatingCashCents: cash.cashPosition.availableOperatingCashCents,
+    cashCommitmentGapCents: cash.cashPosition.commitmentGapCents,
+    cashCommitmentGapPresent: cash.cashPosition.commitmentGapPresent,
+    advisorCashEvidence: cash.cashPosition.advisorEvidence,
     programmeDemandState: leak,
     seasonOrPeriod: seasonOrPeriod(capturedAt),
     targetStatus: null,

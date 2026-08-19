@@ -28,4 +28,11 @@ describe('Command Centre customer-facing copy', () => {
     expect(EDUCATION_LABELS.services).toBe('Programmes');
     expect(EDUCATION_LABELS.engagements).toBe('Enrolments');
   });
+
+  it('describes cash position separately from loan liabilities', () => {
+    const loansCash = EDUCATION_DATASETS.find((d) => d.datasetKey === 'loans_cash');
+    expect(loansCash?.label).toBe('Cash Position and Loans');
+    expect(loansCash?.whyItMatters).toMatch(/liabilities/i);
+    expect(loansCash?.whyItMatters).toMatch(/not subtracted from cash/i);
+  });
 });
