@@ -84,7 +84,11 @@ export function HelpImproveInvite() {
             signals derived from information already in your Business Advisor
             account and from future activity while the setting stays on. Direct
             personal identifiers are excluded, and you can turn this off at any
-            time.{' '}
+            time in your{' '}
+            <Link className="text-ba-accent underline" to="/app/settings#privacy">
+              Settings
+            </Link>
+            .{' '}
             <Link className="text-ba-accent underline" to="/privacy">
               Privacy Policy
             </Link>
