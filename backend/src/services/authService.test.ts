@@ -67,6 +67,7 @@ function membership(orgId: string, slug: string, role: UserRole, name: string) {
       industryBlueprintKey: 'after_school_tutoring_enrichment',
       educationSubtype: 'STEM_ACADEMY',
       educationSubtypeOther: null,
+      currency: 'CAD',
       onboardingCompleted: true,
       entitlement: null,
       subscription: null,

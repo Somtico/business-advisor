@@ -7,6 +7,7 @@ import prisma from '../config/prisma';
 import {
   ADVICE_DISCLAIMER,
 } from '../config/legal';
+import { EDUCATION_LABELS } from '../catalog/educationBlueprint';
 import {
   cashOutlook,
   cashSafeTestSize,
@@ -33,6 +34,15 @@ export const HELP_IMPROVE_STATUS_ON =
   'Help Improve Advisor: On — eligible privacy-safe results may contribute automatically. Manage in Settings.';
 export const HELP_IMPROVE_STATUS_OFF =
   'Help Improve Advisor: Off — your new activity is not contributed to optional cross-customer learning. Manage in Settings.';
+
+export const INSUFFICIENT_ENROLMENT_NOTE =
+  'Advisor needs a few more enrolment records before it can identify where students may be dropping out of your pipeline. For now, the most useful next step is to add that data.';
+
+export type CheapNextStep = {
+  title: string;
+  detail: string;
+  href?: string;
+};
 
 export type EnrolmentLeak =
   | 'INSUFFICIENT_DATA'
@@ -76,7 +86,7 @@ function educationBucket(subtype: string): string {
   return 'OTHER_ENRICHMENT';
 }
 
-function cheapSteps(leak: EnrolmentLeak): Array<{ title: string; detail: string }> {
+function cheapSteps(leak: EnrolmentLeak): CheapNextStep[] {
   switch (leak) {
     case 'CONVERSION_LEAK':
       return [
@@ -137,14 +147,37 @@ function cheapSteps(leak: EnrolmentLeak): Array<{ title: string; detail: string 
         },
       ];
     default:
-      return [
-        {
-          title: 'Add Enrolment Records',
-          detail:
-            'Advisor needs programmes with capacity, paid enrolments, and (when you have them) trials or enquiries before it can name the leak.',
-        },
-      ];
+      return insufficientDataSteps();
   }
+}
+
+function insufficientDataSteps(opts?: {
+  needsProgramme?: boolean;
+  needsStudents?: boolean;
+}): CheapNextStep[] {
+  const steps: CheapNextStep[] = [];
+  if (opts?.needsProgramme) {
+    steps.push({
+      title: 'Add Programme',
+      href: '/app/programmes',
+      detail:
+        'Add your programmes so Advisor can analyse capacity, enrolment, pricing, and performance.',
+    });
+  }
+  steps.push({
+    title: 'Add Enrolment Records',
+    href: '/app/programmes',
+    detail:
+      'Advisor needs programmes with capacity, paid enrolments, and (when you have them) trials or enquiries before it can identify where students may be dropping out.',
+  });
+  if (opts?.needsStudents !== false) {
+    steps.push({
+      title: 'Add Students',
+      href: '/app/programmes',
+      detail: `Add ${EDUCATION_LABELS.customers.toLowerCase()} so Advisor can count who is currently enrolled instead of guessing.`,
+    });
+  }
+  return steps;
 }
 
 export async function peerPatternsForLeak(leakType: string) {
@@ -321,8 +354,10 @@ export async function enrolmentGuidance(organizationId: string) {
   }
 
   const cashAllowsPaid =
-    cash.netMonthlyCents >= 0 ||
-    (cash.runwayWeeks != null && cash.runwayWeeks >= MIN_RUNWAY_WEEKS_FOR_PAID);
+    cash.outlookStatus === 'READY' &&
+    cash.netMonthlyCents != null &&
+    (cash.netMonthlyCents >= 0 ||
+      (cash.runwayWeeks != null && cash.runwayWeeks >= MIN_RUNWAY_WEEKS_FOR_PAID));
   const paidTestEligible =
     leak === 'UNDERFILLED' &&
     conversionHealthy &&
@@ -334,7 +369,7 @@ export async function enrolmentGuidance(organizationId: string) {
   const diagnosisNote = (() => {
     switch (leak) {
       case 'INSUFFICIENT_DATA':
-        return 'Advisor cannot name an enrolment leak until the missing records are on file. That ask is the advice.';
+        return INSUFFICIENT_ENROLMENT_NOTE;
       case 'FULL_ROOM':
         return `Seats are ${utilization != null ? `${(utilization * 100).toFixed(0)}%` : ''} full. The constraint is capacity, not marketing. A waitlist beats paid ads until you can seat the next student.`;
       case 'CONVERSION_LEAK':
@@ -380,8 +415,18 @@ export async function enrolmentGuidance(organizationId: string) {
     cash: {
       netMonthlyCents: cash.netMonthlyCents,
       runwayWeeks: cash.runwayWeeks,
+      outlookStatus: cash.outlookStatus,
+      cashBalanceCents: cash.cashBalanceCents,
+      cashBalanceAvailable: cash.cashBalanceAvailable,
+      currency: cash.currency,
     },
-    cheapNextSteps: cheapSteps(leak),
+    cheapNextSteps:
+      leak === 'INSUFFICIENT_DATA'
+        ? insufficientDataSteps({
+            needsProgramme: programmes.length === 0,
+            needsStudents: totalActive === 0,
+          })
+        : cheapSteps(leak),
     paidTest: paidTestEligible
       ? {
           eligible: true,

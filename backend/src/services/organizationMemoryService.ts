@@ -115,6 +115,8 @@ export async function operatingLoop(organizationId: string) {
     leakLabel: guidance.leakLabel,
     focus: guidance.note,
     cheapNextStep: guidance.cheapNextSteps[0] ?? null,
+    cheapNextSteps: guidance.cheapNextSteps,
+    missingData: guidance.missingData,
     lastTactic,
     tacticsTriedCount: guidance.tacticsTried.length,
     askTriedAndResults: guidance.askTriedAndResults,

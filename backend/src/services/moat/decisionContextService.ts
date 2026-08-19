@@ -65,6 +65,7 @@ export async function captureDecisionContext(
           educationSubtypeOther: true,
           pricingTargetMarginPercent: true,
           cashBalanceCents: true,
+          cashBalanceAsOf: true,
         },
       }),
       enrolmentMetrics(organizationId),
@@ -76,9 +77,9 @@ export async function captureDecisionContext(
     ]);
 
   const missing: string[] = [];
-  if (enrolment.activeStudents <= 0) missing.push('active_students');
-  if (!staffing.scheduledHours) missing.push('staffing_schedule');
-  if (!expenses.monthExpenseCents && !expenses.recurringSubscriptionMonthlyCents) {
+  if (!enrolment.hasEnrolmentRecords) missing.push('active_students');
+  if (staffing.status !== 'READY') missing.push('staffing_schedule');
+  if (!expenses.monthExpensesAvailable && !expenses.recurringSubscriptionMonthlyCents) {
     missing.push('expenses_or_subscriptions');
   }
 
@@ -122,7 +123,7 @@ export async function captureDecisionContext(
       pricingTargetMarginPercent: org.pricingTargetMarginPercent,
     },
     cashRunwayWeeks: cash.runwayWeeks ?? null,
-    cashBalanceCents: org.cashBalanceCents,
+    cashBalanceCents: cash.cashBalanceCents,
     programmeDemandState: leak,
     seasonOrPeriod: seasonOrPeriod(capturedAt),
     targetStatus: null,

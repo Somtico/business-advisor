@@ -56,7 +56,7 @@ interface Guidance {
   recentStarts: number;
   priorStarts: number;
   churnRate: number;
-  cheapNextSteps: Array<{ title: string; detail: string }>;
+  cheapNextSteps: Array<{ title: string; detail: string; href?: string }>;
   paidTest: {
     eligible: boolean;
     monitorWeeks: number | null;
@@ -279,6 +279,14 @@ export function EnrolmentPage() {
                 {String(i + 1).padStart(2, '0')} · {step.title}
               </p>
               <p className="mt-1 text-base text-ba-ink/80">{step.detail}</p>
+              {step.href ? (
+                <Link
+                  className="mt-2 inline-block cursor-pointer text-base font-semibold text-ba-accent underline"
+                  to={step.href}
+                >
+                  {step.title}
+                </Link>
+              ) : null}
             </li>
           ))}
         </ol>

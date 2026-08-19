@@ -26,6 +26,7 @@ import { askAdvisor, AiGatewayError } from '../services/aiAdvisorService';
 import { getOrganizationAiUsageAnalytics } from '../services/ai/aiUsageAnalyticsService';
 import { importCsv } from '../services/csvImportService';
 import { fetchAndSyncPortal, syncPortalPayload } from '../services/portalSyncService';
+import { completeOnboarding, OnboardingError } from '../services/onboardingService';
 import { EDUCATION_DATASETS } from '../catalog/educationBlueprint';
 import { writeAudit } from '../services/auditService';
 import {
@@ -129,37 +130,24 @@ router.post(
   async (req: Request, res: Response) => {
     const { educationSubtype, educationSubtypeOther, cashBalanceCents } =
       req.body || {};
-    if (educationSubtype === 'OTHER') {
-      const other = String(educationSubtypeOther || '').trim();
-      if (!other) {
-        res.status(400).json({
+    try {
+      const org = await completeOnboarding({
+        organizationId: req.user!.organizationId,
+        educationSubtype,
+        educationSubtypeOther,
+        cashBalanceCents,
+      });
+      res.json({ success: true, data: org });
+    } catch (err) {
+      if (err instanceof OnboardingError) {
+        res.status(err.status).json({
           success: false,
-          error: {
-            code: 'OTHER_SUBTYPE_REQUIRED',
-            message:
-              'Please describe your education subtype when selecting Other.',
-          },
+          error: { code: err.code, message: err.message },
         });
         return;
       }
+      throw err;
     }
-    const org = await prisma.organization.update({
-      where: { id: req.user!.organizationId },
-      data: {
-        onboardingCompleted: true,
-        educationSubtype: educationSubtype || undefined,
-        educationSubtypeOther:
-          educationSubtype === 'OTHER'
-            ? String(educationSubtypeOther || '').trim()
-            : educationSubtype
-              ? null
-              : undefined,
-        cashBalanceCents:
-          typeof cashBalanceCents === 'number' ? cashBalanceCents : undefined,
-        cashBalanceAsOf: typeof cashBalanceCents === 'number' ? new Date() : undefined,
-      },
-    });
-    res.json({ success: true, data: org });
   }
 );
 

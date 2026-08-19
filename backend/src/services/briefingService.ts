@@ -26,6 +26,15 @@ function dollars(cents: number): string {
   return `$${(cents / 100).toFixed(2)}`;
 }
 
+function dashboardStatValue(
+  available: boolean,
+  cents: number | null | undefined,
+  missingLabel: string
+): string {
+  if (!available || cents == null) return missingLabel;
+  return dollars(cents);
+}
+
 function buildWeeklyBriefContent(params: {
   orgName: string;
   firstName: string;
@@ -134,18 +143,36 @@ function buildWeeklyBriefContent(params: {
       ${loopLines.join('\n')}
       ${emailSectionHeading("This Week's Numbers")}
       ${emailStatTable([
-        { label: 'Active Students', value: String(dash.enrolment.activeStudents) },
         {
-          label: 'Month Expenses',
-          value: `$${(dash.expenses.monthExpenseCents / 100).toFixed(2)}`,
+          label: 'Active Students',
+          value:
+            dash.enrolment.activeStudentsAvailable &&
+            dash.enrolment.activeStudents != null
+              ? String(dash.enrolment.activeStudents)
+              : 'Needs student data',
         },
         {
-          label: 'Cash Net Monthly Outlook',
-          value: `$${(dash.cash.netMonthlyCents / 100).toFixed(2)}`,
+          label: 'Expenses This Month',
+          value: dashboardStatValue(
+            dash.expenses.monthExpensesAvailable,
+            dash.expenses.monthExpenseCents,
+            'Needs expense data'
+          ),
         },
         {
-          label: 'Staffing Savings Opportunity This Week',
-          value: `$${(dash.staffing.estimatedSavingsCents / 100).toFixed(2)}`,
+          label: 'Projected Monthly Net',
+          value:
+            dash.cash.outlookStatus === 'READY' && dash.cash.netMonthlyCents != null
+              ? dollars(dash.cash.netMonthlyCents)
+              : 'Not enough data to forecast',
+        },
+        {
+          label: 'Labour Opportunity',
+          value: dashboardStatValue(
+            dash.staffing.status === 'READY',
+            dash.staffing.estimatedSavingsCents,
+            'Needs staffing data'
+          ),
         },
       ])}
       ${emailSectionHeading('Open Actions')}
@@ -214,10 +241,26 @@ This Week's Operating Loop
 ${loopText}
 
 This Week's Numbers
-Active Students: ${dash.enrolment.activeStudents}
-Month Expenses: $${(dash.expenses.monthExpenseCents / 100).toFixed(2)}
-Cash Net Monthly Outlook: $${(dash.cash.netMonthlyCents / 100).toFixed(2)}
-Staffing Savings Opportunity This Week: $${(dash.staffing.estimatedSavingsCents / 100).toFixed(2)}
+Active Students: ${
+    dash.enrolment.activeStudentsAvailable && dash.enrolment.activeStudents != null
+      ? dash.enrolment.activeStudents
+      : 'Needs student data'
+  }
+Expenses This Month: ${dashboardStatValue(
+    dash.expenses.monthExpensesAvailable,
+    dash.expenses.monthExpenseCents,
+    'Needs expense data'
+  )}
+Projected Monthly Net: ${
+    dash.cash.outlookStatus === 'READY' && dash.cash.netMonthlyCents != null
+      ? dollars(dash.cash.netMonthlyCents)
+      : 'Not enough data to forecast'
+  }
+Labour Opportunity: ${dashboardStatValue(
+    dash.staffing.status === 'READY',
+    dash.staffing.estimatedSavingsCents,
+    'Needs staffing data'
+  )}
 
 Open Actions
 ${openTitles.length ? openTitles.map((t) => `- ${t}`).join('\n') : '- None'}

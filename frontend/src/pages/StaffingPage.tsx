@@ -13,11 +13,13 @@ export function StaffingPage() {
   >([]);
   const [dash, setDash] = useState<{
     staffing: {
+      status?: 'READY' | 'INSUFFICIENT_DATA';
       scheduledHours: number;
       neededInstructorHours: number;
-      excessHours: number;
+      excessHours: number | null;
       labourCostCents: number;
-      estimatedSavingsCents: number;
+      estimatedSavingsCents: number | null;
+      missingData?: string[];
     };
   } | null>(null);
   const [form, setForm] = useState({
@@ -69,13 +71,17 @@ export function StaffingPage() {
           <div className="border border-ba-line bg-white p-4">
             <p className="text-base text-ba-ink/70">Excess Hours</p>
             <p className="font-display text-2xl font-bold">
-              {dash.staffing.excessHours}
+              {dash.staffing.excessHours == null
+                ? 'Needs staffing data'
+                : dash.staffing.excessHours}
             </p>
           </div>
           <div className="border border-ba-line bg-white p-4">
             <p className="text-base text-ba-ink/70">Estimated Savings</p>
             <p className="font-display text-2xl font-bold">
-              {money(dash.staffing.estimatedSavingsCents)}
+              {dash.staffing.estimatedSavingsCents == null
+                ? 'Needs staffing data'
+                : money(dash.staffing.estimatedSavingsCents)}
             </p>
           </div>
         </div>

@@ -133,6 +133,7 @@ function sessionFor(
       industryBlueprintKey: string;
       educationSubtype: EducationSubtype;
       educationSubtypeOther: string | null;
+      currency: string;
       onboardingCompleted: boolean;
       entitlement: unknown;
       subscription: unknown;
@@ -176,6 +177,7 @@ function sessionFor(
       industryBlueprintKey: membership.organization.industryBlueprintKey,
       educationSubtype: membership.organization.educationSubtype,
       educationSubtypeOther: membership.organization.educationSubtypeOther,
+      currency: membership.organization.currency,
       onboardingCompleted: membership.organization.onboardingCompleted,
     },
     entitlements: membership.organization.entitlement,

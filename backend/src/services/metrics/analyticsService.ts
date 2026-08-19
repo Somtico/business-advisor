@@ -1,6 +1,16 @@
 import { ForecastScenario } from '@prisma/client';
 import prisma from '../../config/prisma';
 import { impactSummary } from '../impactService';
+import { resolveCurrentCash } from './cashObservationService';
+import {
+  cashOutlookIsReady,
+  enrolmentCountIsReady,
+  forecastsAreReady,
+  knownOrMissing,
+  labourOpportunityIsReady,
+  monthExpensesAreReady,
+  verifiedImpactIsReady,
+} from './metricAvailability';
 
 function overlaps(
   start: Date | null,
@@ -40,6 +50,11 @@ export async function enrolmentMetrics(organizationId: string) {
   const prevMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
   const prevMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
 
+  const engagementRecordCount = await prisma.engagement.count({
+    where: { organizationId },
+  });
+  const hasEnrolmentRecords = enrolmentCountIsReady(engagementRecordCount);
+
   const activeNow = await countActiveStudents(organizationId, now);
   const activePrev = await countActiveStudents(organizationId, prevMonthEnd);
 
@@ -75,6 +90,8 @@ export async function enrolmentMetrics(organizationId: string) {
     activePrev > 0 ? Math.max(0, (activePrev - activeNow + started) / activePrev) : 0;
 
   return {
+    hasEnrolmentRecords,
+    engagementRecordCount,
     activeStudents: activeNow,
     activeStudentsPriorMonth: activePrev,
     startedThisMonth: started,
@@ -162,14 +179,35 @@ export async function staffingVersusDemand(organizationId: string) {
     return sum + Math.max(0, (sess.endsAt.getTime() - sess.startsAt.getTime()) / 3600000);
   }, 0);
 
-  // Rough rule: 1 instructor hour per 6 learner-hours is healthy; surplus = savings opportunity
-  const neededInstructorHours = expectedStudents > 0 ? sessionHours : scheduledHours * 0.7;
-  const excessHours = Math.max(0, scheduledHours - neededInstructorHours);
+  const staffingReady = labourOpportunityIsReady({
+    shiftCount: shifts.length,
+    sessionCount: sessions.length,
+  });
+  const missingData: string[] = [];
+  if (shifts.length === 0) {
+    missingData.push(
+      'Add this week\'s instructor shifts so labour opportunity can be measured.'
+    );
+  }
+  if (sessions.length === 0) {
+    missingData.push(
+      'Schedule this week\'s class sessions so staffing can be compared with demand.'
+    );
+  }
+
+  const neededInstructorHours = sessionHours;
+  const excessHours = staffingReady
+    ? Math.max(0, scheduledHours - neededInstructorHours)
+    : 0;
   const avgHourly =
     scheduledHours > 0 ? labourCostCents / scheduledHours : 2500;
-  const estimatedSavingsCents = Math.round(excessHours * avgHourly);
+  const estimatedSavingsCents = staffingReady
+    ? Math.round(excessHours * avgHourly)
+    : 0;
 
   return {
+    status: staffingReady ? ('READY' as const) : ('INSUFFICIENT_DATA' as const),
+    missingData,
     weekWindow: { start: now.toISOString(), end: weekEnd.toISOString() },
     scheduledHours: Number(scheduledHours.toFixed(2)),
     neededInstructorHours: Number(neededInstructorHours.toFixed(2)),
@@ -183,12 +221,16 @@ export async function staffingVersusDemand(organizationId: string) {
 export async function expenseRollup(organizationId: string) {
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-  const expenses = await prisma.expenseTransaction.findMany({
-    where: { organizationId, occurredAt: { gte: monthStart } },
-  });
-  const subscriptions = await prisma.recurringSubscription.findMany({
-    where: { organizationId, isActive: true },
-  });
+  const [expenses, expenseRecordCount, subscriptions] = await Promise.all([
+    prisma.expenseTransaction.findMany({
+      where: { organizationId, occurredAt: { gte: monthStart } },
+    }),
+    prisma.expenseTransaction.count({ where: { organizationId } }),
+    prisma.recurringSubscription.findMany({
+      where: { organizationId, isActive: true },
+    }),
+  ]);
+  const monthExpensesAvailable = monthExpensesAreReady(expenseRecordCount);
   const expenseTotal = expenses.reduce((s, e) => s + e.amountCents, 0);
   const recurringMonthly = subscriptions.reduce((s, sub) => {
     if (sub.cadence === 'annual') return s + Math.round(sub.amountCents / 12);
@@ -201,6 +243,8 @@ export async function expenseRollup(organizationId: string) {
   }
   return {
     monthExpenseCents: expenseTotal,
+    monthExpensesAvailable,
+    expenseRecordCount,
     recurringSubscriptionMonthlyCents: recurringMonthly,
     byCategory,
     subscriptionCount: subscriptions.length,
@@ -216,23 +260,24 @@ export async function expenseRollup(organizationId: string) {
 }
 
 export async function cashOutlook(organizationId: string) {
-  const org = await prisma.organization.findUniqueOrThrow({
-    where: { id: organizationId },
-  });
-  const expenses = await expenseRollup(organizationId);
-  const revenues = await prisma.revenueTransaction.findMany({
-    where: {
-      organizationId,
-      isRecurring: true,
-    },
-  });
+  const [currentCash, expenses, staffing, revenues, programmes] = await Promise.all([
+    resolveCurrentCash(organizationId),
+    expenseRollup(organizationId),
+    staffingVersusDemand(organizationId),
+    prisma.revenueTransaction.findMany({
+      where: {
+        organizationId,
+        isRecurring: true,
+      },
+    }),
+    prisma.productService.findMany({
+      where: { organizationId, isActive: true, priceCents: { not: null } },
+    }),
+  ]);
   const recurringRevenueMonthly = revenues.reduce((s, r) => {
     return s + r.amountCents;
   }, 0);
 
-  const programmes = await prisma.productService.findMany({
-    where: { organizationId, isActive: true, priceCents: { not: null } },
-  });
   let tuitionEstimate = 0;
   for (const p of programmes) {
     const active = await prisma.engagement.count({
@@ -250,18 +295,41 @@ export async function cashOutlook(organizationId: string) {
   const monthlyOut =
     expenses.monthExpenseCents +
     expenses.recurringSubscriptionMonthlyCents +
-    (await staffingVersusDemand(organizationId)).labourCostCents;
+    staffing.labourCostCents;
+  const hasRevenueSignal = monthlyIn > 0;
+  const hasCostSignal =
+    expenses.monthExpensesAvailable ||
+    expenses.subscriptionCount > 0 ||
+    staffing.status === 'READY';
+  const outlookReady = cashOutlookIsReady({ hasRevenueSignal, hasCostSignal });
+  const missingData: string[] = [];
+  if (!hasRevenueSignal) {
+    missingData.push(
+      'Record tuition or recurring revenue so a monthly cash outlook can be calculated.'
+    );
+  }
+  if (!hasCostSignal) {
+    missingData.push(
+      'Record expenses, subscriptions, or this week\'s staffing so outflow can be calculated.'
+    );
+  }
+
   const net = monthlyIn - monthlyOut;
-  const cash = org.cashBalanceCents;
+  const cash = currentCash.cashBalanceCents;
   const runwayWeeks =
-    net >= 0 ? null : cash > 0 ? Number(((cash / Math.abs(net)) * 4.345).toFixed(1)) : 0;
+    !outlookReady || net >= 0 || cash == null || cash <= 0
+      ? null
+      : Number(((cash / Math.abs(net)) * 4.345).toFixed(1));
 
   return {
-    cashBalanceCents: cash,
-    cashBalanceAsOf: org.cashBalanceAsOf,
+    ...currentCash,
     monthlyInCents: monthlyIn,
     monthlyOutCents: monthlyOut,
-    netMonthlyCents: net,
+    hasRevenueSignal,
+    hasCostSignal,
+    outlookStatus: outlookReady ? ('READY' as const) : ('INSUFFICIENT_DATA' as const),
+    missingData,
+    netMonthlyCents: outlookReady ? net : null,
     runwayWeeks,
   };
 }
@@ -316,6 +384,9 @@ export async function targetProgress(organizationId: string) {
 
 export async function buildForecasts(organizationId: string) {
   const metrics = await enrolmentMetrics(organizationId);
+  if (!forecastsAreReady(metrics.engagementRecordCount)) {
+    return [];
+  }
   const now = new Date();
   const horizon = new Date(now.getFullYear(), now.getMonth() + 3, now.getDate());
   const velocity = metrics.startedThisMonth - metrics.endedThisMonth;
@@ -362,21 +433,57 @@ export async function executiveDashboard(organizationId: string) {
       impactSummary(organizationId),
     ]);
 
-  const forecasts = await prisma.forecast.findMany({
-    where: { organizationId, metricKey: 'active_students' },
-    orderBy: { createdAt: 'desc' },
-    take: 3,
-  });
+  const forecastReady = forecastsAreReady(enrolment.engagementRecordCount);
+  const forecasts = forecastReady
+    ? await prisma.forecast.findMany({
+        where: { organizationId, metricKey: 'active_students' },
+        orderBy: { createdAt: 'desc' },
+        take: 3,
+      })
+    : [];
 
   return {
-    enrolment,
+    enrolment: {
+      ...enrolment,
+      activeStudents: knownOrMissing(
+        enrolment.hasEnrolmentRecords,
+        enrolment.activeStudents
+      ),
+      activeStudentsPriorMonth: knownOrMissing(
+        enrolment.hasEnrolmentRecords,
+        enrolment.activeStudentsPriorMonth
+      ),
+      activeStudentsAvailable: enrolment.hasEnrolmentRecords,
+    },
     programmes,
-    staffing,
-    expenses,
+    staffing: {
+      ...staffing,
+      estimatedSavingsCents: knownOrMissing(
+        staffing.status === 'READY',
+        staffing.estimatedSavingsCents
+      ),
+      excessHours: knownOrMissing(staffing.status === 'READY', staffing.excessHours),
+    },
+    expenses: {
+      ...expenses,
+      monthExpenseCents: knownOrMissing(
+        expenses.monthExpensesAvailable,
+        expenses.monthExpenseCents
+      ),
+    },
     cash,
     targets,
     forecasts,
-    advisorImpact,
+    forecastStatus: forecastReady ? ('READY' as const) : ('INSUFFICIENT_DATA' as const),
+    forecastMissingData: forecastReady
+      ? []
+      : [
+          'Advisor needs enrolment history before it can build reliable growth, expected and conservative forecasts.',
+        ],
+    advisorImpact: {
+      ...advisorImpact,
+      verifiedAvailable: verifiedImpactIsReady(advisorImpact.verified.actionCount),
+    },
     generatedAt: new Date().toISOString(),
   };
 }
@@ -619,11 +726,21 @@ const MIN_RUNWAY_WEEKS = 8;
  */
 export async function cashSafeTestSize(organizationId: string) {
   const cash = await cashOutlook(organizationId);
-  const missing: string[] = [];
-  if (cash.monthlyInCents <= 0) {
-    missing.push(
-      'Record tuition or recurring revenue so a cash-safe weekly spend cap can be calculated.'
-    );
+  const missing: string[] = [...cash.missingData];
+  if (cash.outlookStatus !== 'READY' || cash.netMonthlyCents == null) {
+    return {
+      status: 'INSUFFICIENT_DATA' as const,
+      missingData: missing.length
+        ? missing
+        : [
+            'Record tuition or recurring revenue so a cash-safe weekly spend cap can be calculated.',
+          ],
+      eligible: false,
+      weeklyCapCents: 0,
+      netMonthlyCents: cash.netMonthlyCents,
+      runwayWeeks: cash.runwayWeeks,
+      note: missing[0] || 'Not enough data to size a cash-safe paid test.',
+    };
   }
 
   const weeklySurplus = cash.netMonthlyCents / 4.345;

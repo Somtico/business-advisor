@@ -1,3 +1,4 @@
+import { EDUCATION_LABELS } from '../catalog/educationBlueprint';
 import { Prisma } from '@prisma/client';
 import prisma from '../config/prisma';
 import {
@@ -103,7 +104,10 @@ export async function runBusinessInsights(organizationId: string) {
     }
   }
 
-  if (staffing.estimatedSavingsCents >= 5000) {
+  if (
+    staffing.status === 'READY' &&
+    staffing.estimatedSavingsCents >= 5000
+  ) {
     await addInsight({
       severity: 'COST',
       title: 'Staffing Likely Exceeds Near-Term Demand',
@@ -295,7 +299,12 @@ export async function runBusinessInsights(organizationId: string) {
     });
   }
 
-  if (cash.netMonthlyCents < 0 && (cash.runwayWeeks ?? 99) < 8) {
+  if (
+    cash.outlookStatus === 'READY' &&
+    cash.netMonthlyCents != null &&
+    cash.netMonthlyCents < 0 &&
+    (cash.runwayWeeks ?? 99) < 8
+  ) {
     await addInsight({
       severity: 'WARNING',
       title: 'Cash Runway Is Tight',
@@ -321,7 +330,7 @@ export async function runBusinessInsights(organizationId: string) {
         exampleInsight: item.exampleInsight,
       },
       recommendation: {
-        title: `Collect ${item.label}`,
+        title: `Add ${readinessActionNoun(item.datasetKey, item.label)}`,
         description:
           item.exampleInsight ||
           'Add this dataset via manual entry, CSV, or the academy portal connector.',
@@ -329,15 +338,26 @@ export async function runBusinessInsights(organizationId: string) {
     });
   }
 
-  await prisma.metricSnapshot.create({
-    data: {
-      organizationId,
-      metricKey: 'active_students',
-      value: enrolment.activeStudents,
-      unit: 'count',
-      evidence: enrolment,
-    },
-  });
+  if (enrolment.hasEnrolmentRecords) {
+    await prisma.metricSnapshot.create({
+      data: {
+        organizationId,
+        metricKey: 'active_students',
+        value: enrolment.activeStudents,
+        unit: 'count',
+        evidence: enrolment,
+      },
+    });
+  }
 
   return { insights: createdInsights, recommendations: createdRecs };
+}
+
+function readinessActionNoun(datasetKey: string, fallbackLabel: string): string {
+  if (datasetKey === 'students') return EDUCATION_LABELS.customers;
+  if (datasetKey === 'enrolments') return EDUCATION_LABELS.engagements;
+  if (datasetKey === 'programmes') return EDUCATION_LABELS.services;
+  if (fallbackLabel === 'Students / Learners') return EDUCATION_LABELS.customers;
+  if (fallbackLabel === 'Programmes / Classes') return EDUCATION_LABELS.services;
+  return fallbackLabel;
 }

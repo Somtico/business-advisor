@@ -50,6 +50,7 @@ interface AuthState {
     slug: string;
     status: string;
     educationSubtype?: string;
+    currency?: string;
     onboardingCompleted?: boolean;
   } | null;
   workspaces: WorkspaceSummary[];
@@ -229,6 +230,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             slug: res.data.organization.slug,
             status: res.data.organization.status,
             educationSubtype: res.data.organization.educationSubtype,
+            currency: res.data.organization.currency,
             onboardingCompleted: res.data.organization.onboardingCompleted,
           }
         : null;

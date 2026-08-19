@@ -27,6 +27,9 @@ async function main() {
       ALTER TABLE "organizations" ADD COLUMN IF NOT EXISTS "cashBalanceCents" INTEGER NOT NULL DEFAULT 0;
     `);
     await prisma.$executeRawUnsafe(`
+      ALTER TABLE "organizations" ADD COLUMN IF NOT EXISTS "cashBalanceAsOf" TIMESTAMP(3);
+    `);
+    await prisma.$executeRawUnsafe(`
       ALTER TABLE "organizations" ADD COLUMN IF NOT EXISTS "industryBlueprintKey" TEXT NOT NULL DEFAULT 'after_school_tutoring_enrichment';
     `);
 

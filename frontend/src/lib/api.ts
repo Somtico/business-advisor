@@ -62,10 +62,10 @@ export async function api<T>(
   return json as T;
 }
 
-export function money(cents: number | null | undefined): string {
+export function money(cents: number | null | undefined, currency = 'CAD'): string {
   const n = (cents ?? 0) / 100;
   return new Intl.NumberFormat('en-CA', {
     style: 'currency',
-    currency: 'CAD',
+    currency,
   }).format(n);
 }

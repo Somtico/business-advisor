@@ -11,19 +11,29 @@ export interface BlueprintDataset {
   defaultStatus?: DataSourceStatus;
 }
 
+export const EDUCATION_LABELS = {
+  customer: 'Student',
+  customers: 'Students',
+  service: 'Programme',
+  services: 'Programmes',
+  staff: 'Instructor',
+  engagement: 'Enrolment',
+  engagements: 'Enrolments',
+};
+
 export const EDUCATION_DATASETS: BlueprintDataset[] = [
   {
     datasetKey: 'students',
-    label: 'Students / Learners',
+    label: EDUCATION_LABELS.customers,
     whyItMatters:
-      'Tracks unique learners so you can measure growth, retention, and household value.',
+      'Tracks unique students so you can measure growth, retention, and household value.',
     exampleInsight:
       'You have 13 active paid coding students versus a year-end target of 25.',
     priority: 100,
   },
   {
     datasetKey: 'enrolments',
-    label: 'Enrolments',
+    label: EDUCATION_LABELS.engagements,
     whyItMatters:
       'Enrolment start/end dates power historical active counts, churn, and forecasts.',
     exampleInsight:
@@ -32,7 +42,7 @@ export const EDUCATION_DATASETS: BlueprintDataset[] = [
   },
   {
     datasetKey: 'programmes',
-    label: 'Programmes / Classes',
+    label: EDUCATION_LABELS.services,
     whyItMatters:
       'Programme mix shows which offerings grow, shrink, or stay under-capacity.',
     exampleInsight: 'Robotics evenings run at 40% capacity while coding saturates.',
@@ -119,16 +129,6 @@ export const EDUCATION_DATASETS: BlueprintDataset[] = [
     priority: 78,
   },
 ];
-
-export const EDUCATION_LABELS = {
-  customer: 'Student',
-  customers: 'Students',
-  service: 'Programme',
-  services: 'Programmes',
-  staff: 'Instructor',
-  engagement: 'Enrolment',
-  engagements: 'Enrolments',
-};
 
 export function subtypeLabel(
   subtype: EducationSubtype,
