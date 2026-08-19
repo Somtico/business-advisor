@@ -21,6 +21,7 @@ import { PrivacyPage } from './pages/PrivacyPage';
 import { EnrolmentPage } from './pages/EnrolmentPage';
 import { AiUsagePage } from './pages/AiUsagePage';
 import { ChooseWorkspacePage } from './pages/ChooseWorkspacePage';
+import { WorkspacesPage } from './pages/WorkspacesPage';
 import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
 import { ResetPasswordPage } from './pages/ResetPasswordPage';
 import { AcceptInvitationPage } from './pages/AcceptInvitationPage';
@@ -30,6 +31,7 @@ export default function App() {
     <Routes>
       <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/workspaces" element={<WorkspacesPage />} />
       <Route path="/choose-workspace" element={<ChooseWorkspacePage />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />

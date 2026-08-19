@@ -3,7 +3,6 @@ import { BrandMark } from './BrandMark';
 import { LegalAcceptanceGate } from './LegalAcceptanceGate';
 import { HelpImproveInvite } from './HelpImproveInvite';
 import { useAuth } from '../context/AuthContext';
-import { api } from '../lib/api';
 
 const links = [
   { to: '/app', label: 'Command Centre', end: true },
@@ -25,13 +24,13 @@ export function RequireAuth({ children }: { children: React.ReactNode }) {
     useAuth();
   if (!accessToken) return <Navigate to="/login" replace />;
   if (needsWorkspaceSelection || noWorkspace || !organization) {
-    return <Navigate to="/choose-workspace" replace />;
+    return <Navigate to="/workspaces" replace />;
   }
   return children;
 }
 
 export function AppShell() {
-  const { organization, user, workspaces, setSession, logout } = useAuth();
+  const { organization, user, workspaces, selectWorkspace, logout } = useAuth();
   const visibleLinks =
     user?.role === 'OWNER' || user?.role === 'ADMIN'
       ? [
@@ -75,6 +74,12 @@ export function AppShell() {
             <p className="text-base">
               {user?.firstName} {user?.lastName}
             </p>
+            <Link
+              to="/workspaces"
+              className="mt-3 block cursor-pointer text-base text-ba-accent underline"
+            >
+              My Workspaces
+            </Link>
             {workspaces.length > 1 && (
               <label className="mt-3 block text-base font-semibold">
                 Switch Workspace
@@ -84,26 +89,7 @@ export function AppShell() {
                   onChange={(e) => {
                     const id = e.target.value;
                     void (async () => {
-                      const res = await api<{
-                        success: boolean;
-                        data: {
-                          accessToken: string;
-                          user: NonNullable<typeof user>;
-                          organization: NonNullable<typeof organization>;
-                          workspaces?: typeof workspaces;
-                        };
-                      }>('/api/auth/select-workspace', {
-                        method: 'POST',
-                        body: JSON.stringify({ organizationId: id }),
-                      });
-                      setSession({
-                        accessToken: res.data.accessToken,
-                        user: res.data.user,
-                        organization: res.data.organization,
-                        workspaces: res.data.workspaces || workspaces,
-                        needsWorkspaceSelection: false,
-                        noWorkspace: false,
-                      });
+                      await selectWorkspace(id);
                       window.location.assign('/app');
                     })();
                   }}
@@ -126,8 +112,14 @@ export function AppShell() {
           </div>
         </aside>
         <main className="flex-1 overflow-auto">
-          <div className="border-b border-ba-line bg-white px-4 py-3 md:hidden">
+          <div className="flex items-center justify-between border-b border-ba-line bg-white px-4 py-3 md:hidden">
             <BrandMark to="/app" size={32} />
+            <Link
+              to="/workspaces"
+              className="cursor-pointer text-base font-semibold text-ba-accent"
+            >
+              My Workspaces
+            </Link>
           </div>
           <div className="mx-auto max-w-6xl px-4 py-8 md:px-8">
             <Outlet />

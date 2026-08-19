@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
 import { api } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
-import { EDUCATION_SUBTYPE_OPTIONS, slugifyOrganizationName } from '../lib/forms';
 import { ROLE_LABELS } from '../lib/workspace';
 
 interface ConnectorRow {
@@ -50,7 +49,7 @@ const HELP_IMPROVE_DISCLOSURE = (
 );
 
 export function SettingsPage() {
-  const { organization, user, setSession } = useAuth();
+  const { organization, user } = useAuth();
   const canManageLearning = user?.role === 'OWNER' || user?.role === 'ADMIN';
   const [billing, setBilling] = useState<{
     subscription: {
@@ -72,8 +71,6 @@ export function SettingsPage() {
   const [pendingInvites, setPendingInvites] = useState<
     Array<{ id: string; email: string; role: string; expiresAt: string }>
   >([]);
-  const [newOrgName, setNewOrgName] = useState('');
-  const [newOrgSlug, setNewOrgSlug] = useState('');
 
   useEffect(() => {
     api<{ success: boolean; data: NonNullable<typeof billing> }>(
@@ -419,72 +416,17 @@ export function SettingsPage() {
       )}
 
       <section className="mt-6 border border-ba-line bg-white p-5">
-        <h2 className="font-display text-2xl font-bold">Create Another Organization</h2>
+        <h2 className="font-display text-2xl font-bold">My Workspaces</h2>
         <p className="mt-2 text-base text-ba-ink/70">
-          Add a new workspace to this account. You will be the owner.
+          See every organization on this account, switch workspace, or create a
+          new one.
         </p>
-        <div className="mt-4 grid gap-3 md:grid-cols-2">
-          <input
-            className="rounded-md border-ba-line text-base"
-            placeholder="Organization Name"
-            value={newOrgName}
-            onChange={(e) => {
-              setNewOrgName(e.target.value);
-              setNewOrgSlug(slugifyOrganizationName(e.target.value));
-            }}
-          />
-          <input
-            className="rounded-md border-ba-line text-base"
-            placeholder="Workspace Address"
-            value={newOrgSlug}
-            onChange={(e) => setNewOrgSlug(e.target.value.toLowerCase())}
-          />
-        </div>
-        <button
-          type="button"
-          className="mt-4 cursor-pointer rounded-md border border-ba-line px-4 py-2 text-base"
-          onClick={() => {
-            void api<{
-              success: boolean;
-              data: {
-                session: {
-                  accessToken: string;
-                  user: NonNullable<typeof user>;
-                  organization: NonNullable<typeof organization>;
-                  workspaces?: Array<{
-                    id: string;
-                    name: string;
-                    slug: string;
-                    role: string;
-                    status: string;
-                    onboardingCompleted: boolean;
-                  }>;
-                };
-              };
-            }>('/api/auth/organizations', {
-              method: 'POST',
-              body: JSON.stringify({
-                organizationName: newOrgName,
-                slug: newOrgSlug,
-                educationSubtype: EDUCATION_SUBTYPE_OPTIONS[0]?.value,
-              }),
-            })
-              .then((res) => {
-                setSession({
-                  accessToken: res.data.session.accessToken,
-                  user: res.data.session.user,
-                  organization: res.data.session.organization,
-                  workspaces: res.data.session.workspaces,
-                  needsWorkspaceSelection: false,
-                  noWorkspace: false,
-                });
-                window.location.assign('/app/onboarding');
-              })
-              .catch((err: Error) => setMessage(err.message));
-          }}
+        <Link
+          to="/workspaces"
+          className="mt-4 inline-block cursor-pointer rounded-md border border-ba-line px-4 py-2 text-base font-semibold"
         >
-          Create Organization
-        </button>
+          Manage Workspaces
+        </Link>
       </section>
 
       {message && <p className="mt-4 text-base text-ba-accent">{message}</p>}

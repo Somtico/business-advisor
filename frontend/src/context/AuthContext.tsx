@@ -57,6 +57,13 @@ interface AuthState {
   noWorkspace: boolean;
 }
 
+type WorkspaceSessionPayload = {
+  accessToken: string;
+  user: AuthState['user'];
+  organization: NonNullable<AuthState['organization']>;
+  workspaces?: WorkspaceSummary[];
+};
+
 interface AuthContextValue extends AuthState {
   setSession: (data: {
     accessToken: string;
@@ -66,6 +73,9 @@ interface AuthContextValue extends AuthState {
     needsWorkspaceSelection?: boolean;
     noWorkspace?: boolean;
   }) => void;
+  selectWorkspace: (
+    organizationId: string
+  ) => Promise<NonNullable<AuthState['organization']>>;
   refreshSession: () => Promise<void>;
   applyLegalAcceptance: (legal: LegalAcceptanceStatus) => void;
   logout: () => void;
@@ -140,6 +150,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setState(next);
     },
     []
+  );
+
+  const selectWorkspace = useCallback(
+    async (organizationId: string) => {
+      const res = await api<{
+        success: boolean;
+        data: WorkspaceSessionPayload;
+      }>('/api/auth/select-workspace', {
+        method: 'POST',
+        body: JSON.stringify({ organizationId }),
+      });
+      setSession({
+        accessToken: res.data.accessToken,
+        user: res.data.user,
+        organization: res.data.organization,
+        workspaces: res.data.workspaces,
+        needsWorkspaceSelection: false,
+        noWorkspace: false,
+      });
+      return res.data.organization;
+    },
+    [setSession]
   );
 
   const logout = useCallback(() => {
@@ -226,8 +258,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo(
-    () => ({ ...state, setSession, refreshSession, applyLegalAcceptance, logout }),
-    [state, setSession, refreshSession, applyLegalAcceptance, logout]
+    () => ({
+      ...state,
+      setSession,
+      selectWorkspace,
+      refreshSession,
+      applyLegalAcceptance,
+      logout,
+    }),
+    [
+      state,
+      setSession,
+      selectWorkspace,
+      refreshSession,
+      applyLegalAcceptance,
+      logout,
+    ]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

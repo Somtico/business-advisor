@@ -42,8 +42,8 @@ Sign in with email and password only. The organization slug is not a field on th
 2. Unknown email and wrong password both return the same `INVALID_CREDENTIALS` error.
 3. Load active memberships:
    - **1 workspace** — issue a workspace JWT and enter that organization.
-   - **2+ workspaces** — issue an identity-only JWT and show **Choose A Workspace**.
-   - **0 workspaces** — identity-only JWT and a no-workspace screen (create an organization or accept an invitation).
+   - **2+ workspaces** — issue an identity-only JWT and show **My Workspaces** (`/workspaces`).
+   - **0 workspaces** — identity-only JWT and the same **My Workspaces** screen (create an organization or accept an invitation).
 4. `POST /api/auth/select-workspace` accepts only an organization the authenticated user has an active membership in.
 
 ### Tenant-subdomain login (`acme.businessadvisor.app/login`)
@@ -54,7 +54,7 @@ After authentication, membership in that organization is required. Members enter
 
 ### Workspace switching
 
-Accounts with more than one membership see **Switch Workspace** in the signed-in sidebar. Switching calls `POST /api/auth/select-workspace` and replaces the JWT from server-side membership records.
+Signed-in accounts use **My Workspaces** (`/workspaces`) to list every membership (organization name and role) and to **Create New Organization**. Opening a row calls `POST /api/auth/select-workspace`. Accounts with more than one membership also see **Switch Workspace** in the signed-in sidebar. `/choose-workspace` redirects to `/workspaces`.
 
 ### Tenant headers
 
@@ -62,7 +62,7 @@ Accounts with more than one membership see **Switch Workspace** in the signed-in
 
 ### Signup and invitations
 
-Signup creates a global user (409 `ACCOUNT_EXISTS` if the email is taken — it does not add a membership to someone else's account), then the organization, then an OWNER membership. Signed-in users can create another organization from Settings (`POST /api/auth/organizations`).
+Signup creates a global user (409 `ACCOUNT_EXISTS` if the email is taken — it does not add a membership to someone else's account), then the organization, then an OWNER membership. Signed-in users create another organization from **My Workspaces** (`POST /api/auth/organizations`).
 
 Invitations are organization-specific. Accepting creates (or reactivates) a membership for the invited email. An existing global user is linked; a new email creates the account first. Tokens are hashed; OWNER cannot be granted by invitation.
 
@@ -79,7 +79,7 @@ Older clients that still POST `slug` with email and password continue to authent
 ### Shipped (Phase 0 + Phase 1)
 
 - Organizations, RBAC via `OrganizationMembership`, audit events, education blueprint auto-provision on signup
-- Multi-organization accounts (18 Aug 2026): globally unique `User.email`; sign in with email and password only; one vs many memberships; workspace chooser; subdomain membership check; invitations; password reset; `X-Tenant-Slug` cannot switch tenants without a matching membership. Migration `20260818120000_multi_org_memberships`.
+- Multi-organization accounts (18 Aug 2026): globally unique `User.email`; sign in with email and password only; one vs many memberships; **My Workspaces** (`/workspaces`) for listing, switching, and creating organizations; subdomain membership check; invitations; password reset; `X-Tenant-Slug` cannot switch tenants without a matching membership. Migration `20260818120000_multi_org_memberships`.
 - Empty database by default — onboard STEM Lantern (or any centre) through `/signup`
 - Manual CRUD: locations, programmes, students, enrolments, staff/wages, shifts, expenses, subscriptions, loans, targets
 - CSV import (students, expenses, subscriptions, revenue)

@@ -37,11 +37,11 @@ export function LoginPage() {
     workspaces?: WorkspaceSummary[];
   }) {
     if (data.needsWorkspaceSelection) {
-      navigate('/choose-workspace');
+      navigate('/workspaces');
       return;
     }
     if (data.noWorkspace || !data.organization) {
-      navigate('/choose-workspace');
+      navigate('/workspaces');
       return;
     }
     navigate(data.organization.onboardingCompleted ? '/app' : '/app/onboarding');

@@ -194,11 +194,11 @@ export const FAQ_SECTIONS: FaqSection[] = [
     items: [
       {
         q: 'How do I sign in?',
-        a: 'Open Sign In and enter your email and password. You do not enter an organization address on the shared sign-in page. If you belong to one organization, you go straight in. If you belong to more than one, you choose a workspace after signing in. Visiting your-centre.businessadvisor.app still opens that workspace when you are a member.',
+        a: 'Open Sign In and enter your email and password. You do not enter an organization address on the shared sign-in page. If you belong to one organization, you go straight in. If you belong to more than one, you land on My Workspaces after signing in. Visiting your-centre.businessadvisor.app still opens that workspace when you are a member.',
       },
       {
         q: 'Can one person belong to more than one organization?',
-        a: 'Yes. One email is one account. Owners can invite that account into another organization, or you can create another organization from Settings after you sign in. Roles stay specific to each organization: being an owner in one centre does not grant owner access in another.',
+        a: 'Yes. One email is one account. Open My Workspaces to see every organization you belong to, switch between them, or create a new one. Owners can also invite that account into another organization. Roles stay specific to each organization: being an owner in one centre does not grant owner access in another.',
       },
       {
         q: 'Who can see our data?',
