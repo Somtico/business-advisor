@@ -32,30 +32,33 @@ const PASSWORD = 'DemoPass!234';
 const PAGES = [
   {
     path: '/app',
-    file: 'command-centre-v3',
+    file: 'command-centre-v4',
     heading: 'Command Centre',
     ready: 'Active Students',
   },
   {
     path: '/app/pricing',
-    file: 'pricing-advisor-v3',
+    file: 'pricing-advisor-v4',
     heading: 'Pricing Advisor',
     ready: 'Robotics Club',
   },
   {
     path: '/app/actions',
-    file: 'action-centre-v3',
+    file: 'action-centre-v4',
     heading: 'Action Centre',
     ready: 'Verified Saved',
   },
-  { path: '/app/advisor', file: 'ask-advisor-v3', heading: 'Ask Advisor' },
+  { path: '/app/advisor', file: 'ask-advisor-v4', heading: 'Ask Advisor' },
   {
     path: '/app/help',
-    file: 'help-faq-v3',
+    file: 'help-faq-v4',
     heading: 'Help & FAQ',
     ready: 'Meet Your Advisor',
   },
 ];
+
+/** 2× device pixels so marketing shots stay sharp on retina screens. */
+const DEVICE_SCALE_FACTOR = 2;
 
 /** Viewports match the live product breakpoints (Tailwind md=768, lg=1024). */
 const DEVICES = [
@@ -108,9 +111,19 @@ async function capturePage(page, shot, dest) {
       timeout: 30_000,
     });
   }
-  await page.evaluate(() => window.scrollTo(0, 0));
-  await page.waitForTimeout(500);
-  await page.screenshot({ path: dest, fullPage: false });
+  await page.evaluate(async () => {
+    window.scrollTo(0, 0);
+    await document.fonts.ready;
+  });
+  await page.waitForTimeout(400);
+  await page.screenshot({
+    path: dest,
+    fullPage: false,
+    type: 'png',
+    animations: 'disabled',
+    caret: 'hide',
+    scale: 'device',
+  });
 }
 
 mkdirSync(OUT_DIR, { recursive: true });
@@ -122,7 +135,7 @@ const browser = await chromium.launch({ headless: true });
 for (const device of DEVICES) {
   const context = await browser.newContext({
     viewport: device.viewport,
-    deviceScaleFactor: 1,
+    deviceScaleFactor: DEVICE_SCALE_FACTOR,
     isMobile: device.isMobile,
     hasTouch: device.hasTouch,
   });

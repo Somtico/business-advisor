@@ -17,6 +17,7 @@ import {
   SCREENSHOT_SIZES,
   screenshotDeviceFromWidth,
   screenshotFrameClass,
+  screenshotSrcSet,
   type ScreenshotDevice,
 } from '../lib/screenshotDevices';
 
@@ -244,6 +245,7 @@ function LandingHeroShot() {
     >
       <img
         src={shot.sources[device]}
+        srcSet={screenshotSrcSet(shot.sources[device])}
         alt={shot.alt}
         width={size.width}
         height={size.height}

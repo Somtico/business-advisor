@@ -9,6 +9,7 @@ import { runBusinessInsights } from '../src/services/businessInsightService';
  *   npx tsx scripts/seed-demo-screenshots.ts --cleanup
  */
 const SLUG = 'northlight-demo-screenshots';
+const EMAIL = 'demo@northlight.test';
 
 async function cleanup() {
   const org = await prisma.organization.findUnique({ where: { slug: SLUG } });
@@ -17,6 +18,11 @@ async function cleanup() {
     console.log('Demo org deleted.');
   } else {
     console.log('Demo org not found; nothing to delete.');
+  }
+  const user = await prisma.user.findUnique({ where: { email: EMAIL } });
+  if (user) {
+    await prisma.user.delete({ where: { id: user.id } });
+    console.log('Demo user deleted.');
   }
 }
 
@@ -43,7 +49,7 @@ async function main() {
   const passwordHash = await bcrypt.hash('DemoPass!234', 12);
   await prisma.user.create({
     data: {
-      email: 'demo@northlight.test',
+      email: EMAIL,
       passwordHash,
       firstName: 'John',
       lastName: 'Smith',

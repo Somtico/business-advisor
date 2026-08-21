@@ -5,6 +5,7 @@ import {
   SCREENSHOT_SIZES,
   screenshotDeviceFromWidth,
   screenshotFrameClass,
+  screenshotSrcSet,
   type ScreenshotDevice,
   type ScreenshotItem,
 } from '../lib/screenshotDevices';
@@ -136,6 +137,7 @@ export function ScreenshotGallery({
             >
               <img
                 src={shot.sources[resolved]}
+                srcSet={screenshotSrcSet(shot.sources[resolved])}
                 alt={shot.alt}
                 width={size.width}
                 height={size.height}
@@ -177,6 +179,7 @@ export function ScreenshotGallery({
             </p>
             <img
               src={active.sources[resolved]}
+              srcSet={screenshotSrcSet(active.sources[resolved])}
               alt={active.alt}
               width={size.width}
               height={size.height}
