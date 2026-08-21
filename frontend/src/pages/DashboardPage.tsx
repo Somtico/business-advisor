@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
 import { api, money } from '../lib/api';
 import { AnalysisProgress, SkeletonCard } from '../components/AnalysisProgress';
-import { NextStepList, PageActionLink, hrefForActionTitle } from '../components/PageActionLink';
+import { NextStepList, PageActionLink, collapseStepsByHref, actionsNotCoveredBySteps, hrefForActionTitle } from '../components/PageActionLink';
 
 const DASHBOARD_ANALYSIS_STEPS = [
   'Reading enrolments and programmes',
@@ -268,6 +268,18 @@ export function DashboardPage() {
     );
   }
 
+  const cheapSteps = collapseStepsByHref(
+    data.operatingLoop?.cheapNextSteps?.length
+      ? data.operatingLoop.cheapNextSteps
+      : data.operatingLoop?.cheapNextStep
+        ? [data.operatingLoop.cheapNextStep]
+        : []
+  );
+  const extraOpenActions = actionsNotCoveredBySteps(
+    data.operatingLoop?.openActions ?? [],
+    cheapSteps
+  );
+
   return (
     <div>
       <h1 className="font-display text-3xl font-bold">Command Centre</h1>
@@ -291,15 +303,7 @@ export function DashboardPage() {
               ))}
             </ul>
           )}
-          <NextStepList
-            steps={
-              data.operatingLoop.cheapNextSteps?.length
-                ? data.operatingLoop.cheapNextSteps
-                : data.operatingLoop.cheapNextStep
-                  ? [data.operatingLoop.cheapNextStep]
-                  : []
-            }
-          />
+          <NextStepList steps={cheapSteps} />
           {data.operatingLoop.lastTactic ? (
             <p className="mt-3 text-base text-ba-ink/80">
               Last tactic you recorded: {data.operatingLoop.lastTactic.label} (
@@ -325,11 +329,11 @@ export function DashboardPage() {
               ))}
             </ul>
           )}
-          {data.operatingLoop.openActions.length > 0 && (
+          {extraOpenActions.length > 0 && (
             <div className="mt-4">
               <h3 className="text-base font-semibold">Open Actions</h3>
               <NextStepList
-                steps={data.operatingLoop.openActions.map((action) => ({
+                steps={extraOpenActions.map((action) => ({
                   title: action.title,
                   detail:
                     action.description ||

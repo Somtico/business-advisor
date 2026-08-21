@@ -30,6 +30,52 @@ export function pageActionLabel(href: string): string {
   return ACTION_LABELS[href] || 'Open This Page';
 }
 
+function joinList(parts: string[]): string {
+  if (parts.length <= 1) return parts[0] || '';
+  if (parts.length === 2) return `${parts[0]} and ${parts[1]}`;
+  return `${parts.slice(0, -1).join(', ')}, and ${parts[parts.length - 1]}`;
+}
+
+export type NextStep = { title: string; detail: string; href?: string };
+
+/** One card per destination so Add Students and Add Enrolments do not repeat the same button. */
+export function collapseStepsByHref(steps: NextStep[]): NextStep[] {
+  const withoutHref: NextStep[] = [];
+  const grouped = new Map<string, NextStep[]>();
+  for (const step of steps) {
+    if (!step.href) {
+      withoutHref.push(step);
+      continue;
+    }
+    const current = grouped.get(step.href) ?? [];
+    current.push(step);
+    grouped.set(step.href, current);
+  }
+  const collapsed: NextStep[] = [];
+  for (const [href, group] of grouped) {
+    if (group.length === 1) {
+      collapsed.push(group[0]);
+      continue;
+    }
+    const nouns = group.map((step) => step.title.replace(/^Add /i, ''));
+    collapsed.push({
+      title: `Add ${joinList(nouns)}`,
+      detail: group.map((step) => step.detail).join(' '),
+      href,
+    });
+  }
+  return [...collapsed, ...withoutHref];
+}
+
+export function actionsNotCoveredBySteps<
+  T extends { title: string; description?: string; expectedImpactCents?: number | null },
+>(actions: T[], steps: NextStep[]): T[] {
+  const taken = new Set(
+    steps.map((step) => step.href).filter((href): href is string => Boolean(href))
+  );
+  return actions.filter((action) => !taken.has(hrefForActionTitle(action.title)));
+}
+
 export function PageActionLink({
   to,
   children,

@@ -2,7 +2,7 @@ import { FormEvent, useEffect, useState } from 'react';
 import { Link } from 'react-router';
 import { api } from '../lib/api';
 import { AnalysisProgress, SkeletonCard } from '../components/AnalysisProgress';
-import { NextStepList } from '../components/PageActionLink';
+import { NextStepList, collapseStepsByHref } from '../components/PageActionLink';
 
 const STEPS = [
   'Checking fill, spare seats, and waitlist pressure',
@@ -273,7 +273,7 @@ export function EnrolmentPage() {
 
       <section className="mt-6 border border-ba-line bg-white p-5">
         <h2 className="text-xl font-semibold">Cheap Next Steps</h2>
-        <NextStepList steps={data.cheapNextSteps} />
+        <NextStepList steps={collapseStepsByHref(data.cheapNextSteps)} />
       </section>
 
       {data.peerPatterns.length > 0 && (
