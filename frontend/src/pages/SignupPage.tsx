@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router';
 import { api } from '../lib/api';
 import { LegalAcceptScroll } from '../components/LegalAcceptScroll';
 import { PasswordField } from '../components/PasswordField';
-import { PublicShell } from '../components/PublicShell';
+import { AuthSplitLayout } from '../components/AuthSplitLayout';
 import {
   EDUCATION_SUBTYPE_OPTIONS,
   RequiredMark,
@@ -98,12 +98,8 @@ export function SignupPage() {
   }
 
   return (
-    <PublicShell compact>
-    <div className="flex items-center justify-center bg-[radial-gradient(circle_at_top,_#dce9ef,_#f7fafc_55%)] px-4 py-10">
-      <form
-        onSubmit={onSubmit}
-        className="w-full max-w-xl border border-ba-line bg-white p-8"
-      >
+    <AuthSplitLayout wide>
+      <form onSubmit={onSubmit} className="w-full">
         <h1 className="font-display text-3xl font-bold">Create Organization</h1>
         <p className="mt-2 text-base text-ba-ink/70">
           After-school / tutoring / enrichment blueprint is applied automatically.
@@ -277,7 +273,6 @@ export function SignupPage() {
           </Link>
         </p>
       </form>
-    </div>
-    </PublicShell>
+    </AuthSplitLayout>
   );
 }

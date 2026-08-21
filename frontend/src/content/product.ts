@@ -10,6 +10,18 @@ export const PILOT_PRICE = '$5 CAD / month';
 export const LOGO_SRC = '/images/logo/business-advisor-mark.png';
 export const LOGO_FULL_SRC = '/images/logo/business-advisor-logo.png';
 
+/** Short value propositions on the sign-in / signup split panel. */
+export const authShowcase = {
+  headline: 'Clearer Decisions for After-School Centres',
+  points: [
+    'Pricing from your real cost floor, not a guess',
+    "This week's leak, a cheap next step, and verified impact",
+    'Enrolment advice before you spend on ads',
+    'Ask Advisor in plain language about your numbers',
+  ],
+  trust: 'Built for independent tutoring, STEM, and enrichment centres',
+} as const;
+
 export const advisorTrustPoints = [
   {
     title: 'Never Guesses',

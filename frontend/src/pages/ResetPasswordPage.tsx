@@ -2,7 +2,7 @@ import { FormEvent, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router';
 import { api } from '../lib/api';
 import { PasswordField } from '../components/PasswordField';
-import { PublicShell } from '../components/PublicShell';
+import { AuthSplitLayout } from '../components/AuthSplitLayout';
 import { RequiredMark } from '../lib/forms';
 
 export function ResetPasswordPage() {
@@ -37,12 +37,8 @@ export function ResetPasswordPage() {
   }
 
   return (
-    <PublicShell compact>
-      <div className="flex items-center justify-center bg-[radial-gradient(circle_at_top,_#dce9ef,_#f7fafc_55%)] px-4 py-12">
-        <form
-          onSubmit={onSubmit}
-          className="w-full max-w-md border border-ba-line bg-white p-8"
-        >
+    <AuthSplitLayout>
+      <form onSubmit={onSubmit} className="w-full">
           <h1 className="font-display text-3xl font-bold">Reset Password</h1>
           {!token && (
             <p className="mt-4 text-base text-ba-warm">
@@ -87,7 +83,6 @@ export function ResetPasswordPage() {
             </Link>
           </p>
         </form>
-      </div>
-    </PublicShell>
+    </AuthSplitLayout>
   );
 }

@@ -1,7 +1,7 @@
 import { FormEvent, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { api } from '../lib/api';
-import { PublicShell } from '../components/PublicShell';
+import { AuthSplitLayout } from '../components/AuthSplitLayout';
 import { RequiredMark } from '../lib/forms';
 
 export function ForgotPasswordPage() {
@@ -28,12 +28,8 @@ export function ForgotPasswordPage() {
   }
 
   return (
-    <PublicShell compact>
-      <div className="flex items-center justify-center bg-[radial-gradient(circle_at_top,_#dce9ef,_#f7fafc_55%)] px-4 py-12">
-        <form
-          onSubmit={onSubmit}
-          className="w-full max-w-md border border-ba-line bg-white p-8"
-        >
+    <AuthSplitLayout>
+      <form onSubmit={onSubmit} className="w-full">
           <h1 className="font-display text-3xl font-bold">Forgot Password</h1>
           <p className="mt-2 text-base text-ba-ink/70">
             Enter your email and we will send a reset link if an account matches.
@@ -64,7 +60,6 @@ export function ForgotPasswordPage() {
             </Link>
           </p>
         </form>
-      </div>
-    </PublicShell>
+    </AuthSplitLayout>
   );
 }
