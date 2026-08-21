@@ -24,11 +24,12 @@ function CheckIcon() {
 }
 
 /** Line-art command centre: programmes, a weekly chart, and a simple roster. */
-export function AuthShowcaseArt() {
+export function AuthShowcaseArt({ className }: { className?: string }) {
   return (
     <svg
       viewBox="0 0 420 280"
-      className="mx-auto w-full max-w-md"
+      className={className ?? 'mx-auto h-full w-full'}
+      preserveAspectRatio="xMidYMid meet"
       role="img"
       aria-label="Illustration of an after-school command centre with a chart, ledger, and students"
     >
@@ -109,15 +110,19 @@ export function AuthShowcaseArt() {
 
 export function AuthShowcase() {
   return (
-    <aside className="relative hidden p-6 lg:sticky lg:top-0 lg:flex lg:h-screen lg:flex-col">
-      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto rounded-3xl bg-gradient-to-b from-[#e7f3f2] to-[#cfe4e3] px-10 py-10">
-        <BrandMark to="/" size={36} wordmark={PRODUCT_NAME} />
-        <div className="mt-10 flex flex-1 flex-col justify-center">
-          <AuthShowcaseArt />
-          <p className="mt-8 font-display text-4xl font-bold leading-tight text-ba-ink">
+    <aside className="relative hidden h-dvh min-h-0 p-3 lg:flex lg:flex-col [@media(min-height:800px)]:p-5">
+      <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-3xl bg-gradient-to-b from-[#e7f3f2] to-[#cfe4e3] px-6 py-5 [@media(min-height:800px)]:px-8 [@media(min-height:800px)]:py-7 [@media(min-height:900px)]:px-10 [@media(min-height:900px)]:py-8">
+        <div className="shrink-0">
+          <BrandMark to="/" size={32} wordmark={PRODUCT_NAME} />
+        </div>
+        <div className="mt-3 flex min-h-0 flex-1 flex-col justify-center gap-3 [@media(min-height:800px)]:mt-4 [@media(min-height:800px)]:gap-5 [@media(min-height:900px)]:gap-6">
+          <div className="mx-auto h-[min(18vh,7.5rem)] w-full max-w-sm shrink-0 [@media(min-height:721px)]:h-[min(22vh,10rem)] [@media(min-height:800px)]:h-[min(26vh,13rem)] [@media(min-height:900px)]:h-[min(28vh,16rem)]">
+            <AuthShowcaseArt className="h-full w-full" />
+          </div>
+          <p className="shrink-0 font-display text-2xl font-bold leading-snug text-ba-ink [@media(min-height:800px)]:text-3xl [@media(min-height:900px)]:text-4xl [@media(min-height:900px)]:leading-tight">
             {authShowcase.headline}
           </p>
-          <ul className="mt-8 space-y-4">
+          <ul className="shrink-0 space-y-2 [@media(min-height:800px)]:space-y-3 [@media(min-height:900px)]:space-y-4">
             {authShowcase.points.map((point) => (
               <li key={point} className="flex gap-3 text-base text-ba-ink">
                 <CheckIcon />
@@ -126,7 +131,9 @@ export function AuthShowcase() {
             ))}
           </ul>
         </div>
-        <p className="mt-10 text-base text-ba-ink/80">{authShowcase.trust}</p>
+        <p className="mt-3 shrink-0 text-base text-ba-ink/80 [@media(min-height:800px)]:mt-5">
+          {authShowcase.trust}
+        </p>
       </div>
     </aside>
   );
@@ -141,16 +148,20 @@ export function AuthSplitLayout({
 }) {
   const formWidth = wide ? 'max-w-xl' : 'max-w-md';
   return (
-    <div className="min-h-screen bg-white text-ba-ink lg:grid lg:grid-cols-2">
+    <div className="min-h-dvh bg-white text-ba-ink lg:grid lg:h-dvh lg:grid-cols-2 lg:overflow-hidden">
       <AuthShowcase />
-      <div className="flex min-h-screen flex-col px-4 py-8 sm:px-8 lg:px-12">
-        <div className="mb-8 lg:hidden">
+      <div className="flex min-h-dvh flex-col px-4 py-6 sm:px-8 lg:h-full lg:min-h-0 lg:overflow-y-auto lg:px-10 lg:py-6">
+        <div className="mb-6 lg:hidden">
           <BrandMark to="/" size={36} />
         </div>
-        <div className={`mx-auto flex w-full ${formWidth} flex-1 flex-col justify-center`}>
+        <div
+          className={`mx-auto flex w-full ${formWidth} flex-1 flex-col justify-center`}
+        >
           {children}
         </div>
-        <p className={`mx-auto mt-8 w-full ${formWidth} text-base text-ba-ink/70`}>
+        <p
+          className={`mx-auto mt-6 w-full ${formWidth} text-base text-ba-ink/70`}
+        >
           {PRODUCT_NAME} is a product of{' '}
           <a
             className="text-ba-accent underline"
