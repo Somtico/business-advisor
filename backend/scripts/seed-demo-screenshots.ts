@@ -31,6 +31,12 @@ async function main() {
       pricingTargetMarginPercent: 30,
       status: 'ACTIVE',
       onboardingCompleted: true,
+      cashBalanceCents: 850000,
+      cashBalanceAsOf: new Date(),
+      learningInviteSnoozedUntil: new Date(
+        Date.now() + 365 * 24 * 60 * 60 * 1000
+      ),
+      entitlement: { create: { plan: 'PILOT' } },
     },
   });
 
@@ -49,8 +55,6 @@ async function main() {
       memberships: {
         create: { organizationId: org.id, role: 'OWNER' },
       },
-    },
-  });
     },
   });
 

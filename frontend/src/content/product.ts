@@ -83,27 +83,47 @@ export const advisorCapabilities = [
 
 export const advisorScreenshots = [
   {
-    src: '/images/screenshots/command-centre-v2.png',
+    sources: {
+      desktop: '/images/screenshots/command-centre-v3.png',
+      tablet: '/images/screenshots/command-centre-v3-tablet.png',
+      phone: '/images/screenshots/command-centre-v3-phone.png',
+    },
     alt: "Somtico Business Advisor command centre showing Advisor's verified impact, active students, expenses, and cash outlook",
     caption: "Command Centre: your key numbers and Advisor's verified impact at a glance",
   },
   {
-    src: '/images/screenshots/pricing-advisor-v2.png',
+    sources: {
+      desktop: '/images/screenshots/pricing-advisor-v3.png',
+      tablet: '/images/screenshots/pricing-advisor-v3-tablet.png',
+      phone: '/images/screenshots/pricing-advisor-v3-phone.png',
+    },
     alt: 'Pricing Advisor page showing cost floors, recommended prices, and verdicts per programme',
     caption: 'Pricing Advisor: the cheapest you can afford to charge, and what you should charge',
   },
   {
-    src: '/images/screenshots/action-centre-v2.png',
+    sources: {
+      desktop: '/images/screenshots/action-centre-v3.png',
+      tablet: '/images/screenshots/action-centre-v3-tablet.png',
+      phone: '/images/screenshots/action-centre-v3-phone.png',
+    },
     alt: 'Action Centre showing verified savings and open recommendations with expected impact',
     caption: 'Action Centre: advice becomes tracked actions with verified dollar impact',
   },
   {
-    src: '/images/screenshots/ask-advisor-v2.png',
+    sources: {
+      desktop: '/images/screenshots/ask-advisor-v3.png',
+      tablet: '/images/screenshots/ask-advisor-v3-tablet.png',
+      phone: '/images/screenshots/ask-advisor-v3-phone.png',
+    },
     alt: 'Ask Advisor chat page where owners ask questions about their business data',
     caption: 'Ask Advisor: plain-language answers grounded in your own records',
   },
   {
-    src: '/images/screenshots/help-faq-v2.png',
+    sources: {
+      desktop: '/images/screenshots/help-faq-v3.png',
+      tablet: '/images/screenshots/help-faq-v3-tablet.png',
+      phone: '/images/screenshots/help-faq-v3-phone.png',
+    },
     alt: 'Help and FAQ page introducing Advisor and its no-guessing rules',
     caption: 'Meet Your Advisor: the rules it follows, in plain language',
   },

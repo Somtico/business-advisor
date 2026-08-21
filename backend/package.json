@@ -16,6 +16,8 @@
     "db:migrate:deploy": "prisma migrate deploy",
     "db:seed": "ts-node prisma/seed.ts",
     "ensure:db-schema": "ts-node scripts/ensure-db-schema.ts",
+    "screenshots:seed": "ts-node scripts/seed-demo-screenshots.ts",
+    "screenshots:capture": "node scripts/capture-demo-screenshots.mjs",
     "moat:health": "ts-node scripts/moat-health.ts",
     "moat:eval": "ts-node scripts/run-moat-evaluation.ts"
   },

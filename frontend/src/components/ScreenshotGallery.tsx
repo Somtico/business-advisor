@@ -1,21 +1,77 @@
 import { useCallback, useEffect, useId, useState } from 'react';
+import {
+  SCREENSHOT_DEVICE_LABELS,
+  SCREENSHOT_DEVICES,
+  SCREENSHOT_SIZES,
+  screenshotDeviceFromWidth,
+  screenshotFrameClass,
+  type ScreenshotDevice,
+  type ScreenshotItem,
+} from '../lib/screenshotDevices';
 
-export type ScreenshotItem = {
-  src: string;
-  alt: string;
-  caption: string;
-};
+export type { ScreenshotItem };
+
+function DeviceTabs({
+  device,
+  onChange,
+}: {
+  device: ScreenshotDevice;
+  onChange: (next: ScreenshotDevice) => void;
+}) {
+  return (
+    <div
+      className="mt-8 flex flex-wrap gap-2"
+      role="tablist"
+      aria-label="Screenshot device size"
+    >
+      {SCREENSHOT_DEVICES.map((item) => {
+        const selected = item === device;
+        return (
+          <button
+            key={item}
+            type="button"
+            role="tab"
+            aria-selected={selected}
+            onClick={() => onChange(item)}
+            className={`cursor-pointer rounded-md px-4 py-2 text-base font-semibold ${
+              selected
+                ? 'bg-ba-accent text-white'
+                : 'border border-ba-line bg-white text-ba-ink hover:bg-ba-mist'
+            }`}
+          >
+            {SCREENSHOT_DEVICE_LABELS[item]}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
 
 export function ScreenshotGallery({
   screenshots,
 }: {
   screenshots: readonly ScreenshotItem[];
 }) {
+  const [device, setDevice] = useState<ScreenshotDevice | null>(null);
+  const [override, setOverride] = useState<ScreenshotDevice | null>(null);
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const titleId = useId();
-  const active = activeIndex != null ? screenshots[activeIndex] : null;
+  const resolved = override ?? device;
+  const active =
+    activeIndex != null && resolved
+      ? screenshots[activeIndex]
+      : null;
 
   const close = useCallback(() => setActiveIndex(null), []);
+
+  useEffect(() => {
+    function sync() {
+      setDevice(screenshotDeviceFromWidth(window.innerWidth));
+    }
+    sync();
+    window.addEventListener('resize', sync);
+    return () => window.removeEventListener('resize', sync);
+  }, []);
 
   useEffect(() => {
     if (activeIndex == null) return;
@@ -44,27 +100,45 @@ export function ScreenshotGallery({
     };
   }, [activeIndex, close, screenshots.length]);
 
+  if (!resolved) {
+    return <div className="mt-10 min-h-[16rem]" aria-hidden="true" />;
+  }
+
+  const size = SCREENSHOT_SIZES[resolved];
+  const spanFirst = resolved === 'desktop';
+  const gridClass =
+    resolved === 'phone'
+      ? 'mt-8 grid gap-8 sm:grid-cols-2 lg:grid-cols-3'
+      : resolved === 'tablet'
+        ? 'mt-8 grid gap-8'
+        : 'mt-8 grid gap-8 lg:grid-cols-2';
+
   return (
     <>
-      <div className="mt-10 grid gap-8 lg:grid-cols-2">
+      <DeviceTabs
+        device={resolved}
+        onChange={(next) => setOverride(next)}
+      />
+
+      <div className={gridClass}>
         {screenshots.map((shot, index) => (
           <figure
-            key={shot.src}
+            key={shot.caption}
             className={`overflow-hidden border border-ba-line bg-white shadow-sm ${
-              index === 0 ? 'lg:col-span-2' : ''
+              spanFirst && index === 0 ? 'lg:col-span-2' : ''
             }`}
           >
             <button
               type="button"
               onClick={() => setActiveIndex(index)}
-              className="group relative block w-full cursor-pointer text-left"
+              className={`group relative block cursor-pointer text-left ${screenshotFrameClass(resolved)}`}
               aria-label={`View full size: ${shot.caption}`}
             >
               <img
-                src={shot.src}
+                src={shot.sources[resolved]}
                 alt={shot.alt}
-                width={1440}
-                height={900}
+                width={size.width}
+                height={size.height}
                 className="h-auto w-full transition-opacity group-hover:opacity-95"
               />
               <span className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/55 to-transparent px-4 py-3 text-base font-semibold text-white opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
@@ -102,10 +176,10 @@ export function ScreenshotGallery({
               {active.caption}
             </p>
             <img
-              src={active.src}
+              src={active.sources[resolved]}
               alt={active.alt}
-              width={1440}
-              height={900}
+              width={size.width}
+              height={size.height}
               className="h-auto max-h-[calc(100vh-7rem)] w-auto max-w-full rounded-lg object-contain shadow-2xl"
             />
             <p className="mt-3 text-center text-base text-white">

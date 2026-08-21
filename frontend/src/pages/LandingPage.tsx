@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, Navigate } from 'react-router';
 import { FaqAccordion } from '../components/FaqAccordion';
 import { PublicShell } from '../components/PublicShell';
@@ -13,6 +13,12 @@ import {
   PRODUCT_NAME,
 } from '../content/product';
 import { useAuth } from '../context/AuthContext';
+import {
+  SCREENSHOT_SIZES,
+  screenshotDeviceFromWidth,
+  screenshotFrameClass,
+  type ScreenshotDevice,
+} from '../lib/screenshotDevices';
 
 export function LandingPage() {
   const { accessToken, organization } = useAuth();
@@ -65,24 +71,7 @@ export function LandingPage() {
               </Link>
             </div>
           </div>
-          <button
-            type="button"
-            onClick={() =>
-              document.getElementById('screenshots')?.scrollIntoView({
-                behavior: 'smooth',
-              })
-            }
-            className="cursor-pointer overflow-hidden border border-ba-line bg-white shadow-sm"
-            aria-label="View product screenshots"
-          >
-            <img
-              src="/images/screenshots/command-centre-v2.png"
-              alt="Somtico Business Advisor command centre with verified impact, students, expenses, and cash outlook"
-              width={1440}
-              height={900}
-              className="h-auto w-full object-cover object-left-top"
-            />
-          </button>
+          <LandingHeroShot />
         </div>
       </section>
 
@@ -168,6 +157,7 @@ export function LandingPage() {
           </h2>
           <p className="mt-3 max-w-3xl text-base text-ba-ink/80">
             These are actual screenshots from Somtico Business Advisor, not mockups.
+            Phone, tablet, and desktop each use a capture taken at that size.
             Click any image to view it full size.
           </p>
           <ScreenshotGallery screenshots={advisorScreenshots} />
@@ -219,5 +209,46 @@ export function LandingPage() {
         </div>
       </section>
     </PublicShell>
+  );
+}
+
+function LandingHeroShot() {
+  const [device, setDevice] = useState<ScreenshotDevice | null>(null);
+  const shot = advisorScreenshots[0];
+
+  useEffect(() => {
+    function sync() {
+      setDevice(screenshotDeviceFromWidth(window.innerWidth));
+    }
+    sync();
+    window.addEventListener('resize', sync);
+    return () => window.removeEventListener('resize', sync);
+  }, []);
+
+  if (!device) {
+    return <div className="min-h-[16rem]" aria-hidden="true" />;
+  }
+
+  const size = SCREENSHOT_SIZES[device];
+
+  return (
+    <button
+      type="button"
+      onClick={() =>
+        document.getElementById('screenshots')?.scrollIntoView({
+          behavior: 'smooth',
+        })
+      }
+      className={`cursor-pointer overflow-hidden border border-ba-line bg-white shadow-sm ${screenshotFrameClass(device)}`}
+      aria-label="View product screenshots"
+    >
+      <img
+        src={shot.sources[device]}
+        alt={shot.alt}
+        width={size.width}
+        height={size.height}
+        className="h-auto w-full object-contain object-left-top"
+      />
+    </button>
   );
 }
