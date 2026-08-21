@@ -2,6 +2,7 @@ import { FormEvent, useEffect, useState } from 'react';
 import { Link } from 'react-router';
 import { api, money } from '../lib/api';
 import { AnalysisProgress, SkeletonCard } from '../components/AnalysisProgress';
+import { PageActionLink } from '../components/PageActionLink';
 
 const PRICING_ANALYSIS_STEPS = [
   'Checking programme prices and capacity',
@@ -363,12 +364,10 @@ export function PricingPage() {
       )}
 
       {data.programmes.length === 0 && (
-        <p className="mt-8 text-base">
-          No active programmes yet.{' '}
-          <Link className="text-ba-accent underline" to="/app/programmes">
-            Add Programmes
-          </Link>
-        </p>
+        <div className="mt-8">
+          <p className="text-base">No active programmes yet.</p>
+          <PageActionLink to="/app/programmes" />
+        </div>
       )}
 
       <div className="mt-8 space-y-4">

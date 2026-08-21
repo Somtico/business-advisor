@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
 import { api, money } from '../lib/api';
 import { AnalysisProgress, SkeletonCard } from '../components/AnalysisProgress';
+import { NextStepList, PageActionLink } from '../components/PageActionLink';
 
 const DASHBOARD_ANALYSIS_STEPS = [
   'Reading enrolments and programmes',
@@ -289,23 +290,15 @@ export function DashboardPage() {
               ))}
             </ul>
           )}
-          {(data.operatingLoop.cheapNextSteps?.length
-            ? data.operatingLoop.cheapNextSteps
-            : data.operatingLoop.cheapNextStep
-              ? [data.operatingLoop.cheapNextStep]
-              : []
-          ).map((step) => (
-            <p key={step.title} className="mt-3 text-base">
-              <Link
-                className="font-semibold text-ba-accent underline"
-                to={step.href || '/app/enrolment'}
-              >
-                {step.title}
-              </Link>
-              .{' '}
-              {step.detail}
-            </p>
-          ))}
+          <NextStepList
+            steps={
+              data.operatingLoop.cheapNextSteps?.length
+                ? data.operatingLoop.cheapNextSteps
+                : data.operatingLoop.cheapNextStep
+                  ? [data.operatingLoop.cheapNextStep]
+                  : []
+            }
+          />
           {data.operatingLoop.lastTactic ? (
             <p className="mt-3 text-base text-ba-ink/80">
               Last tactic you recorded: {data.operatingLoop.lastTactic.label} (
@@ -432,12 +425,9 @@ export function DashboardPage() {
                 Add your programmes so Advisor can analyse capacity, enrolment,
                 pricing and performance.
               </p>
-              <Link
-                className="mt-3 inline-block cursor-pointer text-base font-semibold text-ba-accent underline"
-                to="/app/programmes"
-              >
-                Add Programme
-              </Link>
+              <PageActionLink to="/app/programmes">
+                Open Programmes & Students
+              </PageActionLink>
             </div>
           ) : (
             <ul className="mt-4 space-y-2">
@@ -462,12 +452,9 @@ export function DashboardPage() {
                 {data.forecastMissingData?.[0] ||
                   'Advisor needs enrolment history before it can build reliable growth, expected and conservative forecasts.'}
               </p>
-              <Link
-                className="mt-3 inline-block cursor-pointer text-base font-semibold text-ba-accent underline"
-                to="/app/programmes"
-              >
-                Add Enrolment Records
-              </Link>
+              <PageActionLink to="/app/programmes">
+                Open Programmes & Students
+              </PageActionLink>
             </div>
           ) : (
             <ul className="mt-4 space-y-2">
