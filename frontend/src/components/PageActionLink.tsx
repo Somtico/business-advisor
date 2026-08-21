@@ -12,6 +12,20 @@ const ACTION_LABELS: Record<string, string> = {
   '/app/readiness': 'Open Data Readiness',
 };
 
+export function hrefForActionTitle(title: string): string {
+  const t = title.toLowerCase();
+  if (/\bstudent|\benrolment|\bprogramme|\btrial|\blead/.test(t)) {
+    return '/app/programmes';
+  }
+  if (/\bpric/.test(t)) return '/app/pricing';
+  if (/\bstaff|\bwage|\bshift|\binstructor/.test(t)) return '/app/staffing';
+  if (/\bexpense|\bsubscription/.test(t)) return '/app/expenses';
+  if (/\bcash|\bloan/.test(t)) return '/app/readiness';
+  if (/\btarget|\bforecast/.test(t)) return '/app/targets';
+  if (/\btactic/.test(t)) return '/app/enrolment';
+  return '/app/actions';
+}
+
 export function pageActionLabel(href: string): string {
   return ACTION_LABELS[href] || 'Open This Page';
 }

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
 import { api, money } from '../lib/api';
 import { AnalysisProgress, SkeletonCard } from '../components/AnalysisProgress';
-import { NextStepList, PageActionLink } from '../components/PageActionLink';
+import { NextStepList, PageActionLink, hrefForActionTitle } from '../components/PageActionLink';
 
 const DASHBOARD_ANALYSIS_STEPS = [
   'Reading enrolments and programmes',
@@ -106,6 +106,7 @@ interface Dashboard {
     openActions: Array<{
       id: string;
       title: string;
+      description?: string;
       expectedImpactCents: number | null;
       impactType: string | null;
     }>;
@@ -306,13 +307,13 @@ export function DashboardPage() {
               ).
             </p>
           ) : data.operatingLoop.askTriedAndResults ? (
-            <p className="mt-3 text-base text-ba-ink/80">
-              Record what you tried and the result you got so Advisor does not
-              invent a plan.{' '}
-              <Link className="text-ba-accent underline" to="/app/enrolment">
-                Log a Tactic
-              </Link>
-            </p>
+            <div className="mt-4">
+              <p className="text-base text-ba-ink/80">
+                Record what you tried and the result you got so Advisor does not
+                invent a plan.
+              </p>
+              <PageActionLink to="/app/enrolment">Log a Tactic</PageActionLink>
+            </div>
           ) : null}
           {data.operatingLoop.peerPlaybook.length > 0 && (
             <ul className="mt-3 space-y-1 text-base">
@@ -325,16 +326,20 @@ export function DashboardPage() {
             </ul>
           )}
           {data.operatingLoop.openActions.length > 0 && (
-            <ul className="mt-4 space-y-2">
-              {data.operatingLoop.openActions.map((a) => (
-                <li key={a.id} className="border border-ba-line px-3 py-2 text-base">
-                  {a.title}
-                  {a.expectedImpactCents != null
-                    ? ` · ${money(a.expectedImpactCents)} estimated`
-                    : ''}
-                </li>
-              ))}
-            </ul>
+            <div className="mt-4">
+              <h3 className="text-base font-semibold">Open Actions</h3>
+              <NextStepList
+                steps={data.operatingLoop.openActions.map((action) => ({
+                  title: action.title,
+                  detail:
+                    action.description ||
+                    (action.expectedImpactCents != null
+                      ? `${money(action.expectedImpactCents)} estimated`
+                      : 'Open the matching page to add the missing records.'),
+                  href: hrefForActionTitle(action.title),
+                }))}
+              />
+            </div>
           )}
           <p className="mt-4 text-base">
             <Link className="text-ba-accent underline" to="/app/actions">

@@ -93,6 +93,7 @@ export async function operatingLoop(organizationId: string) {
       select: {
         id: true,
         title: true,
+        description: true,
         expectedImpactCents: true,
         impactType: true,
       },
