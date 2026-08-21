@@ -15,6 +15,12 @@ export function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(() => {
+    if (params.get('reason') === 'timeout') {
+      return 'You were signed out after 15 minutes of inactivity. Sign in again to continue.';
+    }
+    if (params.get('reason') === 'expired') {
+      return 'Your session reached its maximum length. Sign in again to continue.';
+    }
     if (params.get('verify') === 'pending') {
       return 'Check your email for a verification link before signing in.';
     }
@@ -61,6 +67,13 @@ export function LoginPage() {
           needsWorkspaceSelection?: boolean;
           noWorkspace?: boolean;
           workspaces?: WorkspaceSummary[];
+          session?: {
+            idleTimeoutMs: number;
+            warningMs: number;
+            absoluteTimeoutMs: number;
+            lastActivityAt: string;
+            expiresAt: string;
+          };
           user: {
             id: string;
             email: string;
@@ -88,6 +101,7 @@ export function LoginPage() {
         workspaces: res.data.workspaces || [],
         needsWorkspaceSelection: Boolean(res.data.needsWorkspaceSelection),
         noWorkspace: Boolean(res.data.noWorkspace),
+        session: res.data.session,
       });
       goAfterLogin(res.data);
     } catch (err) {

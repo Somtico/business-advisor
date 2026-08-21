@@ -1,9 +1,12 @@
 import jwt from 'jsonwebtoken';
 import { UserRole } from '@prisma/client';
+import { getSessionPolicy } from '../config/session';
 
 export interface AccessTokenPayload {
   userId: string;
   email: string;
+  /** AuthSession id. Required for idle/absolute timeout and server-side revoke. */
+  sid?: string;
   /** Active workspace. Omitted until the person selects one. */
   organizationId?: string;
   membershipId?: string;
@@ -18,7 +21,7 @@ function secret(): string {
 
 export function signAccessToken(payload: AccessTokenPayload): string {
   return jwt.sign(payload, secret(), {
-    expiresIn: process.env.JWT_EXPIRES_IN || '24h',
+    expiresIn: getSessionPolicy().jwtExpiresIn,
   } as jwt.SignOptions);
 }
 

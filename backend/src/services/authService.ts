@@ -12,6 +12,12 @@ import {
   EDUCATION_DATASETS,
 } from '../catalog/educationBlueprint';
 import { signAccessToken, signRefreshToken } from '../utils/jwt';
+import {
+  createAuthSession,
+  revokeAllAuthSessionsForUser,
+  sessionClientPayload,
+  type AuthSessionRow,
+} from './authSessionService';
 import { writeAudit } from './auditService';
 import { PILOT_AMOUNT_CENTS } from '../config/stripe';
 import {
@@ -139,11 +145,13 @@ function sessionFor(
       subscription: unknown;
     };
   },
-  workspaces: WorkspaceSummary[]
+  workspaces: WorkspaceSummary[],
+  authSession: AuthSessionRow
 ) {
   const payload = {
     userId: user.id,
     email: user.email,
+    sid: authSession.id,
     organizationId: membership.organization.id,
     membershipId: membership.id,
     role: membership.role,
@@ -151,6 +159,7 @@ function sessionFor(
   return {
     accessToken: signAccessToken(payload),
     refreshToken: signRefreshToken(payload),
+    session: sessionClientPayload(authSession),
     needsWorkspaceSelection: false,
     noWorkspace: false,
     workspaces,
@@ -195,12 +204,14 @@ function identitySession(
     privacyVersion: string | null;
   },
   workspaces: WorkspaceSummary[],
-  needsWorkspaceSelection: boolean
+  needsWorkspaceSelection: boolean,
+  authSession: AuthSessionRow
 ) {
-  const payload = { userId: user.id, email: user.email };
+  const payload = { userId: user.id, email: user.email, sid: authSession.id };
   return {
     accessToken: signAccessToken(payload),
     refreshToken: signRefreshToken(payload),
+    session: sessionClientPayload(authSession),
     needsWorkspaceSelection,
     noWorkspace: workspaces.length === 0,
     workspaces,
@@ -471,7 +482,10 @@ export async function loginUser(input: {
     data: { lastLoginAt: new Date() },
   });
 
-  const workspaces = await listActiveWorkspaces(user.id);
+  const [workspaces, authSession] = await Promise.all([
+    listActiveWorkspaces(user.id),
+    createAuthSession(user.id),
+  ]);
 
   if (input.hostSlug) {
     const hostSlug = input.hostSlug.toLowerCase();
@@ -489,19 +503,23 @@ export async function loginUser(input: {
         { status: 403, code: 'WORKSPACE_FORBIDDEN' }
       );
     }
-    return sessionFor(user, membership, workspaces);
+    return sessionFor(user, membership, workspaces, authSession);
   }
 
   if (workspaces.length === 1) {
     const membership = await loadMembership(user.id, workspaces[0].id);
-    if (!membership) return identitySession(user, workspaces, false);
-    return sessionFor(user, membership, workspaces);
+    if (!membership) return identitySession(user, workspaces, false, authSession);
+    return sessionFor(user, membership, workspaces, authSession);
   }
 
-  return identitySession(user, workspaces, workspaces.length > 1);
+  return identitySession(user, workspaces, workspaces.length > 1, authSession);
 }
 
-export async function selectWorkspace(userId: string, organizationId: string) {
+export async function selectWorkspace(
+  userId: string,
+  organizationId: string,
+  sessionId: string
+) {
   const user = await prisma.user.findFirst({
     where: { id: userId, isActive: true },
   });
@@ -519,7 +537,16 @@ export async function selectWorkspace(userId: string, organizationId: string) {
     );
   }
   const workspaces = await listActiveWorkspaces(userId);
-  return sessionFor(user, membership, workspaces);
+  const authSession = await prisma.authSession.findFirst({
+    where: { id: sessionId, userId, revokedAt: null },
+  });
+  if (!authSession) {
+    throw Object.assign(
+      new Error('Your session is no longer valid. Sign in again.'),
+      { status: 401, code: 'SESSION_EXPIRED' }
+    );
+  }
+  return sessionFor(user, membership, workspaces, authSession);
 }
 
 export async function acceptCurrentLegalVersions(userId: string) {
@@ -758,6 +785,7 @@ export async function resetPasswordWithToken(token: string, password: string) {
       passwordResetRequired: false,
     },
   });
+  await revokeAllAuthSessionsForUser(user.id);
   return { success: true };
 }
 

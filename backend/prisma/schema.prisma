@@ -346,10 +346,27 @@ model User {
   invitationsSent      OrganizationInvitation[]
   ownedRecommendations Recommendation[]         @relation("RecommendationOwner")
   staffMembers         StaffMember[]
+  authSessions         AuthSession[]
 
   @@index([emailVerificationToken])
   @@index([passwordResetToken])
   @@map("users")
+}
+
+/// Server-side login session. JWT `sid` maps here so idle/absolute timeout and logout can revoke access.
+model AuthSession {
+  id             String    @id @default(cuid())
+  userId         String
+  createdAt      DateTime  @default(now())
+  lastActivityAt DateTime  @default(now())
+  expiresAt      DateTime
+  revokedAt      DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, revokedAt])
+  @@index([expiresAt])
+  @@map("auth_sessions")
 }
 
 /// A person's authorization relationship to one organization (workspace).

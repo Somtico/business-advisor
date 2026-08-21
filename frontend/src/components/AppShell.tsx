@@ -104,7 +104,7 @@ export function AppShell() {
             )}
             <button
               type="button"
-              onClick={logout}
+              onClick={() => logout()}
               className="mt-2 cursor-pointer text-base text-ba-warm underline"
             >
               Sign Out

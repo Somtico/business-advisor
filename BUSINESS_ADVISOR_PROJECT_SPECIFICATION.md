@@ -4,7 +4,7 @@
 **Customer #1:** STEM Lantern Education Inc. (operating name STEM Lantern)  
 **Portal data source (during rebrand):** Skill Samurai Saskatoon Registration Portal  
 **Ports:** frontend 3007 · backend 5007  
-**Revision:** Phase 0 + Phase 1 beachhead + advice impact ledger + pricing advisor + enrolment advisor + privacy policy + terms of service + Advisor branding (Somtico Business Advisor) + signup UX / email verification + public landing page + Cloudflare R2 daily DB backups + Claude-first advisor + operating-loop moat + proprietary intelligence flywheel foundation (decision/outcome lifecycle, context snapshots, somtico_models_v2, benchmark-ready snapshots, mapping knowledge, evaluation harness, moat health) + provider-boundary PII minimization + branded transactional email template + multi-organization accounts (email/password identity, membership authorization) + onboarding and Command Centre missing-data semantics + structured cash position (total, committed, restricted, derived available operating cash) — 18 August 2026  
+**Revision:** Phase 0 + Phase 1 beachhead + advice impact ledger + pricing advisor + enrolment advisor + privacy policy + terms of service + Advisor branding (Somtico Business Advisor) + signup UX / email verification + public landing page + Cloudflare R2 daily DB backups + Claude-first advisor + operating-loop moat + proprietary intelligence flywheel foundation (decision/outcome lifecycle, context snapshots, somtico_models_v2, benchmark-ready snapshots, mapping knowledge, evaluation harness, moat health) + provider-boundary PII minimization + branded transactional email template + multi-organization accounts (email/password identity, membership authorization) + onboarding and Command Centre missing-data semantics + structured cash position (total, committed, restricted, derived available operating cash) + signed-in session idle/absolute timeout — 20 August 2026  
 **Vision doc sync:** `AI_Business_Intelligence_SaaS_Product_Vision_and_Roadmap_Beachhead_Strategy.docx` updated 16 August 2026 so sections 38–40 and the header identity match this shipped behaviour (long-term roadmap sections remain intentional future scope).
 
 ## Positioning
@@ -21,7 +21,7 @@ AI business intelligence and operating advisor for independent after-school, tut
 - AI usage and cost controls (16 Aug 2026): centralized gateway routes Anthropic primary (`claude-sonnet-5`) → OpenAI eligible fallback (`gpt-5.6-terra`) → deterministic local fallback. Enforces org/global daily and Anthropic/OpenAI monthly application caps, records logical requests and USD-micro telemetry without prompts/responses. See `docs/AI_PROVIDER_ROUTING.md`.
 - Read-only portal connector (`GET /api/connector/v1/snapshot` on the academy portal)
 
-## Authentication and tenancy (18 August 2026)
+## Authentication and tenancy (20 August 2026)
 
 Identity and workspace access are separate.
 
@@ -32,7 +32,19 @@ OrganizationMembership = authorization (userId, organizationId, role, isActive)
 Organization.slug     = routing identifier, not an authentication credential
 ```
 
-JWT access tokens carry `userId` and `email`. After a workspace is selected they also carry `organizationId`, `membershipId`, and `role`. Role and organization on the token are re-checked against an active membership on every tenant-scoped request; the client cannot grant access by sending another organization's id, slug, or role.
+JWT access tokens carry `userId`, `email`, and a server session id (`sid`). After a workspace is selected they also carry `organizationId`, `membershipId`, and `role`. Role and organization on the token are re-checked against an active membership on every tenant-scoped request; the client cannot grant access by sending another organization's id, slug, or role.
+
+### Session timeout (20 August 2026)
+
+Signed-in sessions are server-backed (`auth_sessions`) so closing the tab is not the only control.
+
+- **Idle:** 15 minutes without activity (PCI DSS 8.2.8). The next authenticated request after that window returns `401 SESSION_IDLE` and revokes the session.
+- **Absolute:** 8 hours from sign-in, even with continuous activity (OWASP session management). Returns `401 SESSION_EXPIRED`.
+- **Warning:** the client shows a two-minute countdown and **Stay Signed In** (which calls `POST /api/auth/touch`). Mouse movement during the warning does not extend the session; the person must confirm.
+- **Logout:** `POST /api/auth/logout` revokes that session. Password reset revokes every session for the account.
+- **Cross-tab:** activity timestamps and logout are shared across tabs in the same browser.
+
+Timing is configurable: `SESSION_IDLE_MINUTES`, `SESSION_ABSOLUTE_HOURS`, `SESSION_WARNING_SECONDS`, `SESSION_TOUCH_THROTTLE_SECONDS`. Access JWT lifetime (`JWT_EXPIRES_IN`, default `8h`) should match or exceed the absolute cap; idle is enforced on `AuthSession.lastActivityAt`, not by JWT expiry alone.
 
 ### Shared-domain login (`businessadvisor.app/login`)
 
@@ -107,6 +119,7 @@ Older clients that still POST `slug` with email and password continue to authent
 - Command Centre operating loop (15 Aug 2026): `/app` leads with this week's named leak, cheap next step, last tactic, playbook counts, and open actions. Weekly brief emails the same loop. `GET /api/app/connectors` lists portal / CSV / manual data sources on Settings.
 - Onboarding and Command Centre missing-data semantics (18 Aug 2026): a displayed zero means the system actually observed zero. `GET /api/app/dashboard` exposes availability flags and `null` for unavailable metrics rather than collapsing missing values to `$0`. Onboarding copy is customer-facing; education subtype remains required (`What Type of Education Business Do You Run?`); cash is optional (blank is omitted, not stored as `$0`). Supplied cash writes an append-only `metric_snapshots` row (`metricKey` `cash_balance`, as-of date, currency, source `manual_onboarding`) and updates the existing `Organization.cashBalanceCents` / `cashBalanceAsOf` cache. Legacy rows with `cashBalanceAsOf` set remain the current value; `cashBalanceAsOf` null means cash was never recorded. Command Centre cards: Advisor's Impact (no verified actions → “No verified impact yet”), Active Students, Labour Opportunity, Expenses This Month (month-to-date expense transactions), Projected Monthly Net (monthly in − out; **Total business cash** is shown, with **Available operating cash** when allocation details are known). Empty Programmes and enrolment-history-less Forecasts show empty states with Add Programme / Add Enrolment Records. This Week uses natural enrolment copy and blueprint terms (`Students`, `Programmes`, `Enrolments`). Help Improve Advisor consent banner is unchanged.
 - Structured cash position (18 Aug 2026): Advisor distinguishes cash in the bank from cash that is actually available for new decisions. See **Cash position** below.
+- Session timeout (20 Aug 2026): signed-in users are logged out after **15 minutes idle** (PCI DSS 8.2.8) with a two-minute warning, and after **8 hours absolute**. Enforcement is server-side (`auth_sessions` + JWT `sid`); the client warning is UX only. `POST /api/auth/logout` and password reset revoke sessions. Login copy explains timeout (`/login?reason=timeout` / `expired`). FAQ: "Why was I signed out?"
 - API hygiene (15 Aug 2026): `GET /api/app/pricing/guidance` strips per-instructor hourly rates and burden percents from session evidence (Advisor still sees full evidence server-side). Ask Advisor UI no longer shows provider/model names.
 - Daily analysis + weekly executive brief jobs (Brevo when configured); daily job also runs impact verification. Weekly brief HTML uses the branded email shell (17 Aug 2026) with impact, operating loop, numbers, open actions, and an Open Command Centre CTA.
 - Portal connector sync into canonical objects via ExternalIdentity
@@ -228,6 +241,11 @@ See `backend/.env.example` and `frontend/.env.example`.
 Notable privacy secret:
 
 - **`LEARNING_CONTRIBUTOR_SALT`** — dedicated HMAC secret for purpose-specific learning/benchmark `contributorKey` values. Required in production (startup exits if missing/blank). Must not be `JWT_SECRET`. Keep stable unless you run an intentional contributor-key migration. Development/test may omit it and use the documented local fallback in `contributorKey.ts` (never a JWT fallback).
+- **`JWT_EXPIRES_IN`** — access token lifetime (default `8h`). Keep at or above `SESSION_ABSOLUTE_HOURS`.
+- **`SESSION_IDLE_MINUTES`** — idle logout (default `15`).
+- **`SESSION_ABSOLUTE_HOURS`** — maximum session length (default `8`).
+- **`SESSION_WARNING_SECONDS`** — client warning before idle logout (default `120`).
+- **`SESSION_TOUCH_THROTTLE_SECONDS`** — minimum gap between `lastActivityAt` writes (default `30`).
 
 AI provider configuration (backend only; see `docs/AI_PROVIDER_ROUTING.md`):
 

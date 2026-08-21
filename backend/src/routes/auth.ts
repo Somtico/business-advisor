@@ -17,6 +17,11 @@ import { createPilotCheckoutSession } from '../services/billingService';
 import { authenticateToken } from '../middleware/auth';
 import { requireTenant } from '../middleware/tenant';
 import { verifyAccessToken } from '../utils/jwt';
+import { publicSessionPolicy } from '../config/session';
+import {
+  revokeAuthSession,
+  sessionClientPayload,
+} from '../services/authSessionService';
 import prisma from '../config/prisma';
 import {
   EDUCATION_LABELS,
@@ -135,6 +140,34 @@ router.post('/login', async (req: Request, res: Response) => {
   }
 });
 
+router.get('/session-policy', (_req: Request, res: Response) => {
+  res.json({ success: true, data: publicSessionPolicy() });
+});
+
+router.post('/logout', async (req: Request, res: Response) => {
+  const header = req.headers.authorization;
+  if (header?.startsWith('Bearer ')) {
+    try {
+      const payload = verifyAccessToken(header.slice(7));
+      if (payload.sid) await revokeAuthSession(payload.sid);
+    } catch {
+      /* Already invalid; still succeed so the client can clear storage. */
+    }
+  }
+  res.json({ success: true });
+});
+
+router.post('/touch', authenticateToken, (req: Request, res: Response) => {
+  res.json({
+    success: true,
+    data: {
+      session: req.authSession
+        ? sessionClientPayload(req.authSession)
+        : publicSessionPolicy(),
+    },
+  });
+});
+
 router.post('/select-workspace', authenticateToken, async (req: Request, res: Response) => {
   try {
     const organizationId = String(req.body?.organizationId || '');
@@ -145,7 +178,11 @@ router.post('/select-workspace', authenticateToken, async (req: Request, res: Re
       });
       return;
     }
-    const result = await selectWorkspace(req.user!.id, organizationId);
+    const result = await selectWorkspace(
+      req.user!.id,
+      organizationId,
+      req.user!.sessionId
+    );
     res.json({ success: true, data: result });
   } catch (err) {
     authError(err, res, 'WORKSPACE_SELECT_FAILED', 'Could not open that workspace');
@@ -184,7 +221,7 @@ router.post('/organizations', authenticateToken, async (req: Request, res: Respo
       successUrl: `${process.env.FRONTEND_URL || 'http://localhost:3007'}/login?billing=success`,
       cancelUrl: `${process.env.FRONTEND_URL || 'http://localhost:3007'}/app/settings`,
     });
-    const session = await selectWorkspace(req.user!.id, org.id);
+    const session = await selectWorkspace(req.user!.id, org.id, req.user!.sessionId);
     res.status(201).json({
       success: true,
       data: { organization: { id: org.id, name: org.name, slug: org.slug }, checkout, session },
@@ -345,6 +382,9 @@ router.get('/me', authenticateToken, async (req: Request, res: Response) => {
       workspaces,
       needsWorkspaceSelection: !org && workspaces.length > 1,
       noWorkspace: workspaces.length === 0,
+      session: req.authSession
+        ? sessionClientPayload(req.authSession)
+        : publicSessionPolicy(),
       labels: EDUCATION_LABELS,
       educationSubtypeLabel: org
         ? subtypeLabel(org.educationSubtype, org.educationSubtypeOther)

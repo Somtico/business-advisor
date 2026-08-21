@@ -7,6 +7,11 @@ jest.mock('../config/prisma', () => ({
     user: { findFirst: jest.fn() },
     organizationMembership: { findFirst: jest.fn() },
     organization: { findUnique: jest.fn() },
+    authSession: {
+      findFirst: jest.fn(),
+      update: jest.fn(),
+      updateMany: jest.fn(),
+    },
   },
 }));
 
@@ -32,6 +37,7 @@ describe('authenticateToken tenant isolation', () => {
     (verifyAccessToken as jest.Mock).mockReturnValue({
       userId: 'user-1',
       email: 'ada@example.com',
+      sid: 'sess-1',
       organizationId: 'org-a',
       membershipId: 'mem-a',
       role: 'OWNER',
@@ -43,6 +49,25 @@ describe('authenticateToken tenant isolation', () => {
       lastName: 'Lovelace',
       isActive: true,
     });
+    (prisma.authSession.findFirst as jest.Mock).mockResolvedValue({
+      id: 'sess-1',
+      userId: 'user-1',
+      createdAt: new Date(),
+      lastActivityAt: new Date(),
+      expiresAt: new Date(Date.now() + 8 * 60 * 60 * 1000),
+      revokedAt: null,
+    });
+    (prisma.authSession.update as jest.Mock).mockImplementation(
+      async ({ data }: { data: object }) => ({
+        id: 'sess-1',
+        userId: 'user-1',
+        createdAt: new Date(),
+        lastActivityAt: new Date(),
+        expiresAt: new Date(Date.now() + 8 * 60 * 60 * 1000),
+        revokedAt: null,
+        ...data,
+      })
+    );
     (prisma.organizationMembership.findFirst as jest.Mock).mockResolvedValue({
       id: 'mem-a',
       userId: 'user-1',
@@ -64,6 +89,24 @@ describe('authenticateToken tenant isolation', () => {
     expect(next).toHaveBeenCalled();
     expect(req.user?.organizationId).toBe('org-a');
     expect(req.user?.role).toBe('OWNER');
+    expect(req.user?.sessionId).toBe('sess-1');
+  });
+
+  it('rejects a token with no server session id', async () => {
+    (verifyAccessToken as jest.Mock).mockReturnValue({
+      userId: 'user-1',
+      email: 'ada@example.com',
+      organizationId: 'org-a',
+    });
+    const req = {
+      headers: { authorization: 'Bearer token' },
+    } as unknown as Request;
+    const res = mockRes();
+    const next = jest.fn();
+    await authenticateToken(req, res, next);
+    expect(next).not.toHaveBeenCalled();
+    expect(res.status).toHaveBeenCalledWith(401);
+    expect(res.json.mock.calls[0][0].error.code).toBe('SESSION_EXPIRED');
   });
 
   it('rejects X-Tenant-Slug / host for an organization that is not in the token', async () => {
@@ -96,6 +139,7 @@ describe('authenticateToken tenant isolation', () => {
     (verifyAccessToken as jest.Mock).mockReturnValue({
       userId: 'user-1',
       email: 'ada@example.com',
+      sid: 'sess-1',
       organizationId: 'org-a',
       membershipId: 'mem-a',
       role: 'OWNER',
@@ -134,6 +178,7 @@ describe('requireWorkspace', () => {
         organizationId: 'org-a',
         membershipId: 'mem-a',
         role: 'OWNER' as UserRole,
+        sessionId: 'sess-1',
       },
       tenantSlug: 'other-co',
     } as unknown as Request;

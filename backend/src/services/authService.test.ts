@@ -17,6 +17,12 @@ jest.mock('../config/prisma', () => ({
     organization: {
       findUnique: jest.fn(),
     },
+    authSession: {
+      findFirst: jest.fn(),
+      create: jest.fn(),
+      update: jest.fn(),
+      updateMany: jest.fn(),
+    },
   },
 }));
 
@@ -78,7 +84,16 @@ function membership(orgId: string, slug: string, role: UserRole, name: string) {
 describe('loginUser', () => {
   beforeEach(() => {
     jest.resetAllMocks();
+    process.env.JWT_SECRET = 'test-secret-for-auth';
     (prisma.user.update as jest.Mock).mockResolvedValue({});
+    (prisma.authSession.create as jest.Mock).mockResolvedValue({
+      id: 'sess-1',
+      userId: 'user-1',
+      createdAt: new Date(),
+      lastActivityAt: new Date(),
+      expiresAt: new Date(Date.now() + 8 * 60 * 60 * 1000),
+      revokedAt: null,
+    });
   });
 
   it('signs a one-organization user into that workspace', async () => {
@@ -98,6 +113,7 @@ describe('loginUser', () => {
     expect(result.organization?.id).toBe('org-a');
     expect(result.user.role).toBe('OWNER');
     expect(result.accessToken).toBeTruthy();
+    expect(result.session.idleTimeoutMs).toBe(15 * 60 * 1000);
   });
 
   it('requires workspace selection when the account has multiple organizations', async () => {
@@ -195,14 +211,24 @@ describe('selectWorkspace', () => {
     (prisma.organizationMembership.findMany as jest.Mock).mockResolvedValue([
       membership('org-a', 'acme', 'OWNER', 'Acme Centre'),
     ]);
-    const result = await selectWorkspace('user-1', 'org-a');
+    (prisma.authSession.findFirst as jest.Mock).mockResolvedValue({
+      id: 'sess-1',
+      userId: 'user-1',
+      createdAt: new Date(),
+      lastActivityAt: new Date(),
+      expiresAt: new Date(Date.now() + 8 * 60 * 60 * 1000),
+      revokedAt: null,
+    });
+    const result = await selectWorkspace('user-1', 'org-a', 'sess-1');
     expect(result.organization?.id).toBe('org-a');
   });
 
   it('rejects an organization the user does not belong to', async () => {
     (prisma.user.findFirst as jest.Mock).mockResolvedValue(userRow());
     (prisma.organizationMembership.findFirst as jest.Mock).mockResolvedValue(null);
-    await expect(selectWorkspace('user-1', 'org-other')).rejects.toMatchObject({
+    await expect(
+      selectWorkspace('user-1', 'org-other', 'sess-1')
+    ).rejects.toMatchObject({
       code: 'WORKSPACE_FORBIDDEN',
       status: 403,
     });

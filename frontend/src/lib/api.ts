@@ -1,3 +1,9 @@
+import {
+  emitSessionEnded,
+  reasonFromCode,
+  SESSION_END_CODES,
+} from './session';
+
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
 
 export function getTenantSlug(): string | null {
@@ -52,14 +58,27 @@ export async function api<T>(
   const res = await fetch(`${API_BASE}${path}`, { ...options, headers });
   const json = await res.json().catch(() => ({}));
   if (!res.ok) {
+    const code = json?.error?.code as string | undefined;
+    if (token && SESSION_END_CODES.has(code || '')) {
+      emitSessionEnded(reasonFromCode(code));
+    }
     throw new ApiError(json?.error?.message || `Request failed (${res.status})`, {
       status: res.status,
-      code: json?.error?.code,
+      code,
       requiresVerification: json?.error?.requiresVerification,
       email: json?.error?.email,
     });
   }
   return json as T;
+}
+
+export function revokeSessionOnServer() {
+  const token = localStorage.getItem('ba_access_token');
+  if (!token) return;
+  void fetch(`${API_BASE}/api/auth/logout`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+  }).catch(() => undefined);
 }
 
 export function money(cents: number | null | undefined, currency = 'CAD'): string {

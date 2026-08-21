@@ -201,6 +201,10 @@ export const FAQ_SECTIONS: FaqSection[] = [
         a: 'Open Sign In and enter your email and password. You do not enter an organization address on the shared sign-in page. If you belong to one organization, you go straight in. If you belong to more than one, you land on My Workspaces after signing in. Visiting your-centre.businessadvisor.app still opens that workspace when you are a member.',
       },
       {
+        q: 'Why was I signed out?',
+        a: 'Somtico Business Advisor signs you out after 15 minutes of inactivity, and after 8 hours even if you stay active. A two-minute warning appears so you can stay signed in. This protects payroll, cash, and enrolment records if you step away from a shared or unlocked computer. Sign in again to continue. Changing your password also ends every other signed-in session.',
+      },
+      {
         q: 'Can one person belong to more than one organization?',
         a: 'Yes. One email is one account. Open My Workspaces to see every organization you belong to, switch between them, or create a new one. Owners can also invite that account into another organization. Roles stay specific to each organization: being an owner in one centre does not grant owner access in another.',
       },

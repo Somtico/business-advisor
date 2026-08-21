@@ -89,6 +89,13 @@ export function WorkspacesPage() {
             user: NonNullable<typeof user>;
             organization: NonNullable<typeof organization>;
             workspaces?: WorkspaceSummary[];
+            session?: {
+              idleTimeoutMs: number;
+              warningMs: number;
+              absoluteTimeoutMs: number;
+              lastActivityAt: string;
+              expiresAt: string;
+            };
           };
         };
       }>('/api/auth/organizations', {
@@ -108,6 +115,7 @@ export function WorkspacesPage() {
         workspaces: res.data.session.workspaces,
         needsWorkspaceSelection: false,
         noWorkspace: false,
+        session: res.data.session.session,
       });
       navigate('/app/onboarding');
     } catch (err) {
@@ -265,7 +273,7 @@ export function WorkspacesPage() {
             ) : null}
             <button
               type="button"
-              onClick={logout}
+              onClick={() => logout()}
               className="cursor-pointer text-ba-warm underline"
             >
               Sign Out

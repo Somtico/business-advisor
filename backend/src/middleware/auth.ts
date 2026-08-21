@@ -2,6 +2,11 @@ import { Request, Response, NextFunction } from 'express';
 import { UserRole } from '@prisma/client';
 import prisma from '../config/prisma';
 import { verifyAccessToken } from '../utils/jwt';
+import {
+  SessionAuthError,
+  assertAuthSession,
+  type AuthSessionRow,
+} from '../services/authSessionService';
 
 declare global {
   namespace Express {
@@ -14,7 +19,9 @@ declare global {
         organizationId: string;
         membershipId?: string;
         role?: UserRole;
+        sessionId: string;
       };
+      authSession?: AuthSessionRow;
     }
   }
 }
@@ -36,6 +43,9 @@ export async function authenticateToken(
 
     const token = header.slice(7);
     const payload = verifyAccessToken(token);
+
+    const session = await assertAuthSession(payload.sid, payload.userId);
+    req.authSession = session;
 
     const user = await prisma.user.findFirst({
       where: { id: payload.userId, isActive: true },
@@ -111,9 +121,17 @@ export async function authenticateToken(
       organizationId: organizationId || '',
       membershipId,
       role,
+      sessionId: session.id,
     };
     next();
-  } catch {
+  } catch (err) {
+    if (err instanceof SessionAuthError) {
+      res.status(401).json({
+        success: false,
+        error: { code: err.code, message: err.message },
+      });
+      return;
+    }
     res.status(401).json({
       success: false,
       error: { code: 'UNAUTHORIZED', message: 'Invalid or expired token' },
